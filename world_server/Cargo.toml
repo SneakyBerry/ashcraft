@@ -1,0 +1,11 @@
+[package]
+name = "world_server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.17", features = ["full"] }
+anyhow = "1.0"
+bytes = "1.1"
