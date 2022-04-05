@@ -1,5 +1,5 @@
 [package]
-name = "battlenet_server"
+name = "rustycraft_battlenet_server"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,8 @@ edition = "2021"
 
 
 [dependencies]
-protocol = { path = "../protocol" }
+rustycraft_protocol = { path = "../rustycraft_protocol" }
+rustycraft_logging = { path = "../rustycraft_logging" }
 
 bytes = "1.1"
 prost = "0.9"

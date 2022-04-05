@@ -4,19 +4,18 @@ use crate::realmlist::json::realm_list::{
 };
 use crate::Server;
 use flate2::write::ZlibEncoder;
-use flate2::{Compression, FlushCompress};
-use prost::Message;
-use protocol::bgs::protocol::game_utilities::v1::{
+use flate2::Compression;
+use rand::Rng;
+use rustycraft_protocol::bgs::protocol::game_utilities::v1::{
     ClientRequest, ClientResponse, GameUtilitiesService, GetAllValuesForAttributeRequest,
     GetAllValuesForAttributeResponse,
 };
-use protocol::bgs::protocol::{Attribute, Variant};
-use protocol::errors::WowRpcResponse;
-use protocol::errors::WowRpcResponse::NotImplemented;
+use rustycraft_protocol::bgs::protocol::{Attribute, Variant};
+use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::errors::WowRpcResponse::NotImplemented;
 use serde::Serialize;
 use serde_json::to_string;
 use std::io::Write;
-use rand::Rng;
 
 fn compress<T>(name: &str, data: &T) -> Vec<u8>
 where

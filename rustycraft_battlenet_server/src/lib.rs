@@ -1,11 +1,11 @@
 pub mod config;
 pub mod dispatcher;
+mod realmlist;
 pub mod services;
 pub mod socket_manager;
 mod utils;
 pub mod web_handler;
 mod web_models;
-mod realmlist;
 
 #[macro_use]
 extern crate lazy_static;
@@ -13,15 +13,15 @@ extern crate lazy_static;
 extern crate log;
 
 use crate::socket_manager::{SessionHandler, SocketEvents};
-use protocol::bgs::protocol::account::v1::AccountService;
-use protocol::bgs::protocol::authentication::v1::AuthenticationService;
-use protocol::bgs::protocol::connection::v1::ConnectionService;
-use protocol::bgs::protocol::game_utilities::v1::GameUtilitiesService;
-use protocol::bgs::protocol::{Header, NoData};
-use protocol::errors::WowRpcResponse;
-use protocol::messages::{LoggingAttributes, OutgoingMessage, RawMessage};
 use rustls::{Certificate, PrivateKey};
 use rustls_pemfile::{certs, rsa_private_keys};
+use rustycraft_protocol::bgs::protocol::account::v1::AccountService;
+use rustycraft_protocol::bgs::protocol::authentication::v1::AuthenticationService;
+use rustycraft_protocol::bgs::protocol::connection::v1::ConnectionService;
+use rustycraft_protocol::bgs::protocol::game_utilities::v1::GameUtilitiesService;
+use rustycraft_protocol::bgs::protocol::{Header, NoData};
+use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::messages::{LoggingAttributes, OutgoingMessage, RawMessage};
 use std::fs::File;
 use std::io::BufReader;
 use std::net::SocketAddr;
@@ -106,9 +106,7 @@ impl SessionHandler for Server {
                 None => break,
             };
             match response {
-                Ok(data) => {
-                    self.tx.send(SocketEvents::Send(data)).await?
-                }
+                Ok(data) => self.tx.send(SocketEvents::Send(data)).await?,
                 Err(e) => {
                     self.handle_error(e).await?;
                     break;

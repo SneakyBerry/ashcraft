@@ -1,4 +1,3 @@
-src/proto.rs
 target
-/protocol/src/lib.rs
+./rustycraft_protocol/src/lib.rs
 .idea

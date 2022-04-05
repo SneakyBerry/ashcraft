@@ -1,4 +1,3 @@
-
 pub mod battlenet {
     pub mod json {
         pub mod login {

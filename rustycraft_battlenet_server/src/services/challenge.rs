@@ -1,8 +1,8 @@
-use protocol::bgs::protocol::challenge::v1::{
+use crate::{Header, OutgoingMessage, Server, SocketEvents, WowRpcResponse};
+use rustycraft_protocol::bgs::protocol::challenge::v1::{
     ChallengeExternalRequest, ChallengeListener,
 };
-use protocol::bgs::protocol::NoResponse;
-use crate::{Header, OutgoingMessage, Server, SocketEvents, WowRpcResponse};
+use rustycraft_protocol::bgs::protocol::NoResponse;
 
 #[async_trait::async_trait]
 impl ChallengeListener for Server {

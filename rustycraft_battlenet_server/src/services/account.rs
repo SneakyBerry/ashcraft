@@ -1,10 +1,10 @@
 use crate::Server;
-use protocol::bgs::protocol::account::v1::{
+use rustycraft_protocol::bgs::protocol::account::v1::{
     AccountFieldTags, AccountService, AccountState, GameAccountFieldTags, GameAccountState,
     GameLevelInfo, GameStatus, GetAccountStateRequest, GetAccountStateResponse,
     GetGameAccountStateRequest, GetGameAccountStateResponse, PrivacyInfo,
 };
-use protocol::errors::WowRpcResponse;
+use rustycraft_protocol::errors::WowRpcResponse;
 
 #[async_trait::async_trait]
 impl AccountService for Server {

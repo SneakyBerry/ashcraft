@@ -37,7 +37,7 @@ impl Http1Header {
 
 #[cfg(test)]
 mod test {
-    use crate::utils::{Http1Header};
+    use crate::utils::Http1Header;
     use axum::http::header::HeaderName;
 
     #[test]

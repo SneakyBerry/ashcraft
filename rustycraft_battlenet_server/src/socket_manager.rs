@@ -1,9 +1,9 @@
 use bytes::{Bytes, BytesMut};
 use prost::Message;
-use protocol::bgs::protocol::Header;
-use protocol::errors::WowRpcResponse;
-use protocol::messages::RawMessage;
 use rustls::ServerConfig;
+use rustycraft_protocol::bgs::protocol::Header;
+use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::messages::RawMessage;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
