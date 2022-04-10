@@ -5,8 +5,10 @@ use std::io::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::task::JoinError;
 use tokio::time::error::Elapsed;
+use deku::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, DekuWrite)]
+#[deku(type = "u32", endian = "little")]
 #[repr(u32)]
 pub enum WowRpcResponse {
     Ok = 0x00000000,

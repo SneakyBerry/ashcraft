@@ -25,7 +25,7 @@ where
     let mut out = Vec::new();
     out.extend_from_slice(&(payload.as_bytes().len() as u32).to_le_bytes());
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder.write(payload.as_bytes());
+    encoder.write(payload.as_bytes()).unwrap();
     out.extend(encoder.finish().unwrap());
     out
 }

@@ -1,7 +1,75 @@
 use crate::opcodes::{OpcodeClient, OpcodeServer};
+use crate::packets::auth::AuthChallenge;
+use bytes::{Bytes, BytesMut};
+use deku::prelude::*;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use std::fmt::Debug;
+use deku::bitvec::{BitVec, Msb0};
 
 pub mod auth;
+
+
+fn write(output: &mut BitVec<Msb0, u8>, packet_size: u32) -> Result<(), DekuError> {
+    packet_size.write(output, ())
+}
+
+#[derive(Debug, DekuWrite, DekuRead)]
+#[deku(ctx = "packet_size: u32")]
+pub struct PacketHeader {
+    #[deku(writer = "write(deku::output, packet_size)")]
+    pub size: u32,
+    #[deku(count = "12")]
+    pub tag: Vec<u8>,
+}
+
+#[derive(Debug)]
+pub struct ServerPacket<T>
+where
+    T: DekuContainerWrite,
+{
+    need_encryption: bool,
+    opcode: OpcodeServer,
+    payload: T,
+}
+
+#[derive(Debug, DekuWrite)]
+struct ReadyServerPacket {
+    #[deku(ctx = "payload.len() as u32")] // 2 is size of opcode
+    header: PacketHeader,
+    payload: Vec<u8>,
+}
+
+impl<T> ServerPacket<T>
+where
+    T: DekuContainerWrite,
+{
+    pub fn new(opcode: OpcodeServer, payload: T, need_encryption: bool) -> ServerPacket<T> {
+        ServerPacket {
+            need_encryption,
+            opcode,
+            payload,
+        }
+    }
+    pub fn serialize(mut self) -> Result<Bytes, deku::DekuError> {
+        let mut serialized_payload: Vec<u8> = self.opcode.to_bytes()?;
+        serialized_payload.extend(self.payload.to_bytes()?);
+        let inner_struct = ReadyServerPacket {
+            header: PacketHeader {
+                size: 0,            // will be set on write
+                tag: vec![0; 12],   // We don't use encryption in this case.
+            },
+            payload: serialized_payload,
+        };
+        inner_struct.to_bytes().map(Bytes::from)
+    }
+}
+
+#[derive(Debug)]
+pub struct RawClientPacket {
+    pub header: PacketHeader,
+    pub payload: Bytes,
+}
 
 #[derive(Debug)]
 pub enum PacketClient {
@@ -2857,1473 +2925,1473 @@ impl From<OpcodeClient> for PacketClient {
         }
     }
 }
-
-impl From<OpcodeServer> for PacketServer {
-    fn from(opcode: OpcodeServer) -> Self {
-        match opcode {
-            OpcodeServer::AbortNewWorld => PacketServer::AbortNewWorld,
-            OpcodeServer::AccountCosmeticAdded => PacketServer::AccountCosmeticAdded,
-            OpcodeServer::AccountCriteriaUpdate => PacketServer::AccountCriteriaUpdate,
-            OpcodeServer::AccountDataTimes => PacketServer::AccountDataTimes,
-            OpcodeServer::AccountMountUpdate => PacketServer::AccountMountUpdate,
-            OpcodeServer::AccountNotificationsResponse => {
-                PacketServer::AccountNotificationsResponse
-            }
-            OpcodeServer::AccountToyUpdate => PacketServer::AccountToyUpdate,
-            OpcodeServer::AccountTransmogSetFavoritesUpdate => {
-                PacketServer::AccountTransmogSetFavoritesUpdate
-            }
-            OpcodeServer::AccountTransmogUpdate => PacketServer::AccountTransmogUpdate,
-            OpcodeServer::AchievementDeleted => PacketServer::AchievementDeleted,
-            OpcodeServer::AchievementEarned => PacketServer::AchievementEarned,
-            OpcodeServer::ActivateEssenceFailed => PacketServer::ActivateEssenceFailed,
-            OpcodeServer::ActivateSoulbindFailed => PacketServer::ActivateSoulbindFailed,
-            OpcodeServer::ActivateTaxiReply => PacketServer::ActivateTaxiReply,
-            OpcodeServer::ActiveGlyphs => PacketServer::ActiveGlyphs,
-            OpcodeServer::AddonListRequest => PacketServer::AddonListRequest,
-            OpcodeServer::AddBattlenetFriendResponse => PacketServer::AddBattlenetFriendResponse,
-            OpcodeServer::AddItemPassive => PacketServer::AddItemPassive,
-            OpcodeServer::AddLossOfControl => PacketServer::AddLossOfControl,
-            OpcodeServer::AddRunePower => PacketServer::AddRunePower,
-            OpcodeServer::AdjustSplineDuration => PacketServer::AdjustSplineDuration,
-            OpcodeServer::AdvancedCombatLog => PacketServer::AdvancedCombatLog,
-            OpcodeServer::AdventureJournalDataResponse => {
-                PacketServer::AdventureJournalDataResponse
-            }
-            OpcodeServer::AdventureMapOpenNpc => PacketServer::AdventureMapOpenNpc,
-            OpcodeServer::AeLootTargets => PacketServer::AeLootTargets,
-            OpcodeServer::AeLootTargetAck => PacketServer::AeLootTargetAck,
-            OpcodeServer::AiReaction => PacketServer::AiReaction,
-            OpcodeServer::AlliedRaceDetails => PacketServer::AlliedRaceDetails,
-            OpcodeServer::AllAccountCriteria => PacketServer::AllAccountCriteria,
-            OpcodeServer::AllAchievementData => PacketServer::AllAchievementData,
-            OpcodeServer::AllGuildAchievements => PacketServer::AllGuildAchievements,
-            OpcodeServer::ApplyMountEquipmentResult => PacketServer::ApplyMountEquipmentResult,
-            OpcodeServer::ArchaeologySurveryCast => PacketServer::ArchaeologySurveryCast,
-            OpcodeServer::AreaPoiUpdateResponse => PacketServer::AreaPoiUpdateResponse,
-            OpcodeServer::AreaSpiritHealerTime => PacketServer::AreaSpiritHealerTime,
-            OpcodeServer::AreaTriggerDenied => PacketServer::AreaTriggerDenied,
-            OpcodeServer::AreaTriggerForceSetPositionAndFacing => {
-                PacketServer::AreaTriggerForceSetPositionAndFacing
-            }
-            OpcodeServer::AreaTriggerNoCorpse => PacketServer::AreaTriggerNoCorpse,
-            OpcodeServer::AreaTriggerPlaySpellVisual => PacketServer::AreaTriggerPlaySpellVisual,
-            OpcodeServer::AreaTriggerRePath => PacketServer::AreaTriggerRePath,
-            OpcodeServer::AreaTriggerReShape => PacketServer::AreaTriggerReShape,
-            OpcodeServer::AreaTriggerUnattach => PacketServer::AreaTriggerUnattach,
-            OpcodeServer::ArenaClearOpponents => PacketServer::ArenaClearOpponents,
-            OpcodeServer::ArenaCrowdControlSpellResult => {
-                PacketServer::ArenaCrowdControlSpellResult
-            }
-            OpcodeServer::ArenaPrepOpponentSpecializations => {
-                PacketServer::ArenaPrepOpponentSpecializations
-            }
-            OpcodeServer::ArtifactEndgamePowersRefunded => {
-                PacketServer::ArtifactEndgamePowersRefunded
-            }
-            OpcodeServer::ArtifactForgeError => PacketServer::ArtifactForgeError,
-            OpcodeServer::ArtifactRespecPrompt => PacketServer::ArtifactRespecPrompt,
-            OpcodeServer::ArtifactXpGain => PacketServer::ArtifactXpGain,
-            OpcodeServer::AttackerStateUpdate => PacketServer::AttackerStateUpdate,
-            OpcodeServer::AttackStart => PacketServer::AttackStart,
-            OpcodeServer::AttackStop => PacketServer::AttackStop,
-            OpcodeServer::AttackSwingError => PacketServer::AttackSwingError,
-            OpcodeServer::AttackSwingLandedLog => PacketServer::AttackSwingLandedLog,
-            OpcodeServer::AuctionableTokenAuctionSold => PacketServer::AuctionableTokenAuctionSold,
-            OpcodeServer::AuctionableTokenSellAtMarketPriceResponse => {
-                PacketServer::AuctionableTokenSellAtMarketPriceResponse
-            }
-            OpcodeServer::AuctionableTokenSellConfirmRequired => {
-                PacketServer::AuctionableTokenSellConfirmRequired
-            }
-            OpcodeServer::AuctionClosedNotification => PacketServer::AuctionClosedNotification,
-            OpcodeServer::AuctionCommandResult => PacketServer::AuctionCommandResult,
-            OpcodeServer::AuctionFavoriteList => PacketServer::AuctionFavoriteList,
-            OpcodeServer::AuctionGetCommodityQuoteResult => {
-                PacketServer::AuctionGetCommodityQuoteResult
-            }
-            OpcodeServer::AuctionHelloResponse => PacketServer::AuctionHelloResponse,
-            OpcodeServer::AuctionListBiddedItemsResult => {
-                PacketServer::AuctionListBiddedItemsResult
-            }
-            OpcodeServer::AuctionListBucketsResult => PacketServer::AuctionListBucketsResult,
-            OpcodeServer::AuctionListItemsResult => PacketServer::AuctionListItemsResult,
-            OpcodeServer::AuctionListOwnedItemsResult => PacketServer::AuctionListOwnedItemsResult,
-            OpcodeServer::AuctionOutbidNotification => PacketServer::AuctionOutbidNotification,
-            OpcodeServer::AuctionOwnerBidNotification => PacketServer::AuctionOwnerBidNotification,
-            OpcodeServer::AuctionReplicateResponse => PacketServer::AuctionReplicateResponse,
-            OpcodeServer::AuctionWonNotification => PacketServer::AuctionWonNotification,
-            OpcodeServer::AuraPointsDepleted => PacketServer::AuraPointsDepleted,
-            OpcodeServer::AuraUpdate => PacketServer::AuraUpdate,
-            OpcodeServer::AuthChallenge => PacketServer::AuthChallenge,
-            OpcodeServer::AuthFailed => PacketServer::AuthFailed,
-            OpcodeServer::AuthResponse => PacketServer::AuthResponse,
-            OpcodeServer::AvailableHotfixes => PacketServer::AvailableHotfixes,
-            OpcodeServer::AzeriteRespecNpc => PacketServer::AzeriteRespecNpc,
-            OpcodeServer::BagCleanupFinished => PacketServer::BagCleanupFinished,
-            OpcodeServer::BarberShopResult => PacketServer::BarberShopResult,
-            OpcodeServer::BatchPresenceSubscription => PacketServer::BatchPresenceSubscription,
-            OpcodeServer::BattlefieldList => PacketServer::BattlefieldList,
-            OpcodeServer::BattlefieldPortDenied => PacketServer::BattlefieldPortDenied,
-            OpcodeServer::BattlefieldStatusActive => PacketServer::BattlefieldStatusActive,
-            OpcodeServer::BattlefieldStatusFailed => PacketServer::BattlefieldStatusFailed,
-            OpcodeServer::BattlefieldStatusGroupProposalFailed => {
-                PacketServer::BattlefieldStatusGroupProposalFailed
-            }
-            OpcodeServer::BattlefieldStatusNeedConfirmation => {
-                PacketServer::BattlefieldStatusNeedConfirmation
-            }
-            OpcodeServer::BattlefieldStatusNone => PacketServer::BattlefieldStatusNone,
-            OpcodeServer::BattlefieldStatusQueued => PacketServer::BattlefieldStatusQueued,
-            OpcodeServer::BattlefieldStatusWaitForGroups => {
-                PacketServer::BattlefieldStatusWaitForGroups
-            }
-            OpcodeServer::BattlegroundInfoThrottled => PacketServer::BattlegroundInfoThrottled,
-            OpcodeServer::BattlegroundInit => PacketServer::BattlegroundInit,
-            OpcodeServer::BattlegroundPlayerJoined => PacketServer::BattlegroundPlayerJoined,
-            OpcodeServer::BattlegroundPlayerLeft => PacketServer::BattlegroundPlayerLeft,
-            OpcodeServer::BattlegroundPlayerPositions => PacketServer::BattlegroundPlayerPositions,
-            OpcodeServer::BattlegroundPoints => PacketServer::BattlegroundPoints,
-            OpcodeServer::BattlenetChallengeAbort => PacketServer::BattlenetChallengeAbort,
-            OpcodeServer::BattlenetChallengeStart => PacketServer::BattlenetChallengeStart,
-            OpcodeServer::BattlenetNotification => PacketServer::BattlenetNotification,
-            OpcodeServer::BattlenetResponse => PacketServer::BattlenetResponse,
-            OpcodeServer::BattleNetConnectionStatus => PacketServer::BattleNetConnectionStatus,
-            OpcodeServer::BattlePayAckFailed => PacketServer::BattlePayAckFailed,
-            OpcodeServer::BattlePayBattlePetDelivered => PacketServer::BattlePayBattlePetDelivered,
-            OpcodeServer::BattlePayCollectionItemDelivered => {
-                PacketServer::BattlePayCollectionItemDelivered
-            }
-            OpcodeServer::BattlePayConfirmPurchase => PacketServer::BattlePayConfirmPurchase,
-            OpcodeServer::BattlePayDeliveryEnded => PacketServer::BattlePayDeliveryEnded,
-            OpcodeServer::BattlePayDeliveryStarted => PacketServer::BattlePayDeliveryStarted,
-            OpcodeServer::BattlePayDistributionAssignVasResponse => {
-                PacketServer::BattlePayDistributionAssignVasResponse
-            }
-            OpcodeServer::BattlePayDistributionUnrevoked => {
-                PacketServer::BattlePayDistributionUnrevoked
-            }
-            OpcodeServer::BattlePayDistributionUpdate => PacketServer::BattlePayDistributionUpdate,
-            OpcodeServer::BattlePayGetDistributionListResponse => {
-                PacketServer::BattlePayGetDistributionListResponse
-            }
-            OpcodeServer::BattlePayGetProductListResponse => {
-                PacketServer::BattlePayGetProductListResponse
-            }
-            OpcodeServer::BattlePayGetPurchaseListResponse => {
-                PacketServer::BattlePayGetPurchaseListResponse
-            }
-            OpcodeServer::BattlePayMountDelivered => PacketServer::BattlePayMountDelivered,
-            OpcodeServer::BattlePayPurchaseUpdate => PacketServer::BattlePayPurchaseUpdate,
-            OpcodeServer::BattlePayStartCheckout => PacketServer::BattlePayStartCheckout,
-            OpcodeServer::BattlePayStartDistributionAssignToTargetResponse => {
-                PacketServer::BattlePayStartDistributionAssignToTargetResponse
-            }
-            OpcodeServer::BattlePayStartPurchaseResponse => {
-                PacketServer::BattlePayStartPurchaseResponse
-            }
-            OpcodeServer::BattlePayValidatePurchaseResponse => {
-                PacketServer::BattlePayValidatePurchaseResponse
-            }
-            OpcodeServer::BattlePetsHealed => PacketServer::BattlePetsHealed,
-            OpcodeServer::BattlePetCageDateError => PacketServer::BattlePetCageDateError,
-            OpcodeServer::BattlePetDeleted => PacketServer::BattlePetDeleted,
-            OpcodeServer::BattlePetError => PacketServer::BattlePetError,
-            OpcodeServer::BattlePetJournal => PacketServer::BattlePetJournal,
-            OpcodeServer::BattlePetJournalLockAcquired => {
-                PacketServer::BattlePetJournalLockAcquired
-            }
-            OpcodeServer::BattlePetJournalLockDenied => PacketServer::BattlePetJournalLockDenied,
-            OpcodeServer::BattlePetLicenseChanged => PacketServer::BattlePetLicenseChanged,
-            OpcodeServer::BattlePetRestored => PacketServer::BattlePetRestored,
-            OpcodeServer::BattlePetRevoked => PacketServer::BattlePetRevoked,
-            OpcodeServer::BattlePetTrapLevel => PacketServer::BattlePetTrapLevel,
-            OpcodeServer::BattlePetUpdates => PacketServer::BattlePetUpdates,
-            OpcodeServer::BinderConfirm => PacketServer::BinderConfirm,
-            OpcodeServer::BindPointUpdate => PacketServer::BindPointUpdate,
-            OpcodeServer::BlackMarketBidOnItemResult => PacketServer::BlackMarketBidOnItemResult,
-            OpcodeServer::BlackMarketOpenResult => PacketServer::BlackMarketOpenResult,
-            OpcodeServer::BlackMarketOutbid => PacketServer::BlackMarketOutbid,
-            OpcodeServer::BlackMarketRequestItemsResult => {
-                PacketServer::BlackMarketRequestItemsResult
-            }
-            OpcodeServer::BlackMarketWon => PacketServer::BlackMarketWon,
-            OpcodeServer::BonusRollEmpty => PacketServer::BonusRollEmpty,
-            OpcodeServer::BossKill => PacketServer::BossKill,
-            OpcodeServer::BreakTarget => PacketServer::BreakTarget,
-            OpcodeServer::BroadcastAchievement => PacketServer::BroadcastAchievement,
-            OpcodeServer::BroadcastSummonCast => PacketServer::BroadcastSummonCast,
-            OpcodeServer::BroadcastSummonResponse => PacketServer::BroadcastSummonResponse,
-            OpcodeServer::BuyFailed => PacketServer::BuyFailed,
-            OpcodeServer::BuySucceeded => PacketServer::BuySucceeded,
-            OpcodeServer::CacheInfo => PacketServer::CacheInfo,
-            OpcodeServer::CacheVersion => PacketServer::CacheVersion,
-            OpcodeServer::CalendarClearPendingAction => PacketServer::CalendarClearPendingAction,
-            OpcodeServer::CalendarCommandResult => PacketServer::CalendarCommandResult,
-            OpcodeServer::CalendarCommunityInvite => PacketServer::CalendarCommunityInvite,
-            OpcodeServer::CalendarEventRemovedAlert => PacketServer::CalendarEventRemovedAlert,
-            OpcodeServer::CalendarEventUpdatedAlert => PacketServer::CalendarEventUpdatedAlert,
-            OpcodeServer::CalendarInviteAdded => PacketServer::CalendarInviteAdded,
-            OpcodeServer::CalendarInviteAlert => PacketServer::CalendarInviteAlert,
-            OpcodeServer::CalendarInviteNotes => PacketServer::CalendarInviteNotes,
-            OpcodeServer::CalendarInviteNotesAlert => PacketServer::CalendarInviteNotesAlert,
-            OpcodeServer::CalendarInviteRemoved => PacketServer::CalendarInviteRemoved,
-            OpcodeServer::CalendarInviteRemovedAlert => PacketServer::CalendarInviteRemovedAlert,
-            OpcodeServer::CalendarInviteStatus => PacketServer::CalendarInviteStatus,
-            OpcodeServer::CalendarInviteStatusAlert => PacketServer::CalendarInviteStatusAlert,
-            OpcodeServer::CalendarModeratorStatus => PacketServer::CalendarModeratorStatus,
-            OpcodeServer::CalendarRaidLockoutAdded => PacketServer::CalendarRaidLockoutAdded,
-            OpcodeServer::CalendarRaidLockoutRemoved => PacketServer::CalendarRaidLockoutRemoved,
-            OpcodeServer::CalendarRaidLockoutUpdated => PacketServer::CalendarRaidLockoutUpdated,
-            OpcodeServer::CalendarSendCalendar => PacketServer::CalendarSendCalendar,
-            OpcodeServer::CalendarSendEvent => PacketServer::CalendarSendEvent,
-            OpcodeServer::CalendarSendNumPending => PacketServer::CalendarSendNumPending,
-            OpcodeServer::CameraEffect => PacketServer::CameraEffect,
-            OpcodeServer::CancelAutoRepeat => PacketServer::CancelAutoRepeat,
-            OpcodeServer::CancelCombat => PacketServer::CancelCombat,
-            OpcodeServer::CancelOrphanSpellVisual => PacketServer::CancelOrphanSpellVisual,
-            OpcodeServer::CancelScene => PacketServer::CancelScene,
-            OpcodeServer::CancelSpellVisual => PacketServer::CancelSpellVisual,
-            OpcodeServer::CancelSpellVisualKit => PacketServer::CancelSpellVisualKit,
-            OpcodeServer::CanDuelResult => PacketServer::CanDuelResult,
-            OpcodeServer::CanRedeemTokenForBalanceResponse => {
-                PacketServer::CanRedeemTokenForBalanceResponse
-            }
-            OpcodeServer::CapturePointRemoved => PacketServer::CapturePointRemoved,
-            OpcodeServer::CastFailed => PacketServer::CastFailed,
-            OpcodeServer::CategoryCooldown => PacketServer::CategoryCooldown,
-            OpcodeServer::ChainMissileBounce => PacketServer::ChainMissileBounce,
-            OpcodeServer::ChallengeModeComplete => PacketServer::ChallengeModeComplete,
-            OpcodeServer::ChallengeModeRequestLeadersResult => {
-                PacketServer::ChallengeModeRequestLeadersResult
-            }
-            OpcodeServer::ChallengeModeReset => PacketServer::ChallengeModeReset,
-            OpcodeServer::ChallengeModeStart => PacketServer::ChallengeModeStart,
-            OpcodeServer::ChallengeModeUpdateDeathCount => {
-                PacketServer::ChallengeModeUpdateDeathCount
-            }
-            OpcodeServer::ChangePlayerDifficultyResult => {
-                PacketServer::ChangePlayerDifficultyResult
-            }
-            OpcodeServer::ChangeRealmTicketResponse => PacketServer::ChangeRealmTicketResponse,
-            OpcodeServer::ChannelList => PacketServer::ChannelList,
-            OpcodeServer::ChannelNotify => PacketServer::ChannelNotify,
-            OpcodeServer::ChannelNotifyJoined => PacketServer::ChannelNotifyJoined,
-            OpcodeServer::ChannelNotifyLeft => PacketServer::ChannelNotifyLeft,
-            OpcodeServer::CharacterCheckUpgradeResult => PacketServer::CharacterCheckUpgradeResult,
-            OpcodeServer::CharacterLoginFailed => PacketServer::CharacterLoginFailed,
-            OpcodeServer::CharacterObjectTestResponse => PacketServer::CharacterObjectTestResponse,
-            OpcodeServer::CharacterRenameResult => PacketServer::CharacterRenameResult,
-            OpcodeServer::CharacterUpgradeAborted => PacketServer::CharacterUpgradeAborted,
-            OpcodeServer::CharacterUpgradeComplete => PacketServer::CharacterUpgradeComplete,
-            OpcodeServer::CharacterUpgradeManualUnrevokeResult => {
-                PacketServer::CharacterUpgradeManualUnrevokeResult
-            }
-            OpcodeServer::CharacterUpgradeStarted => PacketServer::CharacterUpgradeStarted,
-            OpcodeServer::CharCustomizeFailure => PacketServer::CharCustomizeFailure,
-            OpcodeServer::CharCustomizeSuccess => PacketServer::CharCustomizeSuccess,
-            OpcodeServer::CharFactionChangeResult => PacketServer::CharFactionChangeResult,
-            OpcodeServer::Chat => PacketServer::Chat,
-            OpcodeServer::ChatAutoResponded => PacketServer::ChatAutoResponded,
-            OpcodeServer::ChatDown => PacketServer::ChatDown,
-            OpcodeServer::ChatIgnoredAccountMuted => PacketServer::ChatIgnoredAccountMuted,
-            OpcodeServer::ChatIsDown => PacketServer::ChatIsDown,
-            OpcodeServer::ChatNotInParty => PacketServer::ChatNotInParty,
-            OpcodeServer::ChatPlayerAmbiguous => PacketServer::ChatPlayerAmbiguous,
-            OpcodeServer::ChatPlayerNotfound => PacketServer::ChatPlayerNotfound,
-            OpcodeServer::ChatReconnect => PacketServer::ChatReconnect,
-            OpcodeServer::ChatRegionalServiceStatus => PacketServer::ChatRegionalServiceStatus,
-            OpcodeServer::ChatRestricted => PacketServer::ChatRestricted,
-            OpcodeServer::ChatServerMessage => PacketServer::ChatServerMessage,
-            OpcodeServer::CheatIgnoreDimishingReturns => PacketServer::CheatIgnoreDimishingReturns,
-            OpcodeServer::CheckAbandonNpe => PacketServer::CheckAbandonNpe,
-            OpcodeServer::CheckCharacterNameAvailabilityResult => {
-                PacketServer::CheckCharacterNameAvailabilityResult
-            }
-            OpcodeServer::CheckWargameEntry => PacketServer::CheckWargameEntry,
-            OpcodeServer::ChromieTimeOpenNpc => PacketServer::ChromieTimeOpenNpc,
-            OpcodeServer::ChromieTimeSelectExpansionSuccess => {
-                PacketServer::ChromieTimeSelectExpansionSuccess
-            }
-            OpcodeServer::ClaimRafRewardResponse => PacketServer::ClaimRafRewardResponse,
-            OpcodeServer::ClearAllSpellCharges => PacketServer::ClearAllSpellCharges,
-            OpcodeServer::ClearBossEmotes => PacketServer::ClearBossEmotes,
-            OpcodeServer::ClearCooldown => PacketServer::ClearCooldown,
-            OpcodeServer::ClearCooldowns => PacketServer::ClearCooldowns,
-            OpcodeServer::ClearResurrect => PacketServer::ClearResurrect,
-            OpcodeServer::ClearSpellCharges => PacketServer::ClearSpellCharges,
-            OpcodeServer::ClearTarget => PacketServer::ClearTarget,
-            OpcodeServer::ClearTreasurePickerCache => PacketServer::ClearTreasurePickerCache,
-            OpcodeServer::CloseArtifactForge => PacketServer::CloseArtifactForge,
-            OpcodeServer::CloseHeartForge => PacketServer::CloseHeartForge,
-            OpcodeServer::CloseItemForge => PacketServer::CloseItemForge,
-            OpcodeServer::ClubFinderErrorMessage => PacketServer::ClubFinderErrorMessage,
-            OpcodeServer::ClubFinderGetClubPostingIdsResponse => {
-                PacketServer::ClubFinderGetClubPostingIdsResponse
-            }
-            OpcodeServer::ClubFinderLookupClubPostingsList => {
-                PacketServer::ClubFinderLookupClubPostingsList
-            }
-            OpcodeServer::ClubFinderResponseCharacterApplicationList => {
-                PacketServer::ClubFinderResponseCharacterApplicationList
-            }
-            OpcodeServer::ClubFinderResponsePostRecruitmentMessage => {
-                PacketServer::ClubFinderResponsePostRecruitmentMessage
-            }
-            OpcodeServer::ClubFinderUpdateApplications => {
-                PacketServer::ClubFinderUpdateApplications
-            }
-            OpcodeServer::CoinRemoved => PacketServer::CoinRemoved,
-            OpcodeServer::CombatEventFailed => PacketServer::CombatEventFailed,
-            OpcodeServer::CommentatorMapInfo => PacketServer::CommentatorMapInfo,
-            OpcodeServer::CommentatorPlayerInfo => PacketServer::CommentatorPlayerInfo,
-            OpcodeServer::CommentatorStateChanged => PacketServer::CommentatorStateChanged,
-            OpcodeServer::CommerceTokenGetCountResponse => {
-                PacketServer::CommerceTokenGetCountResponse
-            }
-            OpcodeServer::CommerceTokenGetLogResponse => PacketServer::CommerceTokenGetLogResponse,
-            OpcodeServer::CommerceTokenGetMarketPriceResponse => {
-                PacketServer::CommerceTokenGetMarketPriceResponse
-            }
-            OpcodeServer::CommerceTokenUpdate => PacketServer::CommerceTokenUpdate,
-            OpcodeServer::ComplaintResult => PacketServer::ComplaintResult,
-            OpcodeServer::CompleteShipmentResponse => PacketServer::CompleteShipmentResponse,
-            OpcodeServer::ConfirmPartyInvite => PacketServer::ConfirmPartyInvite,
-            OpcodeServer::ConnectTo => PacketServer::ConnectTo,
-            OpcodeServer::ConquestFormulaConstants => PacketServer::ConquestFormulaConstants,
-            OpcodeServer::ConsoleWrite => PacketServer::ConsoleWrite,
-            OpcodeServer::ConsumableTokenBuyAtMarketPriceResponse => {
-                PacketServer::ConsumableTokenBuyAtMarketPriceResponse
-            }
-            OpcodeServer::ConsumableTokenBuyChoiceRequired => {
-                PacketServer::ConsumableTokenBuyChoiceRequired
-            }
-            OpcodeServer::ConsumableTokenCanVeteranBuyResponse => {
-                PacketServer::ConsumableTokenCanVeteranBuyResponse
-            }
-            OpcodeServer::ConsumableTokenRedeemConfirmRequired => {
-                PacketServer::ConsumableTokenRedeemConfirmRequired
-            }
-            OpcodeServer::ConsumableTokenRedeemResponse => {
-                PacketServer::ConsumableTokenRedeemResponse
-            }
-            OpcodeServer::ContactList => PacketServer::ContactList,
-            OpcodeServer::ContributionLastUpdateResponse => {
-                PacketServer::ContributionLastUpdateResponse
-            }
-            OpcodeServer::ControlUpdate => PacketServer::ControlUpdate,
-            OpcodeServer::ConvertItemsToCurrencyValue => PacketServer::ConvertItemsToCurrencyValue,
-            OpcodeServer::CooldownCheat => PacketServer::CooldownCheat,
-            OpcodeServer::CooldownEvent => PacketServer::CooldownEvent,
-            OpcodeServer::CorpseLocation => PacketServer::CorpseLocation,
-            OpcodeServer::CorpseReclaimDelay => PacketServer::CorpseReclaimDelay,
-            OpcodeServer::CorpseTransportQuery => PacketServer::CorpseTransportQuery,
-            OpcodeServer::CovenantCallingsAvailabilityResponse => {
-                PacketServer::CovenantCallingsAvailabilityResponse
-            }
-            OpcodeServer::CovenantPreviewOpenNpc => PacketServer::CovenantPreviewOpenNpc,
-            OpcodeServer::CovenantRenownOpenNpc => PacketServer::CovenantRenownOpenNpc,
-            OpcodeServer::CovenantRenownSendCatchupState => {
-                PacketServer::CovenantRenownSendCatchupState
-            }
-            OpcodeServer::CreateChar => PacketServer::CreateChar,
-            OpcodeServer::CreateShipmentResponse => PacketServer::CreateShipmentResponse,
-            OpcodeServer::CriteriaDeleted => PacketServer::CriteriaDeleted,
-            OpcodeServer::CriteriaUpdate => PacketServer::CriteriaUpdate,
-            OpcodeServer::CrossedInebriationThreshold => PacketServer::CrossedInebriationThreshold,
-            OpcodeServer::CustomLoadScreen => PacketServer::CustomLoadScreen,
-            OpcodeServer::DailyQuestsReset => PacketServer::DailyQuestsReset,
-            OpcodeServer::DamageCalcLog => PacketServer::DamageCalcLog,
-            OpcodeServer::DbReply => PacketServer::DbReply,
-            OpcodeServer::DeathReleaseLoc => PacketServer::DeathReleaseLoc,
-            OpcodeServer::DebugMenuManagerFullUpdate => PacketServer::DebugMenuManagerFullUpdate,
-            OpcodeServer::DefenseMessage => PacketServer::DefenseMessage,
-            OpcodeServer::DeleteChar => PacketServer::DeleteChar,
-            OpcodeServer::DeleteExpiredMissionsResult => PacketServer::DeleteExpiredMissionsResult,
-            OpcodeServer::DestroyArenaUnit => PacketServer::DestroyArenaUnit,
-            OpcodeServer::DestructibleBuildingDamage => PacketServer::DestructibleBuildingDamage,
-            OpcodeServer::DifferentInstanceFromParty => PacketServer::DifferentInstanceFromParty,
-            OpcodeServer::DisenchantCredit => PacketServer::DisenchantCredit,
-            OpcodeServer::DismountResult => PacketServer::DismountResult,
-            OpcodeServer::DispelFailed => PacketServer::DispelFailed,
-            OpcodeServer::DisplayGameError => PacketServer::DisplayGameError,
-            OpcodeServer::DisplayPlayerChoice => PacketServer::DisplayPlayerChoice,
-            OpcodeServer::DisplayPromotion => PacketServer::DisplayPromotion,
-            OpcodeServer::DisplayQuestPopup => PacketServer::DisplayQuestPopup,
-            OpcodeServer::DisplaySoulbindUpdateMessage => {
-                PacketServer::DisplaySoulbindUpdateMessage
-            }
-            OpcodeServer::DisplayToast => PacketServer::DisplayToast,
-            OpcodeServer::DisplayWorldText => PacketServer::DisplayWorldText,
-            OpcodeServer::DontAutoPushSpellsToActionBar => {
-                PacketServer::DontAutoPushSpellsToActionBar
-            }
-            OpcodeServer::DropNewConnection => PacketServer::DropNewConnection,
-            OpcodeServer::DuelArranged => PacketServer::DuelArranged,
-            OpcodeServer::DuelComplete => PacketServer::DuelComplete,
-            OpcodeServer::DuelCountdown => PacketServer::DuelCountdown,
-            OpcodeServer::DuelInBounds => PacketServer::DuelInBounds,
-            OpcodeServer::DuelOutOfBounds => PacketServer::DuelOutOfBounds,
-            OpcodeServer::DuelRequested => PacketServer::DuelRequested,
-            OpcodeServer::DuelWinner => PacketServer::DuelWinner,
-            OpcodeServer::DurabilityDamageDeath => PacketServer::DurabilityDamageDeath,
-            OpcodeServer::Emote => PacketServer::Emote,
-            OpcodeServer::EnableBarberShop => PacketServer::EnableBarberShop,
-            OpcodeServer::EnchantmentLog => PacketServer::EnchantmentLog,
-            OpcodeServer::EncounterEnd => PacketServer::EncounterEnd,
-            OpcodeServer::EncounterStart => PacketServer::EncounterStart,
-            OpcodeServer::EndLightningStorm => PacketServer::EndLightningStorm,
-            OpcodeServer::EnterEncryptedMode => PacketServer::EnterEncryptedMode,
-            OpcodeServer::EnumCharactersResult => PacketServer::EnumCharactersResult,
-            OpcodeServer::EnumVasPurchaseStatesResponse => {
-                PacketServer::EnumVasPurchaseStatesResponse
-            }
-            OpcodeServer::EnvironmentalDamageLog => PacketServer::EnvironmentalDamageLog,
-            OpcodeServer::EquipmentSetId => PacketServer::EquipmentSetId,
-            OpcodeServer::ExpectedSpamRecords => PacketServer::ExpectedSpamRecords,
-            OpcodeServer::ExplorationExperience => PacketServer::ExplorationExperience,
-            OpcodeServer::ExternalTransactionIdGenerated => {
-                PacketServer::ExternalTransactionIdGenerated
-            }
-            OpcodeServer::FactionBonusInfo => PacketServer::FactionBonusInfo,
-            OpcodeServer::FailedPlayerCondition => PacketServer::FailedPlayerCondition,
-            OpcodeServer::FailedQuestTurnIn => PacketServer::FailedQuestTurnIn,
-            OpcodeServer::FeatureSystemStatus => PacketServer::FeatureSystemStatus,
-            OpcodeServer::FeatureSystemStatusGlueScreen => {
-                PacketServer::FeatureSystemStatusGlueScreen
-            }
-            OpcodeServer::FeignDeathResisted => PacketServer::FeignDeathResisted,
-            OpcodeServer::FishEscaped => PacketServer::FishEscaped,
-            OpcodeServer::FishNotHooked => PacketServer::FishNotHooked,
-            OpcodeServer::FlightSplineSync => PacketServer::FlightSplineSync,
-            OpcodeServer::ForcedDeathUpdate => PacketServer::ForcedDeathUpdate,
-            OpcodeServer::ForceAnim => PacketServer::ForceAnim,
-            OpcodeServer::ForceAnimations => PacketServer::ForceAnimations,
-            OpcodeServer::ForceObjectRelink => PacketServer::ForceObjectRelink,
-            OpcodeServer::FriendStatus => PacketServer::FriendStatus,
-            OpcodeServer::GainMawPower => PacketServer::GainMawPower,
-            OpcodeServer::GameObjectActivateAnimKit => PacketServer::GameObjectActivateAnimKit,
-            OpcodeServer::GameObjectBase => PacketServer::GameObjectBase,
-            OpcodeServer::GameObjectCustomAnim => PacketServer::GameObjectCustomAnim,
-            OpcodeServer::GameObjectDespawn => PacketServer::GameObjectDespawn,
-            OpcodeServer::GameObjectPlaySpellVisual => PacketServer::GameObjectPlaySpellVisual,
-            OpcodeServer::GameObjectPlaySpellVisualKit => {
-                PacketServer::GameObjectPlaySpellVisualKit
-            }
-            OpcodeServer::GameObjectResetState => PacketServer::GameObjectResetState,
-            OpcodeServer::GameObjectSetStateLocal => PacketServer::GameObjectSetStateLocal,
-            OpcodeServer::GameObjectUiLink => PacketServer::GameObjectUiLink,
-            OpcodeServer::GameSpeedSet => PacketServer::GameSpeedSet,
-            OpcodeServer::GameTimeSet => PacketServer::GameTimeSet,
-            OpcodeServer::GameTimeUpdate => PacketServer::GameTimeUpdate,
-            OpcodeServer::GarrisonActivateMissionBonusAbility => {
-                PacketServer::GarrisonActivateMissionBonusAbility
-            }
-            OpcodeServer::GarrisonAddEvent => PacketServer::GarrisonAddEvent,
-            OpcodeServer::GarrisonAddFollowerResult => PacketServer::GarrisonAddFollowerResult,
-            OpcodeServer::GarrisonAddMissionResult => PacketServer::GarrisonAddMissionResult,
-            OpcodeServer::GarrisonAddSpecGroups => PacketServer::GarrisonAddSpecGroups,
-            OpcodeServer::GarrisonApplyTalentSocketDataChanges => {
-                PacketServer::GarrisonApplyTalentSocketDataChanges
-            }
-            OpcodeServer::GarrisonAssignFollowerToBuildingResult => {
-                PacketServer::GarrisonAssignFollowerToBuildingResult
-            }
-            OpcodeServer::GarrisonAutoTroopMinLevelUpdateResult => {
-                PacketServer::GarrisonAutoTroopMinLevelUpdateResult
-            }
-            OpcodeServer::GarrisonBuildingActivated => PacketServer::GarrisonBuildingActivated,
-            OpcodeServer::GarrisonBuildingRemoved => PacketServer::GarrisonBuildingRemoved,
-            OpcodeServer::GarrisonBuildingSetActiveSpecializationResult => {
-                PacketServer::GarrisonBuildingSetActiveSpecializationResult
-            }
-            OpcodeServer::GarrisonChangeMissionStartTimeResult => {
-                PacketServer::GarrisonChangeMissionStartTimeResult
-            }
-            OpcodeServer::GarrisonClearCollection => PacketServer::GarrisonClearCollection,
-            OpcodeServer::GarrisonClearEventList => PacketServer::GarrisonClearEventList,
-            OpcodeServer::GarrisonClearSpecGroups => PacketServer::GarrisonClearSpecGroups,
-            OpcodeServer::GarrisonCollectionRemoveEntry => {
-                PacketServer::GarrisonCollectionRemoveEntry
-            }
-            OpcodeServer::GarrisonCollectionUpdateEntry => {
-                PacketServer::GarrisonCollectionUpdateEntry
-            }
-            OpcodeServer::GarrisonCompleteBuildingConstructionResult => {
-                PacketServer::GarrisonCompleteBuildingConstructionResult
-            }
-            OpcodeServer::GarrisonCompleteMissionResult => {
-                PacketServer::GarrisonCompleteMissionResult
-            }
-            OpcodeServer::GarrisonCreateResult => PacketServer::GarrisonCreateResult,
-            OpcodeServer::GarrisonDeleteMissionResult => PacketServer::GarrisonDeleteMissionResult,
-            OpcodeServer::GarrisonDeleteResult => PacketServer::GarrisonDeleteResult,
-            OpcodeServer::GarrisonFollowerActivationsSet => {
-                PacketServer::GarrisonFollowerActivationsSet
-            }
-            OpcodeServer::GarrisonFollowerChangedFlags => {
-                PacketServer::GarrisonFollowerChangedFlags
-            }
-            OpcodeServer::GarrisonFollowerChangedItemLevel => {
-                PacketServer::GarrisonFollowerChangedItemLevel
-            }
-            OpcodeServer::GarrisonFollowerChangedQuality => {
-                PacketServer::GarrisonFollowerChangedQuality
-            }
-            OpcodeServer::GarrisonFollowerChangedXp => PacketServer::GarrisonFollowerChangedXp,
-            OpcodeServer::GarrisonFollowerFatigueCleared => {
-                PacketServer::GarrisonFollowerFatigueCleared
-            }
-            OpcodeServer::GarrisonGenerateFollowersResult => {
-                PacketServer::GarrisonGenerateFollowersResult
-            }
-            OpcodeServer::GarrisonGetClassSpecCategoryInfoResult => {
-                PacketServer::GarrisonGetClassSpecCategoryInfoResult
-            }
-            OpcodeServer::GarrisonGetRecallPortalLastUsedTimeResult => {
-                PacketServer::GarrisonGetRecallPortalLastUsedTimeResult
-            }
-            OpcodeServer::GarrisonIsUpgradeableResponse => {
-                PacketServer::GarrisonIsUpgradeableResponse
-            }
-            OpcodeServer::GarrisonLearnBlueprintResult => {
-                PacketServer::GarrisonLearnBlueprintResult
-            }
-            OpcodeServer::GarrisonLearnSpecializationResult => {
-                PacketServer::GarrisonLearnSpecializationResult
-            }
-            OpcodeServer::GarrisonListCompletedMissionsCheatResult => {
-                PacketServer::GarrisonListCompletedMissionsCheatResult
-            }
-            OpcodeServer::GarrisonListFollowersCheatResult => {
-                PacketServer::GarrisonListFollowersCheatResult
-            }
-            OpcodeServer::GarrisonMapDataResponse => PacketServer::GarrisonMapDataResponse,
-            OpcodeServer::GarrisonMissionBonusRollResult => {
-                PacketServer::GarrisonMissionBonusRollResult
-            }
-            OpcodeServer::GarrisonMissionRequestRewardInfoResponse => {
-                PacketServer::GarrisonMissionRequestRewardInfoResponse
-            }
-            OpcodeServer::GarrisonMissionStartConditionUpdate => {
-                PacketServer::GarrisonMissionStartConditionUpdate
-            }
-            OpcodeServer::GarrisonOpenArchitect => PacketServer::GarrisonOpenArchitect,
-            OpcodeServer::GarrisonOpenCrafter => PacketServer::GarrisonOpenCrafter,
-            OpcodeServer::GarrisonOpenMissionNpc => PacketServer::GarrisonOpenMissionNpc,
-            OpcodeServer::GarrisonOpenRecruitmentNpc => PacketServer::GarrisonOpenRecruitmentNpc,
-            OpcodeServer::GarrisonOpenTalentNpc => PacketServer::GarrisonOpenTalentNpc,
-            OpcodeServer::GarrisonPlaceBuildingResult => PacketServer::GarrisonPlaceBuildingResult,
-            OpcodeServer::GarrisonPlotPlaced => PacketServer::GarrisonPlotPlaced,
-            OpcodeServer::GarrisonPlotRemoved => PacketServer::GarrisonPlotRemoved,
-            OpcodeServer::GarrisonRecruitFollowerResult => {
-                PacketServer::GarrisonRecruitFollowerResult
-            }
-            OpcodeServer::GarrisonRemoteInfo => PacketServer::GarrisonRemoteInfo,
-            OpcodeServer::GarrisonRemoveEvent => PacketServer::GarrisonRemoveEvent,
-            OpcodeServer::GarrisonRemoveFollowerAbilityResult => {
-                PacketServer::GarrisonRemoveFollowerAbilityResult
-            }
-            OpcodeServer::GarrisonRemoveFollowerFromBuildingResult => {
-                PacketServer::GarrisonRemoveFollowerFromBuildingResult
-            }
-            OpcodeServer::GarrisonRemoveFollowerResult => {
-                PacketServer::GarrisonRemoveFollowerResult
-            }
-            OpcodeServer::GarrisonRenameFollowerResult => {
-                PacketServer::GarrisonRenameFollowerResult
-            }
-            OpcodeServer::GarrisonRequestBlueprintAndSpecializationDataResult => {
-                PacketServer::GarrisonRequestBlueprintAndSpecializationDataResult
-            }
-            OpcodeServer::GarrisonResearchTalentResult => {
-                PacketServer::GarrisonResearchTalentResult
-            }
-            OpcodeServer::GarrisonResetTalentTree => PacketServer::GarrisonResetTalentTree,
-            OpcodeServer::GarrisonResetTalentTreeSocketData => {
-                PacketServer::GarrisonResetTalentTreeSocketData
-            }
-            OpcodeServer::GarrisonStartMissionResult => PacketServer::GarrisonStartMissionResult,
-            OpcodeServer::GarrisonSwapBuildingsResponse => {
-                PacketServer::GarrisonSwapBuildingsResponse
-            }
-            OpcodeServer::GarrisonSwitchTalentTreeBranch => {
-                PacketServer::GarrisonSwitchTalentTreeBranch
-            }
-            OpcodeServer::GarrisonTalentCompleted => PacketServer::GarrisonTalentCompleted,
-            OpcodeServer::GarrisonTalentRemoved => PacketServer::GarrisonTalentRemoved,
-            OpcodeServer::GarrisonTalentRemoveSocketData => {
-                PacketServer::GarrisonTalentRemoveSocketData
-            }
-            OpcodeServer::GarrisonTalentUpdateSocketData => {
-                PacketServer::GarrisonTalentUpdateSocketData
-            }
-            OpcodeServer::GarrisonTalentWorldQuestUnlocksResponse => {
-                PacketServer::GarrisonTalentWorldQuestUnlocksResponse
-            }
-            OpcodeServer::GarrisonUnlearnBlueprintResult => {
-                PacketServer::GarrisonUnlearnBlueprintResult
-            }
-            OpcodeServer::GarrisonUpdateFollower => PacketServer::GarrisonUpdateFollower,
-            OpcodeServer::GarrisonUpdateGarrisonMonumentSelections => {
-                PacketServer::GarrisonUpdateGarrisonMonumentSelections
-            }
-            OpcodeServer::GarrisonUpdateMissionCheatResult => {
-                PacketServer::GarrisonUpdateMissionCheatResult
-            }
-            OpcodeServer::GarrisonUpgradeResult => PacketServer::GarrisonUpgradeResult,
-            OpcodeServer::GarrisonUseRecallPortalResult => {
-                PacketServer::GarrisonUseRecallPortalResult
-            }
-            OpcodeServer::GenerateRandomCharacterNameResult => {
-                PacketServer::GenerateRandomCharacterNameResult
-            }
-            OpcodeServer::GenerateSsoTokenResponse => PacketServer::GenerateSsoTokenResponse,
-            OpcodeServer::GetAccountCharacterListResult => {
-                PacketServer::GetAccountCharacterListResult
-            }
-            OpcodeServer::GetGarrisonInfoResult => PacketServer::GetGarrisonInfoResult,
-            OpcodeServer::GetLandingPageShipmentsResponse => {
-                PacketServer::GetLandingPageShipmentsResponse
-            }
-            OpcodeServer::GetRemainingGameTimeResponse => {
-                PacketServer::GetRemainingGameTimeResponse
-            }
-            OpcodeServer::GetSelectedTrophyIdResponse => PacketServer::GetSelectedTrophyIdResponse,
-            OpcodeServer::GetShipmentsOfTypeResponse => PacketServer::GetShipmentsOfTypeResponse,
-            OpcodeServer::GetShipmentInfoResponse => PacketServer::GetShipmentInfoResponse,
-            OpcodeServer::GetTrophyListResponse => PacketServer::GetTrophyListResponse,
-            OpcodeServer::GetVasAccountCharacterListResult => {
-                PacketServer::GetVasAccountCharacterListResult
-            }
-            OpcodeServer::GetVasTransferTargetRealmListResult => {
-                PacketServer::GetVasTransferTargetRealmListResult
-            }
-            OpcodeServer::GmPlayerInfo => PacketServer::GmPlayerInfo,
-            OpcodeServer::GmRequestPlayerInfo => PacketServer::GmRequestPlayerInfo,
-            OpcodeServer::GmTicketCaseStatus => PacketServer::GmTicketCaseStatus,
-            OpcodeServer::GmTicketSystemStatus => PacketServer::GmTicketSystemStatus,
-            OpcodeServer::GodMode => PacketServer::GodMode,
-            OpcodeServer::GossipComplete => PacketServer::GossipComplete,
-            OpcodeServer::GossipMessage => PacketServer::GossipMessage,
-            OpcodeServer::GossipPoi => PacketServer::GossipPoi,
-            OpcodeServer::GossipQuestUpdate => PacketServer::GossipQuestUpdate,
-            OpcodeServer::GossipRefreshOptions => PacketServer::GossipRefreshOptions,
-            OpcodeServer::GroupActionThrottled => PacketServer::GroupActionThrottled,
-            OpcodeServer::GroupAutoKick => PacketServer::GroupAutoKick,
-            OpcodeServer::GroupDecline => PacketServer::GroupDecline,
-            OpcodeServer::GroupDestroyed => PacketServer::GroupDestroyed,
-            OpcodeServer::GroupNewLeader => PacketServer::GroupNewLeader,
-            OpcodeServer::GroupUninvite => PacketServer::GroupUninvite,
-            OpcodeServer::GuildAchievementDeleted => PacketServer::GuildAchievementDeleted,
-            OpcodeServer::GuildAchievementEarned => PacketServer::GuildAchievementEarned,
-            OpcodeServer::GuildAchievementMembers => PacketServer::GuildAchievementMembers,
-            OpcodeServer::GuildBankLogQueryResults => PacketServer::GuildBankLogQueryResults,
-            OpcodeServer::GuildBankQueryResults => PacketServer::GuildBankQueryResults,
-            OpcodeServer::GuildBankRemainingWithdrawMoney => {
-                PacketServer::GuildBankRemainingWithdrawMoney
-            }
-            OpcodeServer::GuildBankTextQueryResult => PacketServer::GuildBankTextQueryResult,
-            OpcodeServer::GuildChallengeCompleted => PacketServer::GuildChallengeCompleted,
-            OpcodeServer::GuildChallengeUpdate => PacketServer::GuildChallengeUpdate,
-            OpcodeServer::GuildChangeNameResult => PacketServer::GuildChangeNameResult,
-            OpcodeServer::GuildCommandResult => PacketServer::GuildCommandResult,
-            OpcodeServer::GuildCriteriaDeleted => PacketServer::GuildCriteriaDeleted,
-            OpcodeServer::GuildCriteriaUpdate => PacketServer::GuildCriteriaUpdate,
-            OpcodeServer::GuildEventBankContentsChanged => {
-                PacketServer::GuildEventBankContentsChanged
-            }
-            OpcodeServer::GuildEventBankMoneyChanged => PacketServer::GuildEventBankMoneyChanged,
-            OpcodeServer::GuildEventDisbanded => PacketServer::GuildEventDisbanded,
-            OpcodeServer::GuildEventLogQueryResults => PacketServer::GuildEventLogQueryResults,
-            OpcodeServer::GuildEventMotd => PacketServer::GuildEventMotd,
-            OpcodeServer::GuildEventNewLeader => PacketServer::GuildEventNewLeader,
-            OpcodeServer::GuildEventPlayerJoined => PacketServer::GuildEventPlayerJoined,
-            OpcodeServer::GuildEventPlayerLeft => PacketServer::GuildEventPlayerLeft,
-            OpcodeServer::GuildEventPresenceChange => PacketServer::GuildEventPresenceChange,
-            OpcodeServer::GuildEventRanksUpdated => PacketServer::GuildEventRanksUpdated,
-            OpcodeServer::GuildEventRankChanged => PacketServer::GuildEventRankChanged,
-            OpcodeServer::GuildEventStatusChange => PacketServer::GuildEventStatusChange,
-            OpcodeServer::GuildEventTabAdded => PacketServer::GuildEventTabAdded,
-            OpcodeServer::GuildEventTabDeleted => PacketServer::GuildEventTabDeleted,
-            OpcodeServer::GuildEventTabModified => PacketServer::GuildEventTabModified,
-            OpcodeServer::GuildEventTabTextChanged => PacketServer::GuildEventTabTextChanged,
-            OpcodeServer::GuildFlaggedForRename => PacketServer::GuildFlaggedForRename,
-            OpcodeServer::GuildInvite => PacketServer::GuildInvite,
-            OpcodeServer::GuildInviteDeclined => PacketServer::GuildInviteDeclined,
-            OpcodeServer::GuildInviteExpired => PacketServer::GuildInviteExpired,
-            OpcodeServer::GuildItemLootedNotify => PacketServer::GuildItemLootedNotify,
-            OpcodeServer::GuildKnownRecipes => PacketServer::GuildKnownRecipes,
-            OpcodeServer::GuildMembersWithRecipe => PacketServer::GuildMembersWithRecipe,
-            OpcodeServer::GuildMemberDailyReset => PacketServer::GuildMemberDailyReset,
-            OpcodeServer::GuildMemberRecipes => PacketServer::GuildMemberRecipes,
-            OpcodeServer::GuildMemberUpdateNote => PacketServer::GuildMemberUpdateNote,
-            OpcodeServer::GuildMoved => PacketServer::GuildMoved,
-            OpcodeServer::GuildMoveStarting => PacketServer::GuildMoveStarting,
-            OpcodeServer::GuildNameChanged => PacketServer::GuildNameChanged,
-            OpcodeServer::GuildNews => PacketServer::GuildNews,
-            OpcodeServer::GuildNewsDeleted => PacketServer::GuildNewsDeleted,
-            OpcodeServer::GuildPartyState => PacketServer::GuildPartyState,
-            OpcodeServer::GuildPermissionsQueryResults => {
-                PacketServer::GuildPermissionsQueryResults
-            }
-            OpcodeServer::GuildRanks => PacketServer::GuildRanks,
-            OpcodeServer::GuildReputationReactionChanged => {
-                PacketServer::GuildReputationReactionChanged
-            }
-            OpcodeServer::GuildReset => PacketServer::GuildReset,
-            OpcodeServer::GuildRewardList => PacketServer::GuildRewardList,
-            OpcodeServer::GuildRoster => PacketServer::GuildRoster,
-            OpcodeServer::GuildRosterUpdate => PacketServer::GuildRosterUpdate,
-            OpcodeServer::GuildSendRankChange => PacketServer::GuildSendRankChange,
-            OpcodeServer::HealthUpdate => PacketServer::HealthUpdate,
-            OpcodeServer::HighestThreatUpdate => PacketServer::HighestThreatUpdate,
-            OpcodeServer::HotfixConnect => PacketServer::HotfixConnect,
-            OpcodeServer::HotfixMessage => PacketServer::HotfixMessage,
-            OpcodeServer::InitializeFactions => PacketServer::InitializeFactions,
-            OpcodeServer::InitialSetup => PacketServer::InitialSetup,
-            OpcodeServer::InitWorldStates => PacketServer::InitWorldStates,
-            OpcodeServer::InspectResult => PacketServer::InspectResult,
-            OpcodeServer::InstanceEncounterChangePriority => {
-                PacketServer::InstanceEncounterChangePriority
-            }
-            OpcodeServer::InstanceEncounterDisengageUnit => {
-                PacketServer::InstanceEncounterDisengageUnit
-            }
-            OpcodeServer::InstanceEncounterEnd => PacketServer::InstanceEncounterEnd,
-            OpcodeServer::InstanceEncounterEngageUnit => PacketServer::InstanceEncounterEngageUnit,
-            OpcodeServer::InstanceEncounterGainCombatResurrectionCharge => {
-                PacketServer::InstanceEncounterGainCombatResurrectionCharge
-            }
-            OpcodeServer::InstanceEncounterInCombatResurrection => {
-                PacketServer::InstanceEncounterInCombatResurrection
-            }
-            OpcodeServer::InstanceEncounterObjectiveComplete => {
-                PacketServer::InstanceEncounterObjectiveComplete
-            }
-            OpcodeServer::InstanceEncounterObjectiveStart => {
-                PacketServer::InstanceEncounterObjectiveStart
-            }
-            OpcodeServer::InstanceEncounterObjectiveUpdate => {
-                PacketServer::InstanceEncounterObjectiveUpdate
-            }
-            OpcodeServer::InstanceEncounterPhaseShiftChanged => {
-                PacketServer::InstanceEncounterPhaseShiftChanged
-            }
-            OpcodeServer::InstanceEncounterStart => PacketServer::InstanceEncounterStart,
-            OpcodeServer::InstanceEncounterTimerStart => PacketServer::InstanceEncounterTimerStart,
-            OpcodeServer::InstanceEncounterUpdateAllowReleaseInProgress => {
-                PacketServer::InstanceEncounterUpdateAllowReleaseInProgress
-            }
-            OpcodeServer::InstanceEncounterUpdateSuppressRelease => {
-                PacketServer::InstanceEncounterUpdateSuppressRelease
-            }
-            OpcodeServer::InstanceGroupSizeChanged => PacketServer::InstanceGroupSizeChanged,
-            OpcodeServer::InstanceInfo => PacketServer::InstanceInfo,
-            OpcodeServer::InstanceReset => PacketServer::InstanceReset,
-            OpcodeServer::InstanceResetFailed => PacketServer::InstanceResetFailed,
-            OpcodeServer::InstanceSaveCreated => PacketServer::InstanceSaveCreated,
-            OpcodeServer::InterruptPowerRegen => PacketServer::InterruptPowerRegen,
-            OpcodeServer::InvalidatePageText => PacketServer::InvalidatePageText,
-            OpcodeServer::InvalidatePlayer => PacketServer::InvalidatePlayer,
-            OpcodeServer::InvalidPromotionCode => PacketServer::InvalidPromotionCode,
-            OpcodeServer::InventoryChangeFailure => PacketServer::InventoryChangeFailure,
-            OpcodeServer::InventoryFixupComplete => PacketServer::InventoryFixupComplete,
-            OpcodeServer::InventoryFullOverflow => PacketServer::InventoryFullOverflow,
-            OpcodeServer::IslandsMissionNpc => PacketServer::IslandsMissionNpc,
-            OpcodeServer::IslandAzeriteGain => PacketServer::IslandAzeriteGain,
-            OpcodeServer::IslandComplete => PacketServer::IslandComplete,
-            OpcodeServer::IsQuestCompleteResponse => PacketServer::IsQuestCompleteResponse,
-            OpcodeServer::ItemChanged => PacketServer::ItemChanged,
-            OpcodeServer::ItemCooldown => PacketServer::ItemCooldown,
-            OpcodeServer::ItemEnchantTimeUpdate => PacketServer::ItemEnchantTimeUpdate,
-            OpcodeServer::ItemExpirePurchaseRefund => PacketServer::ItemExpirePurchaseRefund,
-            OpcodeServer::ItemInteractionComplete => PacketServer::ItemInteractionComplete,
-            OpcodeServer::ItemPurchaseRefundResult => PacketServer::ItemPurchaseRefundResult,
-            OpcodeServer::ItemPushResult => PacketServer::ItemPushResult,
-            OpcodeServer::ItemTimeUpdate => PacketServer::ItemTimeUpdate,
-            OpcodeServer::KickReason => PacketServer::KickReason,
-            OpcodeServer::LatencyReportPing => PacketServer::LatencyReportPing,
-            OpcodeServer::LearnedSpells => PacketServer::LearnedSpells,
-            OpcodeServer::LearnPvpTalentFailed => PacketServer::LearnPvpTalentFailed,
-            OpcodeServer::LearnTalentFailed => PacketServer::LearnTalentFailed,
-            OpcodeServer::LegacyLootRules => PacketServer::LegacyLootRules,
-            OpcodeServer::LevelLinkingResult => PacketServer::LevelLinkingResult,
-            OpcodeServer::LevelUpInfo => PacketServer::LevelUpInfo,
-            OpcodeServer::LfgBootPlayer => PacketServer::LfgBootPlayer,
-            OpcodeServer::LfgDisabled => PacketServer::LfgDisabled,
-            OpcodeServer::LfgExpandSearchPrompt => PacketServer::LfgExpandSearchPrompt,
-            OpcodeServer::LfgInstanceShutdownCountdown => {
-                PacketServer::LfgInstanceShutdownCountdown
-            }
-            OpcodeServer::LfgJoinResult => PacketServer::LfgJoinResult,
-            OpcodeServer::LfgListApplicantListUpdate => PacketServer::LfgListApplicantListUpdate,
-            OpcodeServer::LfgListApplicationStatusUpdate => {
-                PacketServer::LfgListApplicationStatusUpdate
-            }
-            OpcodeServer::LfgListApplyToGroupResult => PacketServer::LfgListApplyToGroupResult,
-            OpcodeServer::LfgListJoinResult => PacketServer::LfgListJoinResult,
-            OpcodeServer::LfgListSearchResults => PacketServer::LfgListSearchResults,
-            OpcodeServer::LfgListSearchResultsUpdate => PacketServer::LfgListSearchResultsUpdate,
-            OpcodeServer::LfgListSearchStatus => PacketServer::LfgListSearchStatus,
-            OpcodeServer::LfgListUpdateBlacklist => PacketServer::LfgListUpdateBlacklist,
-            OpcodeServer::LfgListUpdateExpiration => PacketServer::LfgListUpdateExpiration,
-            OpcodeServer::LfgListUpdateStatus => PacketServer::LfgListUpdateStatus,
-            OpcodeServer::LfgOfferContinue => PacketServer::LfgOfferContinue,
-            OpcodeServer::LfgPartyInfo => PacketServer::LfgPartyInfo,
-            OpcodeServer::LfgPlayerInfo => PacketServer::LfgPlayerInfo,
-            OpcodeServer::LfgPlayerReward => PacketServer::LfgPlayerReward,
-            OpcodeServer::LfgProposalUpdate => PacketServer::LfgProposalUpdate,
-            OpcodeServer::LfgQueueStatus => PacketServer::LfgQueueStatus,
-            OpcodeServer::LfgReadyCheckResult => PacketServer::LfgReadyCheckResult,
-            OpcodeServer::LfgReadyCheckUpdate => PacketServer::LfgReadyCheckUpdate,
-            OpcodeServer::LfgRoleCheckUpdate => PacketServer::LfgRoleCheckUpdate,
-            OpcodeServer::LfgSlotInvalid => PacketServer::LfgSlotInvalid,
-            OpcodeServer::LfgTeleportDenied => PacketServer::LfgTeleportDenied,
-            OpcodeServer::LfgUpdateStatus => PacketServer::LfgUpdateStatus,
-            OpcodeServer::LiveRegionAccountRestoreResult => {
-                PacketServer::LiveRegionAccountRestoreResult
-            }
-            OpcodeServer::LiveRegionCharacterCopyResult => {
-                PacketServer::LiveRegionCharacterCopyResult
-            }
-            OpcodeServer::LiveRegionGetAccountCharacterListResult => {
-                PacketServer::LiveRegionGetAccountCharacterListResult
-            }
-            OpcodeServer::LiveRegionKeyBindingsCopyResult => {
-                PacketServer::LiveRegionKeyBindingsCopyResult
-            }
-            OpcodeServer::LoadCufProfiles => PacketServer::LoadCufProfiles,
-            OpcodeServer::LoadEquipmentSet => PacketServer::LoadEquipmentSet,
-            OpcodeServer::LoginSetTimeSpeed => PacketServer::LoginSetTimeSpeed,
-            OpcodeServer::LoginVerifyWorld => PacketServer::LoginVerifyWorld,
-            OpcodeServer::LogoutCancelAck => PacketServer::LogoutCancelAck,
-            OpcodeServer::LogoutComplete => PacketServer::LogoutComplete,
-            OpcodeServer::LogoutResponse => PacketServer::LogoutResponse,
-            OpcodeServer::LogXpGain => PacketServer::LogXpGain,
-            OpcodeServer::LootAllPassed => PacketServer::LootAllPassed,
-            OpcodeServer::LootList => PacketServer::LootList,
-            OpcodeServer::LootMoneyNotify => PacketServer::LootMoneyNotify,
-            OpcodeServer::LootRelease => PacketServer::LootRelease,
-            OpcodeServer::LootReleaseAll => PacketServer::LootReleaseAll,
-            OpcodeServer::LootRemoved => PacketServer::LootRemoved,
-            OpcodeServer::LootResponse => PacketServer::LootResponse,
-            OpcodeServer::LootRoll => PacketServer::LootRoll,
-            OpcodeServer::LootRollsComplete => PacketServer::LootRollsComplete,
-            OpcodeServer::LootRollWon => PacketServer::LootRollWon,
-            OpcodeServer::LossOfControlAuraUpdate => PacketServer::LossOfControlAuraUpdate,
-            OpcodeServer::MailCommandResult => PacketServer::MailCommandResult,
-            OpcodeServer::MailListResult => PacketServer::MailListResult,
-            OpcodeServer::MailQueryNextTimeResult => PacketServer::MailQueryNextTimeResult,
-            OpcodeServer::MapObjectivesInit => PacketServer::MapObjectivesInit,
-            OpcodeServer::MapObjEvents => PacketServer::MapObjEvents,
-            OpcodeServer::MasterLootCandidateList => PacketServer::MasterLootCandidateList,
-            OpcodeServer::MessageBox => PacketServer::MessageBox,
-            OpcodeServer::MinimapPing => PacketServer::MinimapPing,
-            OpcodeServer::MirrorImageComponentedData => PacketServer::MirrorImageComponentedData,
-            OpcodeServer::MirrorImageCreatureData => PacketServer::MirrorImageCreatureData,
-            OpcodeServer::MissileCancel => PacketServer::MissileCancel,
-            OpcodeServer::ModifyCooldown => PacketServer::ModifyCooldown,
-            OpcodeServer::Motd => PacketServer::Motd,
-            OpcodeServer::MountResult => PacketServer::MountResult,
-            OpcodeServer::MovementEnforcementAlert => PacketServer::MovementEnforcementAlert,
-            OpcodeServer::MoveApplyInertia => PacketServer::MoveApplyInertia,
-            OpcodeServer::MoveApplyMovementForce => PacketServer::MoveApplyMovementForce,
-            OpcodeServer::MoveDisableCollision => PacketServer::MoveDisableCollision,
-            OpcodeServer::MoveDisableDoubleJump => PacketServer::MoveDisableDoubleJump,
-            OpcodeServer::MoveDisableGravity => PacketServer::MoveDisableGravity,
-            OpcodeServer::MoveDisableInertia => PacketServer::MoveDisableInertia,
-            OpcodeServer::MoveDisableTransitionBetweenSwimAndFly => {
-                PacketServer::MoveDisableTransitionBetweenSwimAndFly
-            }
-            OpcodeServer::MoveEnableCollision => PacketServer::MoveEnableCollision,
-            OpcodeServer::MoveEnableDoubleJump => PacketServer::MoveEnableDoubleJump,
-            OpcodeServer::MoveEnableGravity => PacketServer::MoveEnableGravity,
-            OpcodeServer::MoveEnableInertia => PacketServer::MoveEnableInertia,
-            OpcodeServer::MoveEnableTransitionBetweenSwimAndFly => {
-                PacketServer::MoveEnableTransitionBetweenSwimAndFly
-            }
-            OpcodeServer::MoveKnockBack => PacketServer::MoveKnockBack,
-            OpcodeServer::MoveRemoveInertia => PacketServer::MoveRemoveInertia,
-            OpcodeServer::MoveRemoveMovementForce => PacketServer::MoveRemoveMovementForce,
-            OpcodeServer::MoveRoot => PacketServer::MoveRoot,
-            OpcodeServer::MoveSetActiveMover => PacketServer::MoveSetActiveMover,
-            OpcodeServer::MoveSetCanFly => PacketServer::MoveSetCanFly,
-            OpcodeServer::MoveSetCanTurnWhileFalling => PacketServer::MoveSetCanTurnWhileFalling,
-            OpcodeServer::MoveSetCollisionHeight => PacketServer::MoveSetCollisionHeight,
-            OpcodeServer::MoveSetCompoundState => PacketServer::MoveSetCompoundState,
-            OpcodeServer::MoveSetFeatherFall => PacketServer::MoveSetFeatherFall,
-            OpcodeServer::MoveSetFlightBackSpeed => PacketServer::MoveSetFlightBackSpeed,
-            OpcodeServer::MoveSetFlightSpeed => PacketServer::MoveSetFlightSpeed,
-            OpcodeServer::MoveSetHovering => PacketServer::MoveSetHovering,
-            OpcodeServer::MoveSetIgnoreMovementForces => PacketServer::MoveSetIgnoreMovementForces,
-            OpcodeServer::MoveSetLandWalk => PacketServer::MoveSetLandWalk,
-            OpcodeServer::MoveSetModMovementForceMagnitude => {
-                PacketServer::MoveSetModMovementForceMagnitude
-            }
-            OpcodeServer::MoveSetNormalFall => PacketServer::MoveSetNormalFall,
-            OpcodeServer::MoveSetPitchRate => PacketServer::MoveSetPitchRate,
-            OpcodeServer::MoveSetRunBackSpeed => PacketServer::MoveSetRunBackSpeed,
-            OpcodeServer::MoveSetRunSpeed => PacketServer::MoveSetRunSpeed,
-            OpcodeServer::MoveSetSwimBackSpeed => PacketServer::MoveSetSwimBackSpeed,
-            OpcodeServer::MoveSetSwimSpeed => PacketServer::MoveSetSwimSpeed,
-            OpcodeServer::MoveSetTurnRate => PacketServer::MoveSetTurnRate,
-            OpcodeServer::MoveSetVehicleRecId => PacketServer::MoveSetVehicleRecId,
-            OpcodeServer::MoveSetWalkSpeed => PacketServer::MoveSetWalkSpeed,
-            OpcodeServer::MoveSetWaterWalk => PacketServer::MoveSetWaterWalk,
-            OpcodeServer::MoveSkipTime => PacketServer::MoveSkipTime,
-            OpcodeServer::MoveSplineDisableCollision => PacketServer::MoveSplineDisableCollision,
-            OpcodeServer::MoveSplineDisableGravity => PacketServer::MoveSplineDisableGravity,
-            OpcodeServer::MoveSplineEnableCollision => PacketServer::MoveSplineEnableCollision,
-            OpcodeServer::MoveSplineEnableGravity => PacketServer::MoveSplineEnableGravity,
-            OpcodeServer::MoveSplineRoot => PacketServer::MoveSplineRoot,
-            OpcodeServer::MoveSplineSetFeatherFall => PacketServer::MoveSplineSetFeatherFall,
-            OpcodeServer::MoveSplineSetFlightBackSpeed => {
-                PacketServer::MoveSplineSetFlightBackSpeed
-            }
-            OpcodeServer::MoveSplineSetFlightSpeed => PacketServer::MoveSplineSetFlightSpeed,
-            OpcodeServer::MoveSplineSetFlying => PacketServer::MoveSplineSetFlying,
-            OpcodeServer::MoveSplineSetHover => PacketServer::MoveSplineSetHover,
-            OpcodeServer::MoveSplineSetLandWalk => PacketServer::MoveSplineSetLandWalk,
-            OpcodeServer::MoveSplineSetNormalFall => PacketServer::MoveSplineSetNormalFall,
-            OpcodeServer::MoveSplineSetPitchRate => PacketServer::MoveSplineSetPitchRate,
-            OpcodeServer::MoveSplineSetRunBackSpeed => PacketServer::MoveSplineSetRunBackSpeed,
-            OpcodeServer::MoveSplineSetRunMode => PacketServer::MoveSplineSetRunMode,
-            OpcodeServer::MoveSplineSetRunSpeed => PacketServer::MoveSplineSetRunSpeed,
-            OpcodeServer::MoveSplineSetSwimBackSpeed => PacketServer::MoveSplineSetSwimBackSpeed,
-            OpcodeServer::MoveSplineSetSwimSpeed => PacketServer::MoveSplineSetSwimSpeed,
-            OpcodeServer::MoveSplineSetTurnRate => PacketServer::MoveSplineSetTurnRate,
-            OpcodeServer::MoveSplineSetWalkMode => PacketServer::MoveSplineSetWalkMode,
-            OpcodeServer::MoveSplineSetWalkSpeed => PacketServer::MoveSplineSetWalkSpeed,
-            OpcodeServer::MoveSplineSetWaterWalk => PacketServer::MoveSplineSetWaterWalk,
-            OpcodeServer::MoveSplineStartSwim => PacketServer::MoveSplineStartSwim,
-            OpcodeServer::MoveSplineStopSwim => PacketServer::MoveSplineStopSwim,
-            OpcodeServer::MoveSplineUnroot => PacketServer::MoveSplineUnroot,
-            OpcodeServer::MoveSplineUnsetFlying => PacketServer::MoveSplineUnsetFlying,
-            OpcodeServer::MoveSplineUnsetHover => PacketServer::MoveSplineUnsetHover,
-            OpcodeServer::MoveTeleport => PacketServer::MoveTeleport,
-            OpcodeServer::MoveUnroot => PacketServer::MoveUnroot,
-            OpcodeServer::MoveUnsetCanFly => PacketServer::MoveUnsetCanFly,
-            OpcodeServer::MoveUnsetCanTurnWhileFalling => {
-                PacketServer::MoveUnsetCanTurnWhileFalling
-            }
-            OpcodeServer::MoveUnsetHovering => PacketServer::MoveUnsetHovering,
-            OpcodeServer::MoveUnsetIgnoreMovementForces => {
-                PacketServer::MoveUnsetIgnoreMovementForces
-            }
-            OpcodeServer::MoveUpdate => PacketServer::MoveUpdate,
-            OpcodeServer::MoveUpdateApplyInertia => PacketServer::MoveUpdateApplyInertia,
-            OpcodeServer::MoveUpdateApplyMovementForce => {
-                PacketServer::MoveUpdateApplyMovementForce
-            }
-            OpcodeServer::MoveUpdateCollisionHeight => PacketServer::MoveUpdateCollisionHeight,
-            OpcodeServer::MoveUpdateFlightBackSpeed => PacketServer::MoveUpdateFlightBackSpeed,
-            OpcodeServer::MoveUpdateFlightSpeed => PacketServer::MoveUpdateFlightSpeed,
-            OpcodeServer::MoveUpdateKnockBack => PacketServer::MoveUpdateKnockBack,
-            OpcodeServer::MoveUpdateModMovementForceMagnitude => {
-                PacketServer::MoveUpdateModMovementForceMagnitude
-            }
-            OpcodeServer::MoveUpdatePitchRate => PacketServer::MoveUpdatePitchRate,
-            OpcodeServer::MoveUpdateRemoveInertia => PacketServer::MoveUpdateRemoveInertia,
-            OpcodeServer::MoveUpdateRemoveMovementForce => {
-                PacketServer::MoveUpdateRemoveMovementForce
-            }
-            OpcodeServer::MoveUpdateRunBackSpeed => PacketServer::MoveUpdateRunBackSpeed,
-            OpcodeServer::MoveUpdateRunSpeed => PacketServer::MoveUpdateRunSpeed,
-            OpcodeServer::MoveUpdateSwimBackSpeed => PacketServer::MoveUpdateSwimBackSpeed,
-            OpcodeServer::MoveUpdateSwimSpeed => PacketServer::MoveUpdateSwimSpeed,
-            OpcodeServer::MoveUpdateTeleport => PacketServer::MoveUpdateTeleport,
-            OpcodeServer::MoveUpdateTurnRate => PacketServer::MoveUpdateTurnRate,
-            OpcodeServer::MoveUpdateWalkSpeed => PacketServer::MoveUpdateWalkSpeed,
-            OpcodeServer::MultiFloorLeaveFloor => PacketServer::MultiFloorLeaveFloor,
-            OpcodeServer::MultiFloorNewFloor => PacketServer::MultiFloorNewFloor,
-            OpcodeServer::MythicPlusAllMapStats => PacketServer::MythicPlusAllMapStats,
-            OpcodeServer::MythicPlusCurrentAffixes => PacketServer::MythicPlusCurrentAffixes,
-            OpcodeServer::MythicPlusNewWeekRecord => PacketServer::MythicPlusNewWeekRecord,
-            OpcodeServer::MythicPlusSeasonData => PacketServer::MythicPlusSeasonData,
-            OpcodeServer::NeutralPlayerFactionSelectResult => {
-                PacketServer::NeutralPlayerFactionSelectResult
-            }
-            OpcodeServer::NewTaxiPath => PacketServer::NewTaxiPath,
-            OpcodeServer::NewWorld => PacketServer::NewWorld,
-            OpcodeServer::NotifyDestLocSpellCast => PacketServer::NotifyDestLocSpellCast,
-            OpcodeServer::NotifyMissileTrajectoryCollision => {
-                PacketServer::NotifyMissileTrajectoryCollision
-            }
-            OpcodeServer::NotifyMoney => PacketServer::NotifyMoney,
-            OpcodeServer::NotifyReceivedMail => PacketServer::NotifyReceivedMail,
-            OpcodeServer::OfferPetitionError => PacketServer::OfferPetitionError,
-            OpcodeServer::OnCancelExpectedRideVehicleAura => {
-                PacketServer::OnCancelExpectedRideVehicleAura
-            }
-            OpcodeServer::OnMonsterMove => PacketServer::OnMonsterMove,
-            OpcodeServer::OpenAnimaDiversionUi => PacketServer::OpenAnimaDiversionUi,
-            OpcodeServer::OpenArtifactForge => PacketServer::OpenArtifactForge,
-            OpcodeServer::OpenContainer => PacketServer::OpenContainer,
-            OpcodeServer::OpenHeartForge => PacketServer::OpenHeartForge,
-            OpcodeServer::OpenItemForge => PacketServer::OpenItemForge,
-            OpcodeServer::OpenLfgDungeonFinder => PacketServer::OpenLfgDungeonFinder,
-            OpcodeServer::OpenShipmentNpcFromGossip => PacketServer::OpenShipmentNpcFromGossip,
-            OpcodeServer::OpenShipmentNpcResult => PacketServer::OpenShipmentNpcResult,
-            OpcodeServer::OverrideLight => PacketServer::OverrideLight,
-            OpcodeServer::PageText => PacketServer::PageText,
-            OpcodeServer::PartyCommandResult => PacketServer::PartyCommandResult,
-            OpcodeServer::PartyInvite => PacketServer::PartyInvite,
-            OpcodeServer::PartyKillLog => PacketServer::PartyKillLog,
-            OpcodeServer::PartyMemberFullState => PacketServer::PartyMemberFullState,
-            OpcodeServer::PartyMemberPartialState => PacketServer::PartyMemberPartialState,
-            OpcodeServer::PartyNotifyLfgLeaderChange => PacketServer::PartyNotifyLfgLeaderChange,
-            OpcodeServer::PartyUpdate => PacketServer::PartyUpdate,
-            OpcodeServer::PastTimeEvents => PacketServer::PastTimeEvents,
-            OpcodeServer::PauseMirrorTimer => PacketServer::PauseMirrorTimer,
-            OpcodeServer::PendingRaidLock => PacketServer::PendingRaidLock,
-            OpcodeServer::PetitionAlreadySigned => PacketServer::PetitionAlreadySigned,
-            OpcodeServer::PetitionRenameGuildResponse => PacketServer::PetitionRenameGuildResponse,
-            OpcodeServer::PetitionShowList => PacketServer::PetitionShowList,
-            OpcodeServer::PetitionShowSignatures => PacketServer::PetitionShowSignatures,
-            OpcodeServer::PetitionSignResults => PacketServer::PetitionSignResults,
-            OpcodeServer::PetActionFeedback => PacketServer::PetActionFeedback,
-            OpcodeServer::PetActionSound => PacketServer::PetActionSound,
-            OpcodeServer::PetAdded => PacketServer::PetAdded,
-            OpcodeServer::PetBattleChatRestricted => PacketServer::PetBattleChatRestricted,
-            OpcodeServer::PetBattleDebugQueueDumpResponse => {
-                PacketServer::PetBattleDebugQueueDumpResponse
-            }
-            OpcodeServer::PetBattleFinalizeLocation => PacketServer::PetBattleFinalizeLocation,
-            OpcodeServer::PetBattleFinalRound => PacketServer::PetBattleFinalRound,
-            OpcodeServer::PetBattleFinished => PacketServer::PetBattleFinished,
-            OpcodeServer::PetBattleFirstRound => PacketServer::PetBattleFirstRound,
-            OpcodeServer::PetBattleInitialUpdate => PacketServer::PetBattleInitialUpdate,
-            OpcodeServer::PetBattleMaxGameLengthWarning => {
-                PacketServer::PetBattleMaxGameLengthWarning
-            }
-            OpcodeServer::PetBattlePvpChallenge => PacketServer::PetBattlePvpChallenge,
-            OpcodeServer::PetBattleQueueProposeMatch => PacketServer::PetBattleQueueProposeMatch,
-            OpcodeServer::PetBattleQueueStatus => PacketServer::PetBattleQueueStatus,
-            OpcodeServer::PetBattleReplacementsMade => PacketServer::PetBattleReplacementsMade,
-            OpcodeServer::PetBattleRequestFailed => PacketServer::PetBattleRequestFailed,
-            OpcodeServer::PetBattleRoundResult => PacketServer::PetBattleRoundResult,
-            OpcodeServer::PetBattleSlotUpdates => PacketServer::PetBattleSlotUpdates,
-            OpcodeServer::PetCastFailed => PacketServer::PetCastFailed,
-            OpcodeServer::PetClearSpells => PacketServer::PetClearSpells,
-            OpcodeServer::PetDismissSound => PacketServer::PetDismissSound,
-            OpcodeServer::PetGodMode => PacketServer::PetGodMode,
-            OpcodeServer::PetGuids => PacketServer::PetGuids,
-            OpcodeServer::PetLearnedSpells => PacketServer::PetLearnedSpells,
-            OpcodeServer::PetMode => PacketServer::PetMode,
-            OpcodeServer::PetNameInvalid => PacketServer::PetNameInvalid,
-            OpcodeServer::PetNewlyTamed => PacketServer::PetNewlyTamed,
-            OpcodeServer::PetSlotUpdated => PacketServer::PetSlotUpdated,
-            OpcodeServer::PetSpellsMessage => PacketServer::PetSpellsMessage,
-            OpcodeServer::PetStableList => PacketServer::PetStableList,
-            OpcodeServer::PetStableResult => PacketServer::PetStableResult,
-            OpcodeServer::PetTameFailure => PacketServer::PetTameFailure,
-            OpcodeServer::PetUnlearnedSpells => PacketServer::PetUnlearnedSpells,
-            OpcodeServer::PhaseShiftChange => PacketServer::PhaseShiftChange,
-            OpcodeServer::PlayedTime => PacketServer::PlayedTime,
-            OpcodeServer::PlayerAzeriteItemEquippedStatusChanged => {
-                PacketServer::PlayerAzeriteItemEquippedStatusChanged
-            }
-            OpcodeServer::PlayerAzeriteItemGains => PacketServer::PlayerAzeriteItemGains,
-            OpcodeServer::PlayerBonusRollFailed => PacketServer::PlayerBonusRollFailed,
-            OpcodeServer::PlayerBound => PacketServer::PlayerBound,
-            OpcodeServer::PlayerChoiceClear => PacketServer::PlayerChoiceClear,
-            OpcodeServer::PlayerChoiceDisplayError => PacketServer::PlayerChoiceDisplayError,
-            OpcodeServer::PlayerConditionResult => PacketServer::PlayerConditionResult,
-            OpcodeServer::PlayerIsAdventureMapPoiValid => {
-                PacketServer::PlayerIsAdventureMapPoiValid
-            }
-            OpcodeServer::PlayerOpenSubscriptionInterstitial => {
-                PacketServer::PlayerOpenSubscriptionInterstitial
-            }
-            OpcodeServer::PlayerSaveGuildEmblem => PacketServer::PlayerSaveGuildEmblem,
-            OpcodeServer::PlayerShowUiEventToast => PacketServer::PlayerShowUiEventToast,
-            OpcodeServer::PlayerSkinned => PacketServer::PlayerSkinned,
-            OpcodeServer::PlayerTabardVendorActivate => PacketServer::PlayerTabardVendorActivate,
-            OpcodeServer::PlayerTutorialHighlightSpell => {
-                PacketServer::PlayerTutorialHighlightSpell
-            }
-            OpcodeServer::PlayerTutorialUnhighlightSpell => {
-                PacketServer::PlayerTutorialUnhighlightSpell
-            }
-            OpcodeServer::PlayMusic => PacketServer::PlayMusic,
-            OpcodeServer::PlayObjectSound => PacketServer::PlayObjectSound,
-            OpcodeServer::PlayOneShotAnimKit => PacketServer::PlayOneShotAnimKit,
-            OpcodeServer::PlayOrphanSpellVisual => PacketServer::PlayOrphanSpellVisual,
-            OpcodeServer::PlayScene => PacketServer::PlayScene,
-            OpcodeServer::PlaySound => PacketServer::PlaySound,
-            OpcodeServer::PlaySpeakerbotSound => PacketServer::PlaySpeakerbotSound,
-            OpcodeServer::PlaySpellVisual => PacketServer::PlaySpellVisual,
-            OpcodeServer::PlaySpellVisualKit => PacketServer::PlaySpellVisualKit,
-            OpcodeServer::PlayTimeWarning => PacketServer::PlayTimeWarning,
-            OpcodeServer::Pong => PacketServer::Pong,
-            OpcodeServer::PowerUpdate => PacketServer::PowerUpdate,
-            OpcodeServer::PreloadChildMap => PacketServer::PreloadChildMap,
-            OpcodeServer::PrepopulateNameCache => PacketServer::PrepopulateNameCache,
-            OpcodeServer::PreRessurect => PacketServer::PreRessurect,
-            OpcodeServer::PrintNotification => PacketServer::PrintNotification,
-            OpcodeServer::ProcResist => PacketServer::ProcResist,
-            OpcodeServer::PushSpellToActionBar => PacketServer::PushSpellToActionBar,
-            OpcodeServer::PvpCredit => PacketServer::PvpCredit,
-            OpcodeServer::PvpMatchComplete => PacketServer::PvpMatchComplete,
-            OpcodeServer::PvpMatchInitialize => PacketServer::PvpMatchInitialize,
-            OpcodeServer::PvpMatchStart => PacketServer::PvpMatchStart,
-            OpcodeServer::PvpMatchStatistics => PacketServer::PvpMatchStatistics,
-            OpcodeServer::PvpOptionsEnabled => PacketServer::PvpOptionsEnabled,
-            OpcodeServer::PvpTierRecord => PacketServer::PvpTierRecord,
-            OpcodeServer::QueryBattlePetNameResponse => PacketServer::QueryBattlePetNameResponse,
-            OpcodeServer::QueryCreatureResponse => PacketServer::QueryCreatureResponse,
-            OpcodeServer::QueryGameObjectResponse => PacketServer::QueryGameObjectResponse,
-            OpcodeServer::QueryGarrisonPetNameResponse => {
-                PacketServer::QueryGarrisonPetNameResponse
-            }
-            OpcodeServer::QueryGuildFollowInfoResponse => {
-                PacketServer::QueryGuildFollowInfoResponse
-            }
-            OpcodeServer::QueryGuildInfoResponse => PacketServer::QueryGuildInfoResponse,
-            OpcodeServer::QueryItemTextResponse => PacketServer::QueryItemTextResponse,
-            OpcodeServer::QueryNpcTextResponse => PacketServer::QueryNpcTextResponse,
-            OpcodeServer::QueryPageTextResponse => PacketServer::QueryPageTextResponse,
-            OpcodeServer::QueryPetitionResponse => PacketServer::QueryPetitionResponse,
-            OpcodeServer::QueryPetNameResponse => PacketServer::QueryPetNameResponse,
-            OpcodeServer::QueryPlayerNamesResponse => PacketServer::QueryPlayerNamesResponse,
-            OpcodeServer::QueryPlayerNameByCommunityIdResponse => {
-                PacketServer::QueryPlayerNameByCommunityIdResponse
-            }
-            OpcodeServer::QueryQuestInfoResponse => PacketServer::QueryQuestInfoResponse,
-            OpcodeServer::QueryRealmGuildMasterInfoResponse => {
-                PacketServer::QueryRealmGuildMasterInfoResponse
-            }
-            OpcodeServer::QueryTimeResponse => PacketServer::QueryTimeResponse,
-            OpcodeServer::QuestCompletionNpcResponse => PacketServer::QuestCompletionNpcResponse,
-            OpcodeServer::QuestConfirmAccept => PacketServer::QuestConfirmAccept,
-            OpcodeServer::QuestForceRemoved => PacketServer::QuestForceRemoved,
-            OpcodeServer::QuestGiverInvalidQuest => PacketServer::QuestGiverInvalidQuest,
-            OpcodeServer::QuestGiverOfferRewardMessage => {
-                PacketServer::QuestGiverOfferRewardMessage
-            }
-            OpcodeServer::QuestGiverQuestComplete => PacketServer::QuestGiverQuestComplete,
-            OpcodeServer::QuestGiverQuestDetails => PacketServer::QuestGiverQuestDetails,
-            OpcodeServer::QuestGiverQuestFailed => PacketServer::QuestGiverQuestFailed,
-            OpcodeServer::QuestGiverQuestListMessage => PacketServer::QuestGiverQuestListMessage,
-            OpcodeServer::QuestGiverRequestItems => PacketServer::QuestGiverRequestItems,
-            OpcodeServer::QuestGiverStatus => PacketServer::QuestGiverStatus,
-            OpcodeServer::QuestGiverStatusMultiple => PacketServer::QuestGiverStatusMultiple,
-            OpcodeServer::QuestLogFull => PacketServer::QuestLogFull,
-            OpcodeServer::QuestNonLogUpdateComplete => PacketServer::QuestNonLogUpdateComplete,
-            OpcodeServer::QuestPoiQueryResponse => PacketServer::QuestPoiQueryResponse,
-            OpcodeServer::QuestPoiUpdateResponse => PacketServer::QuestPoiUpdateResponse,
-            OpcodeServer::QuestPushResult => PacketServer::QuestPushResult,
-            OpcodeServer::QuestSessionInfoResponse => PacketServer::QuestSessionInfoResponse,
-            OpcodeServer::QuestSessionReadyCheck => PacketServer::QuestSessionReadyCheck,
-            OpcodeServer::QuestSessionReadyCheckResponse => {
-                PacketServer::QuestSessionReadyCheckResponse
-            }
-            OpcodeServer::QuestSessionResult => PacketServer::QuestSessionResult,
-            OpcodeServer::QuestUpdateAddCredit => PacketServer::QuestUpdateAddCredit,
-            OpcodeServer::QuestUpdateAddCreditSimple => PacketServer::QuestUpdateAddCreditSimple,
-            OpcodeServer::QuestUpdateAddPvpCredit => PacketServer::QuestUpdateAddPvpCredit,
-            OpcodeServer::QuestUpdateComplete => PacketServer::QuestUpdateComplete,
-            OpcodeServer::QuestUpdateFailed => PacketServer::QuestUpdateFailed,
-            OpcodeServer::QuestUpdateFailedTimer => PacketServer::QuestUpdateFailedTimer,
-            OpcodeServer::QueueSummaryUpdate => PacketServer::QueueSummaryUpdate,
-            OpcodeServer::RafAccountInfo => PacketServer::RafAccountInfo,
-            OpcodeServer::RafActivityStateChanged => PacketServer::RafActivityStateChanged,
-            OpcodeServer::RaidDifficultySet => PacketServer::RaidDifficultySet,
-            OpcodeServer::RaidGroupOnly => PacketServer::RaidGroupOnly,
-            OpcodeServer::RaidInstanceMessage => PacketServer::RaidInstanceMessage,
-            OpcodeServer::RaidMarkersChanged => PacketServer::RaidMarkersChanged,
-            OpcodeServer::RandomRoll => PacketServer::RandomRoll,
-            OpcodeServer::RatedPvpInfo => PacketServer::RatedPvpInfo,
-            OpcodeServer::ReadyCheckCompleted => PacketServer::ReadyCheckCompleted,
-            OpcodeServer::ReadyCheckResponse => PacketServer::ReadyCheckResponse,
-            OpcodeServer::ReadyCheckStarted => PacketServer::ReadyCheckStarted,
-            OpcodeServer::ReadItemResultFailed => PacketServer::ReadItemResultFailed,
-            OpcodeServer::ReadItemResultOk => PacketServer::ReadItemResultOk,
-            OpcodeServer::RealmLookupInfo => PacketServer::RealmLookupInfo,
-            OpcodeServer::RealmQueryResponse => PacketServer::RealmQueryResponse,
-            OpcodeServer::ReattachResurrect => PacketServer::ReattachResurrect,
-            OpcodeServer::RecruitAFriendFailure => PacketServer::RecruitAFriendFailure,
-            OpcodeServer::RefreshComponent => PacketServer::RefreshComponent,
-            OpcodeServer::RefreshSpellHistory => PacketServer::RefreshSpellHistory,
-            OpcodeServer::RemoveItemPassive => PacketServer::RemoveItemPassive,
-            OpcodeServer::RemoveSpellFromActionBar => PacketServer::RemoveSpellFromActionBar,
-            OpcodeServer::ReplaceTrophyResponse => PacketServer::ReplaceTrophyResponse,
-            OpcodeServer::ReportPvpPlayerAfkResult => PacketServer::ReportPvpPlayerAfkResult,
-            OpcodeServer::RequestCemeteryListResponse => PacketServer::RequestCemeteryListResponse,
-            OpcodeServer::RequestPvpRewardsResponse => PacketServer::RequestPvpRewardsResponse,
-            OpcodeServer::RequestScheduledPvpInfoResponse => {
-                PacketServer::RequestScheduledPvpInfoResponse
-            }
-            OpcodeServer::ResearchComplete => PacketServer::ResearchComplete,
-            OpcodeServer::ResetCompressionContext => PacketServer::ResetCompressionContext,
-            OpcodeServer::ResetFailedNotify => PacketServer::ResetFailedNotify,
-            OpcodeServer::ResetQuestPoi => PacketServer::ResetQuestPoi,
-            OpcodeServer::ResetRangedCombatTimer => PacketServer::ResetRangedCombatTimer,
-            OpcodeServer::ResetWeeklyCurrency => PacketServer::ResetWeeklyCurrency,
-            OpcodeServer::RespecWipeConfirm => PacketServer::RespecWipeConfirm,
-            OpcodeServer::RespondInspectAchievements => PacketServer::RespondInspectAchievements,
-            OpcodeServer::RestartGlobalCooldown => PacketServer::RestartGlobalCooldown,
-            OpcodeServer::RestrictedAccountWarning => PacketServer::RestrictedAccountWarning,
-            OpcodeServer::ResumeCast => PacketServer::ResumeCast,
-            OpcodeServer::ResumeCastBar => PacketServer::ResumeCastBar,
-            OpcodeServer::ResumeComms => PacketServer::ResumeComms,
-            OpcodeServer::ResumeToken => PacketServer::ResumeToken,
-            OpcodeServer::ResurrectRequest => PacketServer::ResurrectRequest,
-            OpcodeServer::ResyncRunes => PacketServer::ResyncRunes,
-            OpcodeServer::ReturnApplicantList => PacketServer::ReturnApplicantList,
-            OpcodeServer::ReturnRecruitingClubs => PacketServer::ReturnRecruitingClubs,
-            OpcodeServer::RoleChangedInform => PacketServer::RoleChangedInform,
-            OpcodeServer::RoleChosen => PacketServer::RoleChosen,
-            OpcodeServer::RolePollInform => PacketServer::RolePollInform,
-            OpcodeServer::RuneforgeLegendaryCraftingOpenNpc => {
-                PacketServer::RuneforgeLegendaryCraftingOpenNpc
-            }
-            OpcodeServer::RuneRegenDebug => PacketServer::RuneRegenDebug,
-            OpcodeServer::ScenarioCompleted => PacketServer::ScenarioCompleted,
-            OpcodeServer::ScenarioPois => PacketServer::ScenarioPois,
-            OpcodeServer::ScenarioProgressUpdate => PacketServer::ScenarioProgressUpdate,
-            OpcodeServer::ScenarioShowCriteria => PacketServer::ScenarioShowCriteria,
-            OpcodeServer::ScenarioState => PacketServer::ScenarioState,
-            OpcodeServer::ScenarioUiUpdate => PacketServer::ScenarioUiUpdate,
-            OpcodeServer::ScenarioVacate => PacketServer::ScenarioVacate,
-            OpcodeServer::SceneObjectEvent => PacketServer::SceneObjectEvent,
-            OpcodeServer::SceneObjectPetBattleFinalRound => {
-                PacketServer::SceneObjectPetBattleFinalRound
-            }
-            OpcodeServer::SceneObjectPetBattleFinished => {
-                PacketServer::SceneObjectPetBattleFinished
-            }
-            OpcodeServer::SceneObjectPetBattleFirstRound => {
-                PacketServer::SceneObjectPetBattleFirstRound
-            }
-            OpcodeServer::SceneObjectPetBattleInitialUpdate => {
-                PacketServer::SceneObjectPetBattleInitialUpdate
-            }
-            OpcodeServer::SceneObjectPetBattleReplacementsMade => {
-                PacketServer::SceneObjectPetBattleReplacementsMade
-            }
-            OpcodeServer::SceneObjectPetBattleRoundResult => {
-                PacketServer::SceneObjectPetBattleRoundResult
-            }
-            OpcodeServer::ScriptCast => PacketServer::ScriptCast,
-            OpcodeServer::SeasonInfo => PacketServer::SeasonInfo,
-            OpcodeServer::SellResponse => PacketServer::SellResponse,
-            OpcodeServer::SendItemPassives => PacketServer::SendItemPassives,
-            OpcodeServer::SendKnownSpells => PacketServer::SendKnownSpells,
-            OpcodeServer::SendRaidTargetUpdateAll => PacketServer::SendRaidTargetUpdateAll,
-            OpcodeServer::SendRaidTargetUpdateSingle => PacketServer::SendRaidTargetUpdateSingle,
-            OpcodeServer::SendSpellCharges => PacketServer::SendSpellCharges,
-            OpcodeServer::SendSpellHistory => PacketServer::SendSpellHistory,
-            OpcodeServer::SendUnlearnSpells => PacketServer::SendUnlearnSpells,
-            OpcodeServer::ServerFirstAchievements => PacketServer::ServerFirstAchievements,
-            OpcodeServer::ServerTime => PacketServer::ServerTime,
-            OpcodeServer::ServerTimeOffset => PacketServer::ServerTimeOffset,
-            OpcodeServer::SetupCurrency => PacketServer::SetupCurrency,
-            OpcodeServer::SetupResearchHistory => PacketServer::SetupResearchHistory,
-            OpcodeServer::SetAiAnimKit => PacketServer::SetAiAnimKit,
-            OpcodeServer::SetAllTaskProgress => PacketServer::SetAllTaskProgress,
-            OpcodeServer::SetAnimTier => PacketServer::SetAnimTier,
-            OpcodeServer::SetChrUpgradeTier => PacketServer::SetChrUpgradeTier,
-            OpcodeServer::SetCurrency => PacketServer::SetCurrency,
-            OpcodeServer::SetDfFastLaunchResult => PacketServer::SetDfFastLaunchResult,
-            OpcodeServer::SetDungeonDifficulty => PacketServer::SetDungeonDifficulty,
-            OpcodeServer::SetFactionAtWar => PacketServer::SetFactionAtWar,
-            OpcodeServer::SetFactionNotVisible => PacketServer::SetFactionNotVisible,
-            OpcodeServer::SetFactionStanding => PacketServer::SetFactionStanding,
-            OpcodeServer::SetFactionVisible => PacketServer::SetFactionVisible,
-            OpcodeServer::SetFlatSpellModifier => PacketServer::SetFlatSpellModifier,
-            OpcodeServer::SetForcedReactions => PacketServer::SetForcedReactions,
-            OpcodeServer::SetItemPurchaseData => PacketServer::SetItemPurchaseData,
-            OpcodeServer::SetLootMethodFailed => PacketServer::SetLootMethodFailed,
-            OpcodeServer::SetMaxWeeklyQuantity => PacketServer::SetMaxWeeklyQuantity,
-            OpcodeServer::SetMeleeAnimKit => PacketServer::SetMeleeAnimKit,
-            OpcodeServer::SetMovementAnimKit => PacketServer::SetMovementAnimKit,
-            OpcodeServer::SetPctSpellModifier => PacketServer::SetPctSpellModifier,
-            OpcodeServer::SetPetSpecialization => PacketServer::SetPetSpecialization,
-            OpcodeServer::SetPlayerDeclinedNamesResult => {
-                PacketServer::SetPlayerDeclinedNamesResult
-            }
-            OpcodeServer::SetPlayHoverAnim => PacketServer::SetPlayHoverAnim,
-            OpcodeServer::SetProficiency => PacketServer::SetProficiency,
-            OpcodeServer::SetQuestReplayCooldownOverride => {
-                PacketServer::SetQuestReplayCooldownOverride
-            }
-            OpcodeServer::SetShipmentReadyResponse => PacketServer::SetShipmentReadyResponse,
-            OpcodeServer::SetSpellCharges => PacketServer::SetSpellCharges,
-            OpcodeServer::SetTaskComplete => PacketServer::SetTaskComplete,
-            OpcodeServer::SetTimeZoneInformation => PacketServer::SetTimeZoneInformation,
-            OpcodeServer::SetVehicleRecId => PacketServer::SetVehicleRecId,
-            OpcodeServer::ShadowlandsCapacitanceUpdate => {
-                PacketServer::ShadowlandsCapacitanceUpdate
-            }
-            OpcodeServer::ShipmentFactionUpdateResult => PacketServer::ShipmentFactionUpdateResult,
-            OpcodeServer::ShowBank => PacketServer::ShowBank,
-            OpcodeServer::ShowMailbox => PacketServer::ShowMailbox,
-            OpcodeServer::ShowNeutralPlayerFactionSelectUi => {
-                PacketServer::ShowNeutralPlayerFactionSelectUi
-            }
-            OpcodeServer::ShowQuestCompletionText => PacketServer::ShowQuestCompletionText,
-            OpcodeServer::ShowTaxiNodes => PacketServer::ShowTaxiNodes,
-            OpcodeServer::ShowTradeSkillResponse => PacketServer::ShowTradeSkillResponse,
-            OpcodeServer::SocketGemsFailure => PacketServer::SocketGemsFailure,
-            OpcodeServer::SocketGemsSuccess => PacketServer::SocketGemsSuccess,
-            OpcodeServer::SpecialMountAnim => PacketServer::SpecialMountAnim,
-            OpcodeServer::SpecInvoluntarilyChanged => PacketServer::SpecInvoluntarilyChanged,
-            OpcodeServer::SpellAbsorbLog => PacketServer::SpellAbsorbLog,
-            OpcodeServer::SpellCategoryCooldown => PacketServer::SpellCategoryCooldown,
-            OpcodeServer::SpellChannelStart => PacketServer::SpellChannelStart,
-            OpcodeServer::SpellChannelUpdate => PacketServer::SpellChannelUpdate,
-            OpcodeServer::SpellCooldown => PacketServer::SpellCooldown,
-            OpcodeServer::SpellDamageShield => PacketServer::SpellDamageShield,
-            OpcodeServer::SpellDelayed => PacketServer::SpellDelayed,
-            OpcodeServer::SpellDispellLog => PacketServer::SpellDispellLog,
-            OpcodeServer::SpellEnergizeLog => PacketServer::SpellEnergizeLog,
-            OpcodeServer::SpellExecuteLog => PacketServer::SpellExecuteLog,
-            OpcodeServer::SpellFailedOther => PacketServer::SpellFailedOther,
-            OpcodeServer::SpellFailure => PacketServer::SpellFailure,
-            OpcodeServer::SpellFailureMessage => PacketServer::SpellFailureMessage,
-            OpcodeServer::SpellGo => PacketServer::SpellGo,
-            OpcodeServer::SpellHealAbsorbLog => PacketServer::SpellHealAbsorbLog,
-            OpcodeServer::SpellHealLog => PacketServer::SpellHealLog,
-            OpcodeServer::SpellInstakillLog => PacketServer::SpellInstakillLog,
-            OpcodeServer::SpellInterruptLog => PacketServer::SpellInterruptLog,
-            OpcodeServer::SpellMissLog => PacketServer::SpellMissLog,
-            OpcodeServer::SpellNonMeleeDamageLog => PacketServer::SpellNonMeleeDamageLog,
-            OpcodeServer::SpellOrDamageImmune => PacketServer::SpellOrDamageImmune,
-            OpcodeServer::SpellPeriodicAuraLog => PacketServer::SpellPeriodicAuraLog,
-            OpcodeServer::SpellPrepare => PacketServer::SpellPrepare,
-            OpcodeServer::SpellStart => PacketServer::SpellStart,
-            OpcodeServer::SpellVisualLoadScreen => PacketServer::SpellVisualLoadScreen,
-            OpcodeServer::SpiritHealerConfirm => PacketServer::SpiritHealerConfirm,
-            OpcodeServer::SplashScreenShowLatest => PacketServer::SplashScreenShowLatest,
-            OpcodeServer::StandStateUpdate => PacketServer::StandStateUpdate,
-            OpcodeServer::StartElapsedTimer => PacketServer::StartElapsedTimer,
-            OpcodeServer::StartElapsedTimers => PacketServer::StartElapsedTimers,
-            OpcodeServer::StartLightningStorm => PacketServer::StartLightningStorm,
-            OpcodeServer::StartLootRoll => PacketServer::StartLootRoll,
-            OpcodeServer::StartMirrorTimer => PacketServer::StartMirrorTimer,
-            OpcodeServer::StartTimer => PacketServer::StartTimer,
-            OpcodeServer::StopElapsedTimer => PacketServer::StopElapsedTimer,
-            OpcodeServer::StopMirrorTimer => PacketServer::StopMirrorTimer,
-            OpcodeServer::StopSpeakerbotSound => PacketServer::StopSpeakerbotSound,
-            OpcodeServer::StreamingMovies => PacketServer::StreamingMovies,
-            OpcodeServer::SummonCancel => PacketServer::SummonCancel,
-            OpcodeServer::SummonRaidMemberValidateFailed => {
-                PacketServer::SummonRaidMemberValidateFailed
-            }
-            OpcodeServer::SummonRequest => PacketServer::SummonRequest,
-            OpcodeServer::SupercededSpells => PacketServer::SupercededSpells,
-            OpcodeServer::SuspendComms => PacketServer::SuspendComms,
-            OpcodeServer::SuspendToken => PacketServer::SuspendToken,
-            OpcodeServer::SyncWowEntitlements => PacketServer::SyncWowEntitlements,
-            OpcodeServer::TalentsInvoluntarilyReset => PacketServer::TalentsInvoluntarilyReset,
-            OpcodeServer::TaxiNodeStatus => PacketServer::TaxiNodeStatus,
-            OpcodeServer::TextEmote => PacketServer::TextEmote,
-            OpcodeServer::ThreatClear => PacketServer::ThreatClear,
-            OpcodeServer::ThreatRemove => PacketServer::ThreatRemove,
-            OpcodeServer::ThreatUpdate => PacketServer::ThreatUpdate,
-            OpcodeServer::TimeAdjustment => PacketServer::TimeAdjustment,
-            OpcodeServer::TimeSyncRequest => PacketServer::TimeSyncRequest,
-            OpcodeServer::TitleEarned => PacketServer::TitleEarned,
-            OpcodeServer::TitleLost => PacketServer::TitleLost,
-            OpcodeServer::TotemCreated => PacketServer::TotemCreated,
-            OpcodeServer::TotemDurationChanged => PacketServer::TotemDurationChanged,
-            OpcodeServer::TotemMoved => PacketServer::TotemMoved,
-            OpcodeServer::TradeStatus => PacketServer::TradeStatus,
-            OpcodeServer::TradeUpdated => PacketServer::TradeUpdated,
-            OpcodeServer::TrainerBuyFailed => PacketServer::TrainerBuyFailed,
-            OpcodeServer::TrainerList => PacketServer::TrainerList,
-            OpcodeServer::TransferAborted => PacketServer::TransferAborted,
-            OpcodeServer::TransferPending => PacketServer::TransferPending,
-            OpcodeServer::TransmogrifyNpc => PacketServer::TransmogrifyNpc,
-            OpcodeServer::TreasurePickerResponse => PacketServer::TreasurePickerResponse,
-            OpcodeServer::TriggerCinematic => PacketServer::TriggerCinematic,
-            OpcodeServer::TriggerMovie => PacketServer::TriggerMovie,
-            OpcodeServer::TurnInPetitionResult => PacketServer::TurnInPetitionResult,
-            OpcodeServer::TutorialFlags => PacketServer::TutorialFlags,
-            OpcodeServer::TwitterStatus => PacketServer::TwitterStatus,
-            OpcodeServer::UiHealingRangeModified => PacketServer::UiHealingRangeModified,
-            OpcodeServer::UiItemInteractionNpc => PacketServer::UiItemInteractionNpc,
-            OpcodeServer::UiMapQuestLinesResponse => PacketServer::UiMapQuestLinesResponse,
-            OpcodeServer::UndeleteCharacterResponse => PacketServer::UndeleteCharacterResponse,
-            OpcodeServer::UndeleteCooldownStatusResponse => {
-                PacketServer::UndeleteCooldownStatusResponse
-            }
-            OpcodeServer::UnlearnedSpells => PacketServer::UnlearnedSpells,
-            OpcodeServer::UnloadChildMap => PacketServer::UnloadChildMap,
-            OpcodeServer::UpdateAadcStatusResponse => PacketServer::UpdateAadcStatusResponse,
-            OpcodeServer::UpdateAccountData => PacketServer::UpdateAccountData,
-            OpcodeServer::UpdateActionButtons => PacketServer::UpdateActionButtons,
-            OpcodeServer::UpdateBnetSessionKey => PacketServer::UpdateBnetSessionKey,
-            OpcodeServer::UpdateCapturePoint => PacketServer::UpdateCapturePoint,
-            OpcodeServer::UpdateCelestialBody => PacketServer::UpdateCelestialBody,
-            OpcodeServer::UpdateCharacterFlags => PacketServer::UpdateCharacterFlags,
-            OpcodeServer::UpdateChargeCategoryCooldown => {
-                PacketServer::UpdateChargeCategoryCooldown
-            }
-            OpcodeServer::UpdateCooldown => PacketServer::UpdateCooldown,
-            OpcodeServer::UpdateDailyMissionCounter => PacketServer::UpdateDailyMissionCounter,
-            OpcodeServer::UpdateExpansionLevel => PacketServer::UpdateExpansionLevel,
-            OpcodeServer::UpdateGameTimeState => PacketServer::UpdateGameTimeState,
-            OpcodeServer::UpdateInstanceOwnership => PacketServer::UpdateInstanceOwnership,
-            OpcodeServer::UpdateLastInstance => PacketServer::UpdateLastInstance,
-            OpcodeServer::UpdateObject => PacketServer::UpdateObject,
-            OpcodeServer::UpdatePrimarySpec => PacketServer::UpdatePrimarySpec,
-            OpcodeServer::UpdateTalentData => PacketServer::UpdateTalentData,
-            OpcodeServer::UpdateTaskProgress => PacketServer::UpdateTaskProgress,
-            OpcodeServer::UpdateWeeklySpellUsage => PacketServer::UpdateWeeklySpellUsage,
-            OpcodeServer::UpdateWorldState => PacketServer::UpdateWorldState,
-            OpcodeServer::UserlistAdd => PacketServer::UserlistAdd,
-            OpcodeServer::UserlistRemove => PacketServer::UserlistRemove,
-            OpcodeServer::UserlistUpdate => PacketServer::UserlistUpdate,
-            OpcodeServer::UseEquipmentSetResult => PacketServer::UseEquipmentSetResult,
-            OpcodeServer::VasCheckTransferOkResponse => PacketServer::VasCheckTransferOkResponse,
-            OpcodeServer::VasGetQueueMinutesResponse => PacketServer::VasGetQueueMinutesResponse,
-            OpcodeServer::VasGetServiceStatusResponse => PacketServer::VasGetServiceStatusResponse,
-            OpcodeServer::VasPurchaseComplete => PacketServer::VasPurchaseComplete,
-            OpcodeServer::VasPurchaseStateUpdate => PacketServer::VasPurchaseStateUpdate,
-            OpcodeServer::VendorInventory => PacketServer::VendorInventory,
-            OpcodeServer::VignetteUpdate => PacketServer::VignetteUpdate,
-            OpcodeServer::VoiceChannelInfoResponse => PacketServer::VoiceChannelInfoResponse,
-            OpcodeServer::VoiceChannelSttTokenResponse => {
-                PacketServer::VoiceChannelSttTokenResponse
-            }
-            OpcodeServer::VoiceLoginResponse => PacketServer::VoiceLoginResponse,
-            OpcodeServer::VoidItemSwapResponse => PacketServer::VoidItemSwapResponse,
-            OpcodeServer::VoidStorageContents => PacketServer::VoidStorageContents,
-            OpcodeServer::VoidStorageFailed => PacketServer::VoidStorageFailed,
-            OpcodeServer::VoidStorageTransferChanges => PacketServer::VoidStorageTransferChanges,
-            OpcodeServer::VoidTransferResult => PacketServer::VoidTransferResult,
-            OpcodeServer::WaitQueueFinish => PacketServer::WaitQueueFinish,
-            OpcodeServer::WaitQueueUpdate => PacketServer::WaitQueueUpdate,
-            OpcodeServer::Warden3Data => PacketServer::Warden3Data,
-            OpcodeServer::Warden3Disabled => PacketServer::Warden3Disabled,
-            OpcodeServer::Warden3Enabled => PacketServer::Warden3Enabled,
-            OpcodeServer::WarfrontComplete => PacketServer::WarfrontComplete,
-            OpcodeServer::WargameRequestSuccessfullySentToOpponent => {
-                PacketServer::WargameRequestSuccessfullySentToOpponent
-            }
-            OpcodeServer::Weather => PacketServer::Weather,
-            OpcodeServer::WeeklyRewardsProgressResult => PacketServer::WeeklyRewardsProgressResult,
-            OpcodeServer::WeeklyRewardsResult => PacketServer::WeeklyRewardsResult,
-            OpcodeServer::WeeklyRewardClaimResult => PacketServer::WeeklyRewardClaimResult,
-            OpcodeServer::WeeklySpellUsage => PacketServer::WeeklySpellUsage,
-            OpcodeServer::Who => PacketServer::Who,
-            OpcodeServer::WhoIs => PacketServer::WhoIs,
-            OpcodeServer::WillBeKickedForAddedSubscriptionTime => {
-                PacketServer::WillBeKickedForAddedSubscriptionTime
-            }
-            OpcodeServer::WorldMapOpenNpc => PacketServer::WorldMapOpenNpc,
-            OpcodeServer::WorldQuestUpdateResponse => PacketServer::WorldQuestUpdateResponse,
-            OpcodeServer::WorldServerInfo => PacketServer::WorldServerInfo,
-            OpcodeServer::WowEntitlementNotification => PacketServer::WowEntitlementNotification,
-            OpcodeServer::XpGainAborted => PacketServer::XpGainAborted,
-            OpcodeServer::XpGainEnabled => PacketServer::XpGainEnabled,
-            OpcodeServer::ZoneUnderAttack => PacketServer::ZoneUnderAttack,
-            OpcodeServer::AccountHeirloomUpdate => PacketServer::AccountHeirloomUpdate,
-            OpcodeServer::CompressedPacket => PacketServer::CompressedPacket,
-            OpcodeServer::MultiplePackets => PacketServer::MultiplePackets,
-        }
-    }
-}
+//
+// impl From<OpcodeServer> for PacketServer {
+//     fn from(opcode: OpcodeServer) -> Self {
+//         match opcode {
+//             OpcodeServer::AbortNewWorld => PacketServer::AbortNewWorld,
+//             OpcodeServer::AccountCosmeticAdded => PacketServer::AccountCosmeticAdded,
+//             OpcodeServer::AccountCriteriaUpdate => PacketServer::AccountCriteriaUpdate,
+//             OpcodeServer::AccountDataTimes => PacketServer::AccountDataTimes,
+//             OpcodeServer::AccountMountUpdate => PacketServer::AccountMountUpdate,
+//             OpcodeServer::AccountNotificationsResponse => {
+//                 PacketServer::AccountNotificationsResponse
+//             }
+//             OpcodeServer::AccountToyUpdate => PacketServer::AccountToyUpdate,
+//             OpcodeServer::AccountTransmogSetFavoritesUpdate => {
+//                 PacketServer::AccountTransmogSetFavoritesUpdate
+//             }
+//             OpcodeServer::AccountTransmogUpdate => PacketServer::AccountTransmogUpdate,
+//             OpcodeServer::AchievementDeleted => PacketServer::AchievementDeleted,
+//             OpcodeServer::AchievementEarned => PacketServer::AchievementEarned,
+//             OpcodeServer::ActivateEssenceFailed => PacketServer::ActivateEssenceFailed,
+//             OpcodeServer::ActivateSoulbindFailed => PacketServer::ActivateSoulbindFailed,
+//             OpcodeServer::ActivateTaxiReply => PacketServer::ActivateTaxiReply,
+//             OpcodeServer::ActiveGlyphs => PacketServer::ActiveGlyphs,
+//             OpcodeServer::AddonListRequest => PacketServer::AddonListRequest,
+//             OpcodeServer::AddBattlenetFriendResponse => PacketServer::AddBattlenetFriendResponse,
+//             OpcodeServer::AddItemPassive => PacketServer::AddItemPassive,
+//             OpcodeServer::AddLossOfControl => PacketServer::AddLossOfControl,
+//             OpcodeServer::AddRunePower => PacketServer::AddRunePower,
+//             OpcodeServer::AdjustSplineDuration => PacketServer::AdjustSplineDuration,
+//             OpcodeServer::AdvancedCombatLog => PacketServer::AdvancedCombatLog,
+//             OpcodeServer::AdventureJournalDataResponse => {
+//                 PacketServer::AdventureJournalDataResponse
+//             }
+//             OpcodeServer::AdventureMapOpenNpc => PacketServer::AdventureMapOpenNpc,
+//             OpcodeServer::AeLootTargets => PacketServer::AeLootTargets,
+//             OpcodeServer::AeLootTargetAck => PacketServer::AeLootTargetAck,
+//             OpcodeServer::AiReaction => PacketServer::AiReaction,
+//             OpcodeServer::AlliedRaceDetails => PacketServer::AlliedRaceDetails,
+//             OpcodeServer::AllAccountCriteria => PacketServer::AllAccountCriteria,
+//             OpcodeServer::AllAchievementData => PacketServer::AllAchievementData,
+//             OpcodeServer::AllGuildAchievements => PacketServer::AllGuildAchievements,
+//             OpcodeServer::ApplyMountEquipmentResult => PacketServer::ApplyMountEquipmentResult,
+//             OpcodeServer::ArchaeologySurveryCast => PacketServer::ArchaeologySurveryCast,
+//             OpcodeServer::AreaPoiUpdateResponse => PacketServer::AreaPoiUpdateResponse,
+//             OpcodeServer::AreaSpiritHealerTime => PacketServer::AreaSpiritHealerTime,
+//             OpcodeServer::AreaTriggerDenied => PacketServer::AreaTriggerDenied,
+//             OpcodeServer::AreaTriggerForceSetPositionAndFacing => {
+//                 PacketServer::AreaTriggerForceSetPositionAndFacing
+//             }
+//             OpcodeServer::AreaTriggerNoCorpse => PacketServer::AreaTriggerNoCorpse,
+//             OpcodeServer::AreaTriggerPlaySpellVisual => PacketServer::AreaTriggerPlaySpellVisual,
+//             OpcodeServer::AreaTriggerRePath => PacketServer::AreaTriggerRePath,
+//             OpcodeServer::AreaTriggerReShape => PacketServer::AreaTriggerReShape,
+//             OpcodeServer::AreaTriggerUnattach => PacketServer::AreaTriggerUnattach,
+//             OpcodeServer::ArenaClearOpponents => PacketServer::ArenaClearOpponents,
+//             OpcodeServer::ArenaCrowdControlSpellResult => {
+//                 PacketServer::ArenaCrowdControlSpellResult
+//             }
+//             OpcodeServer::ArenaPrepOpponentSpecializations => {
+//                 PacketServer::ArenaPrepOpponentSpecializations
+//             }
+//             OpcodeServer::ArtifactEndgamePowersRefunded => {
+//                 PacketServer::ArtifactEndgamePowersRefunded
+//             }
+//             OpcodeServer::ArtifactForgeError => PacketServer::ArtifactForgeError,
+//             OpcodeServer::ArtifactRespecPrompt => PacketServer::ArtifactRespecPrompt,
+//             OpcodeServer::ArtifactXpGain => PacketServer::ArtifactXpGain,
+//             OpcodeServer::AttackerStateUpdate => PacketServer::AttackerStateUpdate,
+//             OpcodeServer::AttackStart => PacketServer::AttackStart,
+//             OpcodeServer::AttackStop => PacketServer::AttackStop,
+//             OpcodeServer::AttackSwingError => PacketServer::AttackSwingError,
+//             OpcodeServer::AttackSwingLandedLog => PacketServer::AttackSwingLandedLog,
+//             OpcodeServer::AuctionableTokenAuctionSold => PacketServer::AuctionableTokenAuctionSold,
+//             OpcodeServer::AuctionableTokenSellAtMarketPriceResponse => {
+//                 PacketServer::AuctionableTokenSellAtMarketPriceResponse
+//             }
+//             OpcodeServer::AuctionableTokenSellConfirmRequired => {
+//                 PacketServer::AuctionableTokenSellConfirmRequired
+//             }
+//             OpcodeServer::AuctionClosedNotification => PacketServer::AuctionClosedNotification,
+//             OpcodeServer::AuctionCommandResult => PacketServer::AuctionCommandResult,
+//             OpcodeServer::AuctionFavoriteList => PacketServer::AuctionFavoriteList,
+//             OpcodeServer::AuctionGetCommodityQuoteResult => {
+//                 PacketServer::AuctionGetCommodityQuoteResult
+//             }
+//             OpcodeServer::AuctionHelloResponse => PacketServer::AuctionHelloResponse,
+//             OpcodeServer::AuctionListBiddedItemsResult => {
+//                 PacketServer::AuctionListBiddedItemsResult
+//             }
+//             OpcodeServer::AuctionListBucketsResult => PacketServer::AuctionListBucketsResult,
+//             OpcodeServer::AuctionListItemsResult => PacketServer::AuctionListItemsResult,
+//             OpcodeServer::AuctionListOwnedItemsResult => PacketServer::AuctionListOwnedItemsResult,
+//             OpcodeServer::AuctionOutbidNotification => PacketServer::AuctionOutbidNotification,
+//             OpcodeServer::AuctionOwnerBidNotification => PacketServer::AuctionOwnerBidNotification,
+//             OpcodeServer::AuctionReplicateResponse => PacketServer::AuctionReplicateResponse,
+//             OpcodeServer::AuctionWonNotification => PacketServer::AuctionWonNotification,
+//             OpcodeServer::AuraPointsDepleted => PacketServer::AuraPointsDepleted,
+//             OpcodeServer::AuraUpdate => PacketServer::AuraUpdate,
+//             OpcodeServer::AuthChallenge => PacketServer::AuthChallenge,
+//             OpcodeServer::AuthFailed => PacketServer::AuthFailed,
+//             OpcodeServer::AuthResponse => PacketServer::AuthResponse,
+//             OpcodeServer::AvailableHotfixes => PacketServer::AvailableHotfixes,
+//             OpcodeServer::AzeriteRespecNpc => PacketServer::AzeriteRespecNpc,
+//             OpcodeServer::BagCleanupFinished => PacketServer::BagCleanupFinished,
+//             OpcodeServer::BarberShopResult => PacketServer::BarberShopResult,
+//             OpcodeServer::BatchPresenceSubscription => PacketServer::BatchPresenceSubscription,
+//             OpcodeServer::BattlefieldList => PacketServer::BattlefieldList,
+//             OpcodeServer::BattlefieldPortDenied => PacketServer::BattlefieldPortDenied,
+//             OpcodeServer::BattlefieldStatusActive => PacketServer::BattlefieldStatusActive,
+//             OpcodeServer::BattlefieldStatusFailed => PacketServer::BattlefieldStatusFailed,
+//             OpcodeServer::BattlefieldStatusGroupProposalFailed => {
+//                 PacketServer::BattlefieldStatusGroupProposalFailed
+//             }
+//             OpcodeServer::BattlefieldStatusNeedConfirmation => {
+//                 PacketServer::BattlefieldStatusNeedConfirmation
+//             }
+//             OpcodeServer::BattlefieldStatusNone => PacketServer::BattlefieldStatusNone,
+//             OpcodeServer::BattlefieldStatusQueued => PacketServer::BattlefieldStatusQueued,
+//             OpcodeServer::BattlefieldStatusWaitForGroups => {
+//                 PacketServer::BattlefieldStatusWaitForGroups
+//             }
+//             OpcodeServer::BattlegroundInfoThrottled => PacketServer::BattlegroundInfoThrottled,
+//             OpcodeServer::BattlegroundInit => PacketServer::BattlegroundInit,
+//             OpcodeServer::BattlegroundPlayerJoined => PacketServer::BattlegroundPlayerJoined,
+//             OpcodeServer::BattlegroundPlayerLeft => PacketServer::BattlegroundPlayerLeft,
+//             OpcodeServer::BattlegroundPlayerPositions => PacketServer::BattlegroundPlayerPositions,
+//             OpcodeServer::BattlegroundPoints => PacketServer::BattlegroundPoints,
+//             OpcodeServer::BattlenetChallengeAbort => PacketServer::BattlenetChallengeAbort,
+//             OpcodeServer::BattlenetChallengeStart => PacketServer::BattlenetChallengeStart,
+//             OpcodeServer::BattlenetNotification => PacketServer::BattlenetNotification,
+//             OpcodeServer::BattlenetResponse => PacketServer::BattlenetResponse,
+//             OpcodeServer::BattleNetConnectionStatus => PacketServer::BattleNetConnectionStatus,
+//             OpcodeServer::BattlePayAckFailed => PacketServer::BattlePayAckFailed,
+//             OpcodeServer::BattlePayBattlePetDelivered => PacketServer::BattlePayBattlePetDelivered,
+//             OpcodeServer::BattlePayCollectionItemDelivered => {
+//                 PacketServer::BattlePayCollectionItemDelivered
+//             }
+//             OpcodeServer::BattlePayConfirmPurchase => PacketServer::BattlePayConfirmPurchase,
+//             OpcodeServer::BattlePayDeliveryEnded => PacketServer::BattlePayDeliveryEnded,
+//             OpcodeServer::BattlePayDeliveryStarted => PacketServer::BattlePayDeliveryStarted,
+//             OpcodeServer::BattlePayDistributionAssignVasResponse => {
+//                 PacketServer::BattlePayDistributionAssignVasResponse
+//             }
+//             OpcodeServer::BattlePayDistributionUnrevoked => {
+//                 PacketServer::BattlePayDistributionUnrevoked
+//             }
+//             OpcodeServer::BattlePayDistributionUpdate => PacketServer::BattlePayDistributionUpdate,
+//             OpcodeServer::BattlePayGetDistributionListResponse => {
+//                 PacketServer::BattlePayGetDistributionListResponse
+//             }
+//             OpcodeServer::BattlePayGetProductListResponse => {
+//                 PacketServer::BattlePayGetProductListResponse
+//             }
+//             OpcodeServer::BattlePayGetPurchaseListResponse => {
+//                 PacketServer::BattlePayGetPurchaseListResponse
+//             }
+//             OpcodeServer::BattlePayMountDelivered => PacketServer::BattlePayMountDelivered,
+//             OpcodeServer::BattlePayPurchaseUpdate => PacketServer::BattlePayPurchaseUpdate,
+//             OpcodeServer::BattlePayStartCheckout => PacketServer::BattlePayStartCheckout,
+//             OpcodeServer::BattlePayStartDistributionAssignToTargetResponse => {
+//                 PacketServer::BattlePayStartDistributionAssignToTargetResponse
+//             }
+//             OpcodeServer::BattlePayStartPurchaseResponse => {
+//                 PacketServer::BattlePayStartPurchaseResponse
+//             }
+//             OpcodeServer::BattlePayValidatePurchaseResponse => {
+//                 PacketServer::BattlePayValidatePurchaseResponse
+//             }
+//             OpcodeServer::BattlePetsHealed => PacketServer::BattlePetsHealed,
+//             OpcodeServer::BattlePetCageDateError => PacketServer::BattlePetCageDateError,
+//             OpcodeServer::BattlePetDeleted => PacketServer::BattlePetDeleted,
+//             OpcodeServer::BattlePetError => PacketServer::BattlePetError,
+//             OpcodeServer::BattlePetJournal => PacketServer::BattlePetJournal,
+//             OpcodeServer::BattlePetJournalLockAcquired => {
+//                 PacketServer::BattlePetJournalLockAcquired
+//             }
+//             OpcodeServer::BattlePetJournalLockDenied => PacketServer::BattlePetJournalLockDenied,
+//             OpcodeServer::BattlePetLicenseChanged => PacketServer::BattlePetLicenseChanged,
+//             OpcodeServer::BattlePetRestored => PacketServer::BattlePetRestored,
+//             OpcodeServer::BattlePetRevoked => PacketServer::BattlePetRevoked,
+//             OpcodeServer::BattlePetTrapLevel => PacketServer::BattlePetTrapLevel,
+//             OpcodeServer::BattlePetUpdates => PacketServer::BattlePetUpdates,
+//             OpcodeServer::BinderConfirm => PacketServer::BinderConfirm,
+//             OpcodeServer::BindPointUpdate => PacketServer::BindPointUpdate,
+//             OpcodeServer::BlackMarketBidOnItemResult => PacketServer::BlackMarketBidOnItemResult,
+//             OpcodeServer::BlackMarketOpenResult => PacketServer::BlackMarketOpenResult,
+//             OpcodeServer::BlackMarketOutbid => PacketServer::BlackMarketOutbid,
+//             OpcodeServer::BlackMarketRequestItemsResult => {
+//                 PacketServer::BlackMarketRequestItemsResult
+//             }
+//             OpcodeServer::BlackMarketWon => PacketServer::BlackMarketWon,
+//             OpcodeServer::BonusRollEmpty => PacketServer::BonusRollEmpty,
+//             OpcodeServer::BossKill => PacketServer::BossKill,
+//             OpcodeServer::BreakTarget => PacketServer::BreakTarget,
+//             OpcodeServer::BroadcastAchievement => PacketServer::BroadcastAchievement,
+//             OpcodeServer::BroadcastSummonCast => PacketServer::BroadcastSummonCast,
+//             OpcodeServer::BroadcastSummonResponse => PacketServer::BroadcastSummonResponse,
+//             OpcodeServer::BuyFailed => PacketServer::BuyFailed,
+//             OpcodeServer::BuySucceeded => PacketServer::BuySucceeded,
+//             OpcodeServer::CacheInfo => PacketServer::CacheInfo,
+//             OpcodeServer::CacheVersion => PacketServer::CacheVersion,
+//             OpcodeServer::CalendarClearPendingAction => PacketServer::CalendarClearPendingAction,
+//             OpcodeServer::CalendarCommandResult => PacketServer::CalendarCommandResult,
+//             OpcodeServer::CalendarCommunityInvite => PacketServer::CalendarCommunityInvite,
+//             OpcodeServer::CalendarEventRemovedAlert => PacketServer::CalendarEventRemovedAlert,
+//             OpcodeServer::CalendarEventUpdatedAlert => PacketServer::CalendarEventUpdatedAlert,
+//             OpcodeServer::CalendarInviteAdded => PacketServer::CalendarInviteAdded,
+//             OpcodeServer::CalendarInviteAlert => PacketServer::CalendarInviteAlert,
+//             OpcodeServer::CalendarInviteNotes => PacketServer::CalendarInviteNotes,
+//             OpcodeServer::CalendarInviteNotesAlert => PacketServer::CalendarInviteNotesAlert,
+//             OpcodeServer::CalendarInviteRemoved => PacketServer::CalendarInviteRemoved,
+//             OpcodeServer::CalendarInviteRemovedAlert => PacketServer::CalendarInviteRemovedAlert,
+//             OpcodeServer::CalendarInviteStatus => PacketServer::CalendarInviteStatus,
+//             OpcodeServer::CalendarInviteStatusAlert => PacketServer::CalendarInviteStatusAlert,
+//             OpcodeServer::CalendarModeratorStatus => PacketServer::CalendarModeratorStatus,
+//             OpcodeServer::CalendarRaidLockoutAdded => PacketServer::CalendarRaidLockoutAdded,
+//             OpcodeServer::CalendarRaidLockoutRemoved => PacketServer::CalendarRaidLockoutRemoved,
+//             OpcodeServer::CalendarRaidLockoutUpdated => PacketServer::CalendarRaidLockoutUpdated,
+//             OpcodeServer::CalendarSendCalendar => PacketServer::CalendarSendCalendar,
+//             OpcodeServer::CalendarSendEvent => PacketServer::CalendarSendEvent,
+//             OpcodeServer::CalendarSendNumPending => PacketServer::CalendarSendNumPending,
+//             OpcodeServer::CameraEffect => PacketServer::CameraEffect,
+//             OpcodeServer::CancelAutoRepeat => PacketServer::CancelAutoRepeat,
+//             OpcodeServer::CancelCombat => PacketServer::CancelCombat,
+//             OpcodeServer::CancelOrphanSpellVisual => PacketServer::CancelOrphanSpellVisual,
+//             OpcodeServer::CancelScene => PacketServer::CancelScene,
+//             OpcodeServer::CancelSpellVisual => PacketServer::CancelSpellVisual,
+//             OpcodeServer::CancelSpellVisualKit => PacketServer::CancelSpellVisualKit,
+//             OpcodeServer::CanDuelResult => PacketServer::CanDuelResult,
+//             OpcodeServer::CanRedeemTokenForBalanceResponse => {
+//                 PacketServer::CanRedeemTokenForBalanceResponse
+//             }
+//             OpcodeServer::CapturePointRemoved => PacketServer::CapturePointRemoved,
+//             OpcodeServer::CastFailed => PacketServer::CastFailed,
+//             OpcodeServer::CategoryCooldown => PacketServer::CategoryCooldown,
+//             OpcodeServer::ChainMissileBounce => PacketServer::ChainMissileBounce,
+//             OpcodeServer::ChallengeModeComplete => PacketServer::ChallengeModeComplete,
+//             OpcodeServer::ChallengeModeRequestLeadersResult => {
+//                 PacketServer::ChallengeModeRequestLeadersResult
+//             }
+//             OpcodeServer::ChallengeModeReset => PacketServer::ChallengeModeReset,
+//             OpcodeServer::ChallengeModeStart => PacketServer::ChallengeModeStart,
+//             OpcodeServer::ChallengeModeUpdateDeathCount => {
+//                 PacketServer::ChallengeModeUpdateDeathCount
+//             }
+//             OpcodeServer::ChangePlayerDifficultyResult => {
+//                 PacketServer::ChangePlayerDifficultyResult
+//             }
+//             OpcodeServer::ChangeRealmTicketResponse => PacketServer::ChangeRealmTicketResponse,
+//             OpcodeServer::ChannelList => PacketServer::ChannelList,
+//             OpcodeServer::ChannelNotify => PacketServer::ChannelNotify,
+//             OpcodeServer::ChannelNotifyJoined => PacketServer::ChannelNotifyJoined,
+//             OpcodeServer::ChannelNotifyLeft => PacketServer::ChannelNotifyLeft,
+//             OpcodeServer::CharacterCheckUpgradeResult => PacketServer::CharacterCheckUpgradeResult,
+//             OpcodeServer::CharacterLoginFailed => PacketServer::CharacterLoginFailed,
+//             OpcodeServer::CharacterObjectTestResponse => PacketServer::CharacterObjectTestResponse,
+//             OpcodeServer::CharacterRenameResult => PacketServer::CharacterRenameResult,
+//             OpcodeServer::CharacterUpgradeAborted => PacketServer::CharacterUpgradeAborted,
+//             OpcodeServer::CharacterUpgradeComplete => PacketServer::CharacterUpgradeComplete,
+//             OpcodeServer::CharacterUpgradeManualUnrevokeResult => {
+//                 PacketServer::CharacterUpgradeManualUnrevokeResult
+//             }
+//             OpcodeServer::CharacterUpgradeStarted => PacketServer::CharacterUpgradeStarted,
+//             OpcodeServer::CharCustomizeFailure => PacketServer::CharCustomizeFailure,
+//             OpcodeServer::CharCustomizeSuccess => PacketServer::CharCustomizeSuccess,
+//             OpcodeServer::CharFactionChangeResult => PacketServer::CharFactionChangeResult,
+//             OpcodeServer::Chat => PacketServer::Chat,
+//             OpcodeServer::ChatAutoResponded => PacketServer::ChatAutoResponded,
+//             OpcodeServer::ChatDown => PacketServer::ChatDown,
+//             OpcodeServer::ChatIgnoredAccountMuted => PacketServer::ChatIgnoredAccountMuted,
+//             OpcodeServer::ChatIsDown => PacketServer::ChatIsDown,
+//             OpcodeServer::ChatNotInParty => PacketServer::ChatNotInParty,
+//             OpcodeServer::ChatPlayerAmbiguous => PacketServer::ChatPlayerAmbiguous,
+//             OpcodeServer::ChatPlayerNotfound => PacketServer::ChatPlayerNotfound,
+//             OpcodeServer::ChatReconnect => PacketServer::ChatReconnect,
+//             OpcodeServer::ChatRegionalServiceStatus => PacketServer::ChatRegionalServiceStatus,
+//             OpcodeServer::ChatRestricted => PacketServer::ChatRestricted,
+//             OpcodeServer::ChatServerMessage => PacketServer::ChatServerMessage,
+//             OpcodeServer::CheatIgnoreDimishingReturns => PacketServer::CheatIgnoreDimishingReturns,
+//             OpcodeServer::CheckAbandonNpe => PacketServer::CheckAbandonNpe,
+//             OpcodeServer::CheckCharacterNameAvailabilityResult => {
+//                 PacketServer::CheckCharacterNameAvailabilityResult
+//             }
+//             OpcodeServer::CheckWargameEntry => PacketServer::CheckWargameEntry,
+//             OpcodeServer::ChromieTimeOpenNpc => PacketServer::ChromieTimeOpenNpc,
+//             OpcodeServer::ChromieTimeSelectExpansionSuccess => {
+//                 PacketServer::ChromieTimeSelectExpansionSuccess
+//             }
+//             OpcodeServer::ClaimRafRewardResponse => PacketServer::ClaimRafRewardResponse,
+//             OpcodeServer::ClearAllSpellCharges => PacketServer::ClearAllSpellCharges,
+//             OpcodeServer::ClearBossEmotes => PacketServer::ClearBossEmotes,
+//             OpcodeServer::ClearCooldown => PacketServer::ClearCooldown,
+//             OpcodeServer::ClearCooldowns => PacketServer::ClearCooldowns,
+//             OpcodeServer::ClearResurrect => PacketServer::ClearResurrect,
+//             OpcodeServer::ClearSpellCharges => PacketServer::ClearSpellCharges,
+//             OpcodeServer::ClearTarget => PacketServer::ClearTarget,
+//             OpcodeServer::ClearTreasurePickerCache => PacketServer::ClearTreasurePickerCache,
+//             OpcodeServer::CloseArtifactForge => PacketServer::CloseArtifactForge,
+//             OpcodeServer::CloseHeartForge => PacketServer::CloseHeartForge,
+//             OpcodeServer::CloseItemForge => PacketServer::CloseItemForge,
+//             OpcodeServer::ClubFinderErrorMessage => PacketServer::ClubFinderErrorMessage,
+//             OpcodeServer::ClubFinderGetClubPostingIdsResponse => {
+//                 PacketServer::ClubFinderGetClubPostingIdsResponse
+//             }
+//             OpcodeServer::ClubFinderLookupClubPostingsList => {
+//                 PacketServer::ClubFinderLookupClubPostingsList
+//             }
+//             OpcodeServer::ClubFinderResponseCharacterApplicationList => {
+//                 PacketServer::ClubFinderResponseCharacterApplicationList
+//             }
+//             OpcodeServer::ClubFinderResponsePostRecruitmentMessage => {
+//                 PacketServer::ClubFinderResponsePostRecruitmentMessage
+//             }
+//             OpcodeServer::ClubFinderUpdateApplications => {
+//                 PacketServer::ClubFinderUpdateApplications
+//             }
+//             OpcodeServer::CoinRemoved => PacketServer::CoinRemoved,
+//             OpcodeServer::CombatEventFailed => PacketServer::CombatEventFailed,
+//             OpcodeServer::CommentatorMapInfo => PacketServer::CommentatorMapInfo,
+//             OpcodeServer::CommentatorPlayerInfo => PacketServer::CommentatorPlayerInfo,
+//             OpcodeServer::CommentatorStateChanged => PacketServer::CommentatorStateChanged,
+//             OpcodeServer::CommerceTokenGetCountResponse => {
+//                 PacketServer::CommerceTokenGetCountResponse
+//             }
+//             OpcodeServer::CommerceTokenGetLogResponse => PacketServer::CommerceTokenGetLogResponse,
+//             OpcodeServer::CommerceTokenGetMarketPriceResponse => {
+//                 PacketServer::CommerceTokenGetMarketPriceResponse
+//             }
+//             OpcodeServer::CommerceTokenUpdate => PacketServer::CommerceTokenUpdate,
+//             OpcodeServer::ComplaintResult => PacketServer::ComplaintResult,
+//             OpcodeServer::CompleteShipmentResponse => PacketServer::CompleteShipmentResponse,
+//             OpcodeServer::ConfirmPartyInvite => PacketServer::ConfirmPartyInvite,
+//             OpcodeServer::ConnectTo => PacketServer::ConnectTo,
+//             OpcodeServer::ConquestFormulaConstants => PacketServer::ConquestFormulaConstants,
+//             OpcodeServer::ConsoleWrite => PacketServer::ConsoleWrite,
+//             OpcodeServer::ConsumableTokenBuyAtMarketPriceResponse => {
+//                 PacketServer::ConsumableTokenBuyAtMarketPriceResponse
+//             }
+//             OpcodeServer::ConsumableTokenBuyChoiceRequired => {
+//                 PacketServer::ConsumableTokenBuyChoiceRequired
+//             }
+//             OpcodeServer::ConsumableTokenCanVeteranBuyResponse => {
+//                 PacketServer::ConsumableTokenCanVeteranBuyResponse
+//             }
+//             OpcodeServer::ConsumableTokenRedeemConfirmRequired => {
+//                 PacketServer::ConsumableTokenRedeemConfirmRequired
+//             }
+//             OpcodeServer::ConsumableTokenRedeemResponse => {
+//                 PacketServer::ConsumableTokenRedeemResponse
+//             }
+//             OpcodeServer::ContactList => PacketServer::ContactList,
+//             OpcodeServer::ContributionLastUpdateResponse => {
+//                 PacketServer::ContributionLastUpdateResponse
+//             }
+//             OpcodeServer::ControlUpdate => PacketServer::ControlUpdate,
+//             OpcodeServer::ConvertItemsToCurrencyValue => PacketServer::ConvertItemsToCurrencyValue,
+//             OpcodeServer::CooldownCheat => PacketServer::CooldownCheat,
+//             OpcodeServer::CooldownEvent => PacketServer::CooldownEvent,
+//             OpcodeServer::CorpseLocation => PacketServer::CorpseLocation,
+//             OpcodeServer::CorpseReclaimDelay => PacketServer::CorpseReclaimDelay,
+//             OpcodeServer::CorpseTransportQuery => PacketServer::CorpseTransportQuery,
+//             OpcodeServer::CovenantCallingsAvailabilityResponse => {
+//                 PacketServer::CovenantCallingsAvailabilityResponse
+//             }
+//             OpcodeServer::CovenantPreviewOpenNpc => PacketServer::CovenantPreviewOpenNpc,
+//             OpcodeServer::CovenantRenownOpenNpc => PacketServer::CovenantRenownOpenNpc,
+//             OpcodeServer::CovenantRenownSendCatchupState => {
+//                 PacketServer::CovenantRenownSendCatchupState
+//             }
+//             OpcodeServer::CreateChar => PacketServer::CreateChar,
+//             OpcodeServer::CreateShipmentResponse => PacketServer::CreateShipmentResponse,
+//             OpcodeServer::CriteriaDeleted => PacketServer::CriteriaDeleted,
+//             OpcodeServer::CriteriaUpdate => PacketServer::CriteriaUpdate,
+//             OpcodeServer::CrossedInebriationThreshold => PacketServer::CrossedInebriationThreshold,
+//             OpcodeServer::CustomLoadScreen => PacketServer::CustomLoadScreen,
+//             OpcodeServer::DailyQuestsReset => PacketServer::DailyQuestsReset,
+//             OpcodeServer::DamageCalcLog => PacketServer::DamageCalcLog,
+//             OpcodeServer::DbReply => PacketServer::DbReply,
+//             OpcodeServer::DeathReleaseLoc => PacketServer::DeathReleaseLoc,
+//             OpcodeServer::DebugMenuManagerFullUpdate => PacketServer::DebugMenuManagerFullUpdate,
+//             OpcodeServer::DefenseMessage => PacketServer::DefenseMessage,
+//             OpcodeServer::DeleteChar => PacketServer::DeleteChar,
+//             OpcodeServer::DeleteExpiredMissionsResult => PacketServer::DeleteExpiredMissionsResult,
+//             OpcodeServer::DestroyArenaUnit => PacketServer::DestroyArenaUnit,
+//             OpcodeServer::DestructibleBuildingDamage => PacketServer::DestructibleBuildingDamage,
+//             OpcodeServer::DifferentInstanceFromParty => PacketServer::DifferentInstanceFromParty,
+//             OpcodeServer::DisenchantCredit => PacketServer::DisenchantCredit,
+//             OpcodeServer::DismountResult => PacketServer::DismountResult,
+//             OpcodeServer::DispelFailed => PacketServer::DispelFailed,
+//             OpcodeServer::DisplayGameError => PacketServer::DisplayGameError,
+//             OpcodeServer::DisplayPlayerChoice => PacketServer::DisplayPlayerChoice,
+//             OpcodeServer::DisplayPromotion => PacketServer::DisplayPromotion,
+//             OpcodeServer::DisplayQuestPopup => PacketServer::DisplayQuestPopup,
+//             OpcodeServer::DisplaySoulbindUpdateMessage => {
+//                 PacketServer::DisplaySoulbindUpdateMessage
+//             }
+//             OpcodeServer::DisplayToast => PacketServer::DisplayToast,
+//             OpcodeServer::DisplayWorldText => PacketServer::DisplayWorldText,
+//             OpcodeServer::DontAutoPushSpellsToActionBar => {
+//                 PacketServer::DontAutoPushSpellsToActionBar
+//             }
+//             OpcodeServer::DropNewConnection => PacketServer::DropNewConnection,
+//             OpcodeServer::DuelArranged => PacketServer::DuelArranged,
+//             OpcodeServer::DuelComplete => PacketServer::DuelComplete,
+//             OpcodeServer::DuelCountdown => PacketServer::DuelCountdown,
+//             OpcodeServer::DuelInBounds => PacketServer::DuelInBounds,
+//             OpcodeServer::DuelOutOfBounds => PacketServer::DuelOutOfBounds,
+//             OpcodeServer::DuelRequested => PacketServer::DuelRequested,
+//             OpcodeServer::DuelWinner => PacketServer::DuelWinner,
+//             OpcodeServer::DurabilityDamageDeath => PacketServer::DurabilityDamageDeath,
+//             OpcodeServer::Emote => PacketServer::Emote,
+//             OpcodeServer::EnableBarberShop => PacketServer::EnableBarberShop,
+//             OpcodeServer::EnchantmentLog => PacketServer::EnchantmentLog,
+//             OpcodeServer::EncounterEnd => PacketServer::EncounterEnd,
+//             OpcodeServer::EncounterStart => PacketServer::EncounterStart,
+//             OpcodeServer::EndLightningStorm => PacketServer::EndLightningStorm,
+//             OpcodeServer::EnterEncryptedMode => PacketServer::EnterEncryptedMode,
+//             OpcodeServer::EnumCharactersResult => PacketServer::EnumCharactersResult,
+//             OpcodeServer::EnumVasPurchaseStatesResponse => {
+//                 PacketServer::EnumVasPurchaseStatesResponse
+//             }
+//             OpcodeServer::EnvironmentalDamageLog => PacketServer::EnvironmentalDamageLog,
+//             OpcodeServer::EquipmentSetId => PacketServer::EquipmentSetId,
+//             OpcodeServer::ExpectedSpamRecords => PacketServer::ExpectedSpamRecords,
+//             OpcodeServer::ExplorationExperience => PacketServer::ExplorationExperience,
+//             OpcodeServer::ExternalTransactionIdGenerated => {
+//                 PacketServer::ExternalTransactionIdGenerated
+//             }
+//             OpcodeServer::FactionBonusInfo => PacketServer::FactionBonusInfo,
+//             OpcodeServer::FailedPlayerCondition => PacketServer::FailedPlayerCondition,
+//             OpcodeServer::FailedQuestTurnIn => PacketServer::FailedQuestTurnIn,
+//             OpcodeServer::FeatureSystemStatus => PacketServer::FeatureSystemStatus,
+//             OpcodeServer::FeatureSystemStatusGlueScreen => {
+//                 PacketServer::FeatureSystemStatusGlueScreen
+//             }
+//             OpcodeServer::FeignDeathResisted => PacketServer::FeignDeathResisted,
+//             OpcodeServer::FishEscaped => PacketServer::FishEscaped,
+//             OpcodeServer::FishNotHooked => PacketServer::FishNotHooked,
+//             OpcodeServer::FlightSplineSync => PacketServer::FlightSplineSync,
+//             OpcodeServer::ForcedDeathUpdate => PacketServer::ForcedDeathUpdate,
+//             OpcodeServer::ForceAnim => PacketServer::ForceAnim,
+//             OpcodeServer::ForceAnimations => PacketServer::ForceAnimations,
+//             OpcodeServer::ForceObjectRelink => PacketServer::ForceObjectRelink,
+//             OpcodeServer::FriendStatus => PacketServer::FriendStatus,
+//             OpcodeServer::GainMawPower => PacketServer::GainMawPower,
+//             OpcodeServer::GameObjectActivateAnimKit => PacketServer::GameObjectActivateAnimKit,
+//             OpcodeServer::GameObjectBase => PacketServer::GameObjectBase,
+//             OpcodeServer::GameObjectCustomAnim => PacketServer::GameObjectCustomAnim,
+//             OpcodeServer::GameObjectDespawn => PacketServer::GameObjectDespawn,
+//             OpcodeServer::GameObjectPlaySpellVisual => PacketServer::GameObjectPlaySpellVisual,
+//             OpcodeServer::GameObjectPlaySpellVisualKit => {
+//                 PacketServer::GameObjectPlaySpellVisualKit
+//             }
+//             OpcodeServer::GameObjectResetState => PacketServer::GameObjectResetState,
+//             OpcodeServer::GameObjectSetStateLocal => PacketServer::GameObjectSetStateLocal,
+//             OpcodeServer::GameObjectUiLink => PacketServer::GameObjectUiLink,
+//             OpcodeServer::GameSpeedSet => PacketServer::GameSpeedSet,
+//             OpcodeServer::GameTimeSet => PacketServer::GameTimeSet,
+//             OpcodeServer::GameTimeUpdate => PacketServer::GameTimeUpdate,
+//             OpcodeServer::GarrisonActivateMissionBonusAbility => {
+//                 PacketServer::GarrisonActivateMissionBonusAbility
+//             }
+//             OpcodeServer::GarrisonAddEvent => PacketServer::GarrisonAddEvent,
+//             OpcodeServer::GarrisonAddFollowerResult => PacketServer::GarrisonAddFollowerResult,
+//             OpcodeServer::GarrisonAddMissionResult => PacketServer::GarrisonAddMissionResult,
+//             OpcodeServer::GarrisonAddSpecGroups => PacketServer::GarrisonAddSpecGroups,
+//             OpcodeServer::GarrisonApplyTalentSocketDataChanges => {
+//                 PacketServer::GarrisonApplyTalentSocketDataChanges
+//             }
+//             OpcodeServer::GarrisonAssignFollowerToBuildingResult => {
+//                 PacketServer::GarrisonAssignFollowerToBuildingResult
+//             }
+//             OpcodeServer::GarrisonAutoTroopMinLevelUpdateResult => {
+//                 PacketServer::GarrisonAutoTroopMinLevelUpdateResult
+//             }
+//             OpcodeServer::GarrisonBuildingActivated => PacketServer::GarrisonBuildingActivated,
+//             OpcodeServer::GarrisonBuildingRemoved => PacketServer::GarrisonBuildingRemoved,
+//             OpcodeServer::GarrisonBuildingSetActiveSpecializationResult => {
+//                 PacketServer::GarrisonBuildingSetActiveSpecializationResult
+//             }
+//             OpcodeServer::GarrisonChangeMissionStartTimeResult => {
+//                 PacketServer::GarrisonChangeMissionStartTimeResult
+//             }
+//             OpcodeServer::GarrisonClearCollection => PacketServer::GarrisonClearCollection,
+//             OpcodeServer::GarrisonClearEventList => PacketServer::GarrisonClearEventList,
+//             OpcodeServer::GarrisonClearSpecGroups => PacketServer::GarrisonClearSpecGroups,
+//             OpcodeServer::GarrisonCollectionRemoveEntry => {
+//                 PacketServer::GarrisonCollectionRemoveEntry
+//             }
+//             OpcodeServer::GarrisonCollectionUpdateEntry => {
+//                 PacketServer::GarrisonCollectionUpdateEntry
+//             }
+//             OpcodeServer::GarrisonCompleteBuildingConstructionResult => {
+//                 PacketServer::GarrisonCompleteBuildingConstructionResult
+//             }
+//             OpcodeServer::GarrisonCompleteMissionResult => {
+//                 PacketServer::GarrisonCompleteMissionResult
+//             }
+//             OpcodeServer::GarrisonCreateResult => PacketServer::GarrisonCreateResult,
+//             OpcodeServer::GarrisonDeleteMissionResult => PacketServer::GarrisonDeleteMissionResult,
+//             OpcodeServer::GarrisonDeleteResult => PacketServer::GarrisonDeleteResult,
+//             OpcodeServer::GarrisonFollowerActivationsSet => {
+//                 PacketServer::GarrisonFollowerActivationsSet
+//             }
+//             OpcodeServer::GarrisonFollowerChangedFlags => {
+//                 PacketServer::GarrisonFollowerChangedFlags
+//             }
+//             OpcodeServer::GarrisonFollowerChangedItemLevel => {
+//                 PacketServer::GarrisonFollowerChangedItemLevel
+//             }
+//             OpcodeServer::GarrisonFollowerChangedQuality => {
+//                 PacketServer::GarrisonFollowerChangedQuality
+//             }
+//             OpcodeServer::GarrisonFollowerChangedXp => PacketServer::GarrisonFollowerChangedXp,
+//             OpcodeServer::GarrisonFollowerFatigueCleared => {
+//                 PacketServer::GarrisonFollowerFatigueCleared
+//             }
+//             OpcodeServer::GarrisonGenerateFollowersResult => {
+//                 PacketServer::GarrisonGenerateFollowersResult
+//             }
+//             OpcodeServer::GarrisonGetClassSpecCategoryInfoResult => {
+//                 PacketServer::GarrisonGetClassSpecCategoryInfoResult
+//             }
+//             OpcodeServer::GarrisonGetRecallPortalLastUsedTimeResult => {
+//                 PacketServer::GarrisonGetRecallPortalLastUsedTimeResult
+//             }
+//             OpcodeServer::GarrisonIsUpgradeableResponse => {
+//                 PacketServer::GarrisonIsUpgradeableResponse
+//             }
+//             OpcodeServer::GarrisonLearnBlueprintResult => {
+//                 PacketServer::GarrisonLearnBlueprintResult
+//             }
+//             OpcodeServer::GarrisonLearnSpecializationResult => {
+//                 PacketServer::GarrisonLearnSpecializationResult
+//             }
+//             OpcodeServer::GarrisonListCompletedMissionsCheatResult => {
+//                 PacketServer::GarrisonListCompletedMissionsCheatResult
+//             }
+//             OpcodeServer::GarrisonListFollowersCheatResult => {
+//                 PacketServer::GarrisonListFollowersCheatResult
+//             }
+//             OpcodeServer::GarrisonMapDataResponse => PacketServer::GarrisonMapDataResponse,
+//             OpcodeServer::GarrisonMissionBonusRollResult => {
+//                 PacketServer::GarrisonMissionBonusRollResult
+//             }
+//             OpcodeServer::GarrisonMissionRequestRewardInfoResponse => {
+//                 PacketServer::GarrisonMissionRequestRewardInfoResponse
+//             }
+//             OpcodeServer::GarrisonMissionStartConditionUpdate => {
+//                 PacketServer::GarrisonMissionStartConditionUpdate
+//             }
+//             OpcodeServer::GarrisonOpenArchitect => PacketServer::GarrisonOpenArchitect,
+//             OpcodeServer::GarrisonOpenCrafter => PacketServer::GarrisonOpenCrafter,
+//             OpcodeServer::GarrisonOpenMissionNpc => PacketServer::GarrisonOpenMissionNpc,
+//             OpcodeServer::GarrisonOpenRecruitmentNpc => PacketServer::GarrisonOpenRecruitmentNpc,
+//             OpcodeServer::GarrisonOpenTalentNpc => PacketServer::GarrisonOpenTalentNpc,
+//             OpcodeServer::GarrisonPlaceBuildingResult => PacketServer::GarrisonPlaceBuildingResult,
+//             OpcodeServer::GarrisonPlotPlaced => PacketServer::GarrisonPlotPlaced,
+//             OpcodeServer::GarrisonPlotRemoved => PacketServer::GarrisonPlotRemoved,
+//             OpcodeServer::GarrisonRecruitFollowerResult => {
+//                 PacketServer::GarrisonRecruitFollowerResult
+//             }
+//             OpcodeServer::GarrisonRemoteInfo => PacketServer::GarrisonRemoteInfo,
+//             OpcodeServer::GarrisonRemoveEvent => PacketServer::GarrisonRemoveEvent,
+//             OpcodeServer::GarrisonRemoveFollowerAbilityResult => {
+//                 PacketServer::GarrisonRemoveFollowerAbilityResult
+//             }
+//             OpcodeServer::GarrisonRemoveFollowerFromBuildingResult => {
+//                 PacketServer::GarrisonRemoveFollowerFromBuildingResult
+//             }
+//             OpcodeServer::GarrisonRemoveFollowerResult => {
+//                 PacketServer::GarrisonRemoveFollowerResult
+//             }
+//             OpcodeServer::GarrisonRenameFollowerResult => {
+//                 PacketServer::GarrisonRenameFollowerResult
+//             }
+//             OpcodeServer::GarrisonRequestBlueprintAndSpecializationDataResult => {
+//                 PacketServer::GarrisonRequestBlueprintAndSpecializationDataResult
+//             }
+//             OpcodeServer::GarrisonResearchTalentResult => {
+//                 PacketServer::GarrisonResearchTalentResult
+//             }
+//             OpcodeServer::GarrisonResetTalentTree => PacketServer::GarrisonResetTalentTree,
+//             OpcodeServer::GarrisonResetTalentTreeSocketData => {
+//                 PacketServer::GarrisonResetTalentTreeSocketData
+//             }
+//             OpcodeServer::GarrisonStartMissionResult => PacketServer::GarrisonStartMissionResult,
+//             OpcodeServer::GarrisonSwapBuildingsResponse => {
+//                 PacketServer::GarrisonSwapBuildingsResponse
+//             }
+//             OpcodeServer::GarrisonSwitchTalentTreeBranch => {
+//                 PacketServer::GarrisonSwitchTalentTreeBranch
+//             }
+//             OpcodeServer::GarrisonTalentCompleted => PacketServer::GarrisonTalentCompleted,
+//             OpcodeServer::GarrisonTalentRemoved => PacketServer::GarrisonTalentRemoved,
+//             OpcodeServer::GarrisonTalentRemoveSocketData => {
+//                 PacketServer::GarrisonTalentRemoveSocketData
+//             }
+//             OpcodeServer::GarrisonTalentUpdateSocketData => {
+//                 PacketServer::GarrisonTalentUpdateSocketData
+//             }
+//             OpcodeServer::GarrisonTalentWorldQuestUnlocksResponse => {
+//                 PacketServer::GarrisonTalentWorldQuestUnlocksResponse
+//             }
+//             OpcodeServer::GarrisonUnlearnBlueprintResult => {
+//                 PacketServer::GarrisonUnlearnBlueprintResult
+//             }
+//             OpcodeServer::GarrisonUpdateFollower => PacketServer::GarrisonUpdateFollower,
+//             OpcodeServer::GarrisonUpdateGarrisonMonumentSelections => {
+//                 PacketServer::GarrisonUpdateGarrisonMonumentSelections
+//             }
+//             OpcodeServer::GarrisonUpdateMissionCheatResult => {
+//                 PacketServer::GarrisonUpdateMissionCheatResult
+//             }
+//             OpcodeServer::GarrisonUpgradeResult => PacketServer::GarrisonUpgradeResult,
+//             OpcodeServer::GarrisonUseRecallPortalResult => {
+//                 PacketServer::GarrisonUseRecallPortalResult
+//             }
+//             OpcodeServer::GenerateRandomCharacterNameResult => {
+//                 PacketServer::GenerateRandomCharacterNameResult
+//             }
+//             OpcodeServer::GenerateSsoTokenResponse => PacketServer::GenerateSsoTokenResponse,
+//             OpcodeServer::GetAccountCharacterListResult => {
+//                 PacketServer::GetAccountCharacterListResult
+//             }
+//             OpcodeServer::GetGarrisonInfoResult => PacketServer::GetGarrisonInfoResult,
+//             OpcodeServer::GetLandingPageShipmentsResponse => {
+//                 PacketServer::GetLandingPageShipmentsResponse
+//             }
+//             OpcodeServer::GetRemainingGameTimeResponse => {
+//                 PacketServer::GetRemainingGameTimeResponse
+//             }
+//             OpcodeServer::GetSelectedTrophyIdResponse => PacketServer::GetSelectedTrophyIdResponse,
+//             OpcodeServer::GetShipmentsOfTypeResponse => PacketServer::GetShipmentsOfTypeResponse,
+//             OpcodeServer::GetShipmentInfoResponse => PacketServer::GetShipmentInfoResponse,
+//             OpcodeServer::GetTrophyListResponse => PacketServer::GetTrophyListResponse,
+//             OpcodeServer::GetVasAccountCharacterListResult => {
+//                 PacketServer::GetVasAccountCharacterListResult
+//             }
+//             OpcodeServer::GetVasTransferTargetRealmListResult => {
+//                 PacketServer::GetVasTransferTargetRealmListResult
+//             }
+//             OpcodeServer::GmPlayerInfo => PacketServer::GmPlayerInfo,
+//             OpcodeServer::GmRequestPlayerInfo => PacketServer::GmRequestPlayerInfo,
+//             OpcodeServer::GmTicketCaseStatus => PacketServer::GmTicketCaseStatus,
+//             OpcodeServer::GmTicketSystemStatus => PacketServer::GmTicketSystemStatus,
+//             OpcodeServer::GodMode => PacketServer::GodMode,
+//             OpcodeServer::GossipComplete => PacketServer::GossipComplete,
+//             OpcodeServer::GossipMessage => PacketServer::GossipMessage,
+//             OpcodeServer::GossipPoi => PacketServer::GossipPoi,
+//             OpcodeServer::GossipQuestUpdate => PacketServer::GossipQuestUpdate,
+//             OpcodeServer::GossipRefreshOptions => PacketServer::GossipRefreshOptions,
+//             OpcodeServer::GroupActionThrottled => PacketServer::GroupActionThrottled,
+//             OpcodeServer::GroupAutoKick => PacketServer::GroupAutoKick,
+//             OpcodeServer::GroupDecline => PacketServer::GroupDecline,
+//             OpcodeServer::GroupDestroyed => PacketServer::GroupDestroyed,
+//             OpcodeServer::GroupNewLeader => PacketServer::GroupNewLeader,
+//             OpcodeServer::GroupUninvite => PacketServer::GroupUninvite,
+//             OpcodeServer::GuildAchievementDeleted => PacketServer::GuildAchievementDeleted,
+//             OpcodeServer::GuildAchievementEarned => PacketServer::GuildAchievementEarned,
+//             OpcodeServer::GuildAchievementMembers => PacketServer::GuildAchievementMembers,
+//             OpcodeServer::GuildBankLogQueryResults => PacketServer::GuildBankLogQueryResults,
+//             OpcodeServer::GuildBankQueryResults => PacketServer::GuildBankQueryResults,
+//             OpcodeServer::GuildBankRemainingWithdrawMoney => {
+//                 PacketServer::GuildBankRemainingWithdrawMoney
+//             }
+//             OpcodeServer::GuildBankTextQueryResult => PacketServer::GuildBankTextQueryResult,
+//             OpcodeServer::GuildChallengeCompleted => PacketServer::GuildChallengeCompleted,
+//             OpcodeServer::GuildChallengeUpdate => PacketServer::GuildChallengeUpdate,
+//             OpcodeServer::GuildChangeNameResult => PacketServer::GuildChangeNameResult,
+//             OpcodeServer::GuildCommandResult => PacketServer::GuildCommandResult,
+//             OpcodeServer::GuildCriteriaDeleted => PacketServer::GuildCriteriaDeleted,
+//             OpcodeServer::GuildCriteriaUpdate => PacketServer::GuildCriteriaUpdate,
+//             OpcodeServer::GuildEventBankContentsChanged => {
+//                 PacketServer::GuildEventBankContentsChanged
+//             }
+//             OpcodeServer::GuildEventBankMoneyChanged => PacketServer::GuildEventBankMoneyChanged,
+//             OpcodeServer::GuildEventDisbanded => PacketServer::GuildEventDisbanded,
+//             OpcodeServer::GuildEventLogQueryResults => PacketServer::GuildEventLogQueryResults,
+//             OpcodeServer::GuildEventMotd => PacketServer::GuildEventMotd,
+//             OpcodeServer::GuildEventNewLeader => PacketServer::GuildEventNewLeader,
+//             OpcodeServer::GuildEventPlayerJoined => PacketServer::GuildEventPlayerJoined,
+//             OpcodeServer::GuildEventPlayerLeft => PacketServer::GuildEventPlayerLeft,
+//             OpcodeServer::GuildEventPresenceChange => PacketServer::GuildEventPresenceChange,
+//             OpcodeServer::GuildEventRanksUpdated => PacketServer::GuildEventRanksUpdated,
+//             OpcodeServer::GuildEventRankChanged => PacketServer::GuildEventRankChanged,
+//             OpcodeServer::GuildEventStatusChange => PacketServer::GuildEventStatusChange,
+//             OpcodeServer::GuildEventTabAdded => PacketServer::GuildEventTabAdded,
+//             OpcodeServer::GuildEventTabDeleted => PacketServer::GuildEventTabDeleted,
+//             OpcodeServer::GuildEventTabModified => PacketServer::GuildEventTabModified,
+//             OpcodeServer::GuildEventTabTextChanged => PacketServer::GuildEventTabTextChanged,
+//             OpcodeServer::GuildFlaggedForRename => PacketServer::GuildFlaggedForRename,
+//             OpcodeServer::GuildInvite => PacketServer::GuildInvite,
+//             OpcodeServer::GuildInviteDeclined => PacketServer::GuildInviteDeclined,
+//             OpcodeServer::GuildInviteExpired => PacketServer::GuildInviteExpired,
+//             OpcodeServer::GuildItemLootedNotify => PacketServer::GuildItemLootedNotify,
+//             OpcodeServer::GuildKnownRecipes => PacketServer::GuildKnownRecipes,
+//             OpcodeServer::GuildMembersWithRecipe => PacketServer::GuildMembersWithRecipe,
+//             OpcodeServer::GuildMemberDailyReset => PacketServer::GuildMemberDailyReset,
+//             OpcodeServer::GuildMemberRecipes => PacketServer::GuildMemberRecipes,
+//             OpcodeServer::GuildMemberUpdateNote => PacketServer::GuildMemberUpdateNote,
+//             OpcodeServer::GuildMoved => PacketServer::GuildMoved,
+//             OpcodeServer::GuildMoveStarting => PacketServer::GuildMoveStarting,
+//             OpcodeServer::GuildNameChanged => PacketServer::GuildNameChanged,
+//             OpcodeServer::GuildNews => PacketServer::GuildNews,
+//             OpcodeServer::GuildNewsDeleted => PacketServer::GuildNewsDeleted,
+//             OpcodeServer::GuildPartyState => PacketServer::GuildPartyState,
+//             OpcodeServer::GuildPermissionsQueryResults => {
+//                 PacketServer::GuildPermissionsQueryResults
+//             }
+//             OpcodeServer::GuildRanks => PacketServer::GuildRanks,
+//             OpcodeServer::GuildReputationReactionChanged => {
+//                 PacketServer::GuildReputationReactionChanged
+//             }
+//             OpcodeServer::GuildReset => PacketServer::GuildReset,
+//             OpcodeServer::GuildRewardList => PacketServer::GuildRewardList,
+//             OpcodeServer::GuildRoster => PacketServer::GuildRoster,
+//             OpcodeServer::GuildRosterUpdate => PacketServer::GuildRosterUpdate,
+//             OpcodeServer::GuildSendRankChange => PacketServer::GuildSendRankChange,
+//             OpcodeServer::HealthUpdate => PacketServer::HealthUpdate,
+//             OpcodeServer::HighestThreatUpdate => PacketServer::HighestThreatUpdate,
+//             OpcodeServer::HotfixConnect => PacketServer::HotfixConnect,
+//             OpcodeServer::HotfixMessage => PacketServer::HotfixMessage,
+//             OpcodeServer::InitializeFactions => PacketServer::InitializeFactions,
+//             OpcodeServer::InitialSetup => PacketServer::InitialSetup,
+//             OpcodeServer::InitWorldStates => PacketServer::InitWorldStates,
+//             OpcodeServer::InspectResult => PacketServer::InspectResult,
+//             OpcodeServer::InstanceEncounterChangePriority => {
+//                 PacketServer::InstanceEncounterChangePriority
+//             }
+//             OpcodeServer::InstanceEncounterDisengageUnit => {
+//                 PacketServer::InstanceEncounterDisengageUnit
+//             }
+//             OpcodeServer::InstanceEncounterEnd => PacketServer::InstanceEncounterEnd,
+//             OpcodeServer::InstanceEncounterEngageUnit => PacketServer::InstanceEncounterEngageUnit,
+//             OpcodeServer::InstanceEncounterGainCombatResurrectionCharge => {
+//                 PacketServer::InstanceEncounterGainCombatResurrectionCharge
+//             }
+//             OpcodeServer::InstanceEncounterInCombatResurrection => {
+//                 PacketServer::InstanceEncounterInCombatResurrection
+//             }
+//             OpcodeServer::InstanceEncounterObjectiveComplete => {
+//                 PacketServer::InstanceEncounterObjectiveComplete
+//             }
+//             OpcodeServer::InstanceEncounterObjectiveStart => {
+//                 PacketServer::InstanceEncounterObjectiveStart
+//             }
+//             OpcodeServer::InstanceEncounterObjectiveUpdate => {
+//                 PacketServer::InstanceEncounterObjectiveUpdate
+//             }
+//             OpcodeServer::InstanceEncounterPhaseShiftChanged => {
+//                 PacketServer::InstanceEncounterPhaseShiftChanged
+//             }
+//             OpcodeServer::InstanceEncounterStart => PacketServer::InstanceEncounterStart,
+//             OpcodeServer::InstanceEncounterTimerStart => PacketServer::InstanceEncounterTimerStart,
+//             OpcodeServer::InstanceEncounterUpdateAllowReleaseInProgress => {
+//                 PacketServer::InstanceEncounterUpdateAllowReleaseInProgress
+//             }
+//             OpcodeServer::InstanceEncounterUpdateSuppressRelease => {
+//                 PacketServer::InstanceEncounterUpdateSuppressRelease
+//             }
+//             OpcodeServer::InstanceGroupSizeChanged => PacketServer::InstanceGroupSizeChanged,
+//             OpcodeServer::InstanceInfo => PacketServer::InstanceInfo,
+//             OpcodeServer::InstanceReset => PacketServer::InstanceReset,
+//             OpcodeServer::InstanceResetFailed => PacketServer::InstanceResetFailed,
+//             OpcodeServer::InstanceSaveCreated => PacketServer::InstanceSaveCreated,
+//             OpcodeServer::InterruptPowerRegen => PacketServer::InterruptPowerRegen,
+//             OpcodeServer::InvalidatePageText => PacketServer::InvalidatePageText,
+//             OpcodeServer::InvalidatePlayer => PacketServer::InvalidatePlayer,
+//             OpcodeServer::InvalidPromotionCode => PacketServer::InvalidPromotionCode,
+//             OpcodeServer::InventoryChangeFailure => PacketServer::InventoryChangeFailure,
+//             OpcodeServer::InventoryFixupComplete => PacketServer::InventoryFixupComplete,
+//             OpcodeServer::InventoryFullOverflow => PacketServer::InventoryFullOverflow,
+//             OpcodeServer::IslandsMissionNpc => PacketServer::IslandsMissionNpc,
+//             OpcodeServer::IslandAzeriteGain => PacketServer::IslandAzeriteGain,
+//             OpcodeServer::IslandComplete => PacketServer::IslandComplete,
+//             OpcodeServer::IsQuestCompleteResponse => PacketServer::IsQuestCompleteResponse,
+//             OpcodeServer::ItemChanged => PacketServer::ItemChanged,
+//             OpcodeServer::ItemCooldown => PacketServer::ItemCooldown,
+//             OpcodeServer::ItemEnchantTimeUpdate => PacketServer::ItemEnchantTimeUpdate,
+//             OpcodeServer::ItemExpirePurchaseRefund => PacketServer::ItemExpirePurchaseRefund,
+//             OpcodeServer::ItemInteractionComplete => PacketServer::ItemInteractionComplete,
+//             OpcodeServer::ItemPurchaseRefundResult => PacketServer::ItemPurchaseRefundResult,
+//             OpcodeServer::ItemPushResult => PacketServer::ItemPushResult,
+//             OpcodeServer::ItemTimeUpdate => PacketServer::ItemTimeUpdate,
+//             OpcodeServer::KickReason => PacketServer::KickReason,
+//             OpcodeServer::LatencyReportPing => PacketServer::LatencyReportPing,
+//             OpcodeServer::LearnedSpells => PacketServer::LearnedSpells,
+//             OpcodeServer::LearnPvpTalentFailed => PacketServer::LearnPvpTalentFailed,
+//             OpcodeServer::LearnTalentFailed => PacketServer::LearnTalentFailed,
+//             OpcodeServer::LegacyLootRules => PacketServer::LegacyLootRules,
+//             OpcodeServer::LevelLinkingResult => PacketServer::LevelLinkingResult,
+//             OpcodeServer::LevelUpInfo => PacketServer::LevelUpInfo,
+//             OpcodeServer::LfgBootPlayer => PacketServer::LfgBootPlayer,
+//             OpcodeServer::LfgDisabled => PacketServer::LfgDisabled,
+//             OpcodeServer::LfgExpandSearchPrompt => PacketServer::LfgExpandSearchPrompt,
+//             OpcodeServer::LfgInstanceShutdownCountdown => {
+//                 PacketServer::LfgInstanceShutdownCountdown
+//             }
+//             OpcodeServer::LfgJoinResult => PacketServer::LfgJoinResult,
+//             OpcodeServer::LfgListApplicantListUpdate => PacketServer::LfgListApplicantListUpdate,
+//             OpcodeServer::LfgListApplicationStatusUpdate => {
+//                 PacketServer::LfgListApplicationStatusUpdate
+//             }
+//             OpcodeServer::LfgListApplyToGroupResult => PacketServer::LfgListApplyToGroupResult,
+//             OpcodeServer::LfgListJoinResult => PacketServer::LfgListJoinResult,
+//             OpcodeServer::LfgListSearchResults => PacketServer::LfgListSearchResults,
+//             OpcodeServer::LfgListSearchResultsUpdate => PacketServer::LfgListSearchResultsUpdate,
+//             OpcodeServer::LfgListSearchStatus => PacketServer::LfgListSearchStatus,
+//             OpcodeServer::LfgListUpdateBlacklist => PacketServer::LfgListUpdateBlacklist,
+//             OpcodeServer::LfgListUpdateExpiration => PacketServer::LfgListUpdateExpiration,
+//             OpcodeServer::LfgListUpdateStatus => PacketServer::LfgListUpdateStatus,
+//             OpcodeServer::LfgOfferContinue => PacketServer::LfgOfferContinue,
+//             OpcodeServer::LfgPartyInfo => PacketServer::LfgPartyInfo,
+//             OpcodeServer::LfgPlayerInfo => PacketServer::LfgPlayerInfo,
+//             OpcodeServer::LfgPlayerReward => PacketServer::LfgPlayerReward,
+//             OpcodeServer::LfgProposalUpdate => PacketServer::LfgProposalUpdate,
+//             OpcodeServer::LfgQueueStatus => PacketServer::LfgQueueStatus,
+//             OpcodeServer::LfgReadyCheckResult => PacketServer::LfgReadyCheckResult,
+//             OpcodeServer::LfgReadyCheckUpdate => PacketServer::LfgReadyCheckUpdate,
+//             OpcodeServer::LfgRoleCheckUpdate => PacketServer::LfgRoleCheckUpdate,
+//             OpcodeServer::LfgSlotInvalid => PacketServer::LfgSlotInvalid,
+//             OpcodeServer::LfgTeleportDenied => PacketServer::LfgTeleportDenied,
+//             OpcodeServer::LfgUpdateStatus => PacketServer::LfgUpdateStatus,
+//             OpcodeServer::LiveRegionAccountRestoreResult => {
+//                 PacketServer::LiveRegionAccountRestoreResult
+//             }
+//             OpcodeServer::LiveRegionCharacterCopyResult => {
+//                 PacketServer::LiveRegionCharacterCopyResult
+//             }
+//             OpcodeServer::LiveRegionGetAccountCharacterListResult => {
+//                 PacketServer::LiveRegionGetAccountCharacterListResult
+//             }
+//             OpcodeServer::LiveRegionKeyBindingsCopyResult => {
+//                 PacketServer::LiveRegionKeyBindingsCopyResult
+//             }
+//             OpcodeServer::LoadCufProfiles => PacketServer::LoadCufProfiles,
+//             OpcodeServer::LoadEquipmentSet => PacketServer::LoadEquipmentSet,
+//             OpcodeServer::LoginSetTimeSpeed => PacketServer::LoginSetTimeSpeed,
+//             OpcodeServer::LoginVerifyWorld => PacketServer::LoginVerifyWorld,
+//             OpcodeServer::LogoutCancelAck => PacketServer::LogoutCancelAck,
+//             OpcodeServer::LogoutComplete => PacketServer::LogoutComplete,
+//             OpcodeServer::LogoutResponse => PacketServer::LogoutResponse,
+//             OpcodeServer::LogXpGain => PacketServer::LogXpGain,
+//             OpcodeServer::LootAllPassed => PacketServer::LootAllPassed,
+//             OpcodeServer::LootList => PacketServer::LootList,
+//             OpcodeServer::LootMoneyNotify => PacketServer::LootMoneyNotify,
+//             OpcodeServer::LootRelease => PacketServer::LootRelease,
+//             OpcodeServer::LootReleaseAll => PacketServer::LootReleaseAll,
+//             OpcodeServer::LootRemoved => PacketServer::LootRemoved,
+//             OpcodeServer::LootResponse => PacketServer::LootResponse,
+//             OpcodeServer::LootRoll => PacketServer::LootRoll,
+//             OpcodeServer::LootRollsComplete => PacketServer::LootRollsComplete,
+//             OpcodeServer::LootRollWon => PacketServer::LootRollWon,
+//             OpcodeServer::LossOfControlAuraUpdate => PacketServer::LossOfControlAuraUpdate,
+//             OpcodeServer::MailCommandResult => PacketServer::MailCommandResult,
+//             OpcodeServer::MailListResult => PacketServer::MailListResult,
+//             OpcodeServer::MailQueryNextTimeResult => PacketServer::MailQueryNextTimeResult,
+//             OpcodeServer::MapObjectivesInit => PacketServer::MapObjectivesInit,
+//             OpcodeServer::MapObjEvents => PacketServer::MapObjEvents,
+//             OpcodeServer::MasterLootCandidateList => PacketServer::MasterLootCandidateList,
+//             OpcodeServer::MessageBox => PacketServer::MessageBox,
+//             OpcodeServer::MinimapPing => PacketServer::MinimapPing,
+//             OpcodeServer::MirrorImageComponentedData => PacketServer::MirrorImageComponentedData,
+//             OpcodeServer::MirrorImageCreatureData => PacketServer::MirrorImageCreatureData,
+//             OpcodeServer::MissileCancel => PacketServer::MissileCancel,
+//             OpcodeServer::ModifyCooldown => PacketServer::ModifyCooldown,
+//             OpcodeServer::Motd => PacketServer::Motd,
+//             OpcodeServer::MountResult => PacketServer::MountResult,
+//             OpcodeServer::MovementEnforcementAlert => PacketServer::MovementEnforcementAlert,
+//             OpcodeServer::MoveApplyInertia => PacketServer::MoveApplyInertia,
+//             OpcodeServer::MoveApplyMovementForce => PacketServer::MoveApplyMovementForce,
+//             OpcodeServer::MoveDisableCollision => PacketServer::MoveDisableCollision,
+//             OpcodeServer::MoveDisableDoubleJump => PacketServer::MoveDisableDoubleJump,
+//             OpcodeServer::MoveDisableGravity => PacketServer::MoveDisableGravity,
+//             OpcodeServer::MoveDisableInertia => PacketServer::MoveDisableInertia,
+//             OpcodeServer::MoveDisableTransitionBetweenSwimAndFly => {
+//                 PacketServer::MoveDisableTransitionBetweenSwimAndFly
+//             }
+//             OpcodeServer::MoveEnableCollision => PacketServer::MoveEnableCollision,
+//             OpcodeServer::MoveEnableDoubleJump => PacketServer::MoveEnableDoubleJump,
+//             OpcodeServer::MoveEnableGravity => PacketServer::MoveEnableGravity,
+//             OpcodeServer::MoveEnableInertia => PacketServer::MoveEnableInertia,
+//             OpcodeServer::MoveEnableTransitionBetweenSwimAndFly => {
+//                 PacketServer::MoveEnableTransitionBetweenSwimAndFly
+//             }
+//             OpcodeServer::MoveKnockBack => PacketServer::MoveKnockBack,
+//             OpcodeServer::MoveRemoveInertia => PacketServer::MoveRemoveInertia,
+//             OpcodeServer::MoveRemoveMovementForce => PacketServer::MoveRemoveMovementForce,
+//             OpcodeServer::MoveRoot => PacketServer::MoveRoot,
+//             OpcodeServer::MoveSetActiveMover => PacketServer::MoveSetActiveMover,
+//             OpcodeServer::MoveSetCanFly => PacketServer::MoveSetCanFly,
+//             OpcodeServer::MoveSetCanTurnWhileFalling => PacketServer::MoveSetCanTurnWhileFalling,
+//             OpcodeServer::MoveSetCollisionHeight => PacketServer::MoveSetCollisionHeight,
+//             OpcodeServer::MoveSetCompoundState => PacketServer::MoveSetCompoundState,
+//             OpcodeServer::MoveSetFeatherFall => PacketServer::MoveSetFeatherFall,
+//             OpcodeServer::MoveSetFlightBackSpeed => PacketServer::MoveSetFlightBackSpeed,
+//             OpcodeServer::MoveSetFlightSpeed => PacketServer::MoveSetFlightSpeed,
+//             OpcodeServer::MoveSetHovering => PacketServer::MoveSetHovering,
+//             OpcodeServer::MoveSetIgnoreMovementForces => PacketServer::MoveSetIgnoreMovementForces,
+//             OpcodeServer::MoveSetLandWalk => PacketServer::MoveSetLandWalk,
+//             OpcodeServer::MoveSetModMovementForceMagnitude => {
+//                 PacketServer::MoveSetModMovementForceMagnitude
+//             }
+//             OpcodeServer::MoveSetNormalFall => PacketServer::MoveSetNormalFall,
+//             OpcodeServer::MoveSetPitchRate => PacketServer::MoveSetPitchRate,
+//             OpcodeServer::MoveSetRunBackSpeed => PacketServer::MoveSetRunBackSpeed,
+//             OpcodeServer::MoveSetRunSpeed => PacketServer::MoveSetRunSpeed,
+//             OpcodeServer::MoveSetSwimBackSpeed => PacketServer::MoveSetSwimBackSpeed,
+//             OpcodeServer::MoveSetSwimSpeed => PacketServer::MoveSetSwimSpeed,
+//             OpcodeServer::MoveSetTurnRate => PacketServer::MoveSetTurnRate,
+//             OpcodeServer::MoveSetVehicleRecId => PacketServer::MoveSetVehicleRecId,
+//             OpcodeServer::MoveSetWalkSpeed => PacketServer::MoveSetWalkSpeed,
+//             OpcodeServer::MoveSetWaterWalk => PacketServer::MoveSetWaterWalk,
+//             OpcodeServer::MoveSkipTime => PacketServer::MoveSkipTime,
+//             OpcodeServer::MoveSplineDisableCollision => PacketServer::MoveSplineDisableCollision,
+//             OpcodeServer::MoveSplineDisableGravity => PacketServer::MoveSplineDisableGravity,
+//             OpcodeServer::MoveSplineEnableCollision => PacketServer::MoveSplineEnableCollision,
+//             OpcodeServer::MoveSplineEnableGravity => PacketServer::MoveSplineEnableGravity,
+//             OpcodeServer::MoveSplineRoot => PacketServer::MoveSplineRoot,
+//             OpcodeServer::MoveSplineSetFeatherFall => PacketServer::MoveSplineSetFeatherFall,
+//             OpcodeServer::MoveSplineSetFlightBackSpeed => {
+//                 PacketServer::MoveSplineSetFlightBackSpeed
+//             }
+//             OpcodeServer::MoveSplineSetFlightSpeed => PacketServer::MoveSplineSetFlightSpeed,
+//             OpcodeServer::MoveSplineSetFlying => PacketServer::MoveSplineSetFlying,
+//             OpcodeServer::MoveSplineSetHover => PacketServer::MoveSplineSetHover,
+//             OpcodeServer::MoveSplineSetLandWalk => PacketServer::MoveSplineSetLandWalk,
+//             OpcodeServer::MoveSplineSetNormalFall => PacketServer::MoveSplineSetNormalFall,
+//             OpcodeServer::MoveSplineSetPitchRate => PacketServer::MoveSplineSetPitchRate,
+//             OpcodeServer::MoveSplineSetRunBackSpeed => PacketServer::MoveSplineSetRunBackSpeed,
+//             OpcodeServer::MoveSplineSetRunMode => PacketServer::MoveSplineSetRunMode,
+//             OpcodeServer::MoveSplineSetRunSpeed => PacketServer::MoveSplineSetRunSpeed,
+//             OpcodeServer::MoveSplineSetSwimBackSpeed => PacketServer::MoveSplineSetSwimBackSpeed,
+//             OpcodeServer::MoveSplineSetSwimSpeed => PacketServer::MoveSplineSetSwimSpeed,
+//             OpcodeServer::MoveSplineSetTurnRate => PacketServer::MoveSplineSetTurnRate,
+//             OpcodeServer::MoveSplineSetWalkMode => PacketServer::MoveSplineSetWalkMode,
+//             OpcodeServer::MoveSplineSetWalkSpeed => PacketServer::MoveSplineSetWalkSpeed,
+//             OpcodeServer::MoveSplineSetWaterWalk => PacketServer::MoveSplineSetWaterWalk,
+//             OpcodeServer::MoveSplineStartSwim => PacketServer::MoveSplineStartSwim,
+//             OpcodeServer::MoveSplineStopSwim => PacketServer::MoveSplineStopSwim,
+//             OpcodeServer::MoveSplineUnroot => PacketServer::MoveSplineUnroot,
+//             OpcodeServer::MoveSplineUnsetFlying => PacketServer::MoveSplineUnsetFlying,
+//             OpcodeServer::MoveSplineUnsetHover => PacketServer::MoveSplineUnsetHover,
+//             OpcodeServer::MoveTeleport => PacketServer::MoveTeleport,
+//             OpcodeServer::MoveUnroot => PacketServer::MoveUnroot,
+//             OpcodeServer::MoveUnsetCanFly => PacketServer::MoveUnsetCanFly,
+//             OpcodeServer::MoveUnsetCanTurnWhileFalling => {
+//                 PacketServer::MoveUnsetCanTurnWhileFalling
+//             }
+//             OpcodeServer::MoveUnsetHovering => PacketServer::MoveUnsetHovering,
+//             OpcodeServer::MoveUnsetIgnoreMovementForces => {
+//                 PacketServer::MoveUnsetIgnoreMovementForces
+//             }
+//             OpcodeServer::MoveUpdate => PacketServer::MoveUpdate,
+//             OpcodeServer::MoveUpdateApplyInertia => PacketServer::MoveUpdateApplyInertia,
+//             OpcodeServer::MoveUpdateApplyMovementForce => {
+//                 PacketServer::MoveUpdateApplyMovementForce
+//             }
+//             OpcodeServer::MoveUpdateCollisionHeight => PacketServer::MoveUpdateCollisionHeight,
+//             OpcodeServer::MoveUpdateFlightBackSpeed => PacketServer::MoveUpdateFlightBackSpeed,
+//             OpcodeServer::MoveUpdateFlightSpeed => PacketServer::MoveUpdateFlightSpeed,
+//             OpcodeServer::MoveUpdateKnockBack => PacketServer::MoveUpdateKnockBack,
+//             OpcodeServer::MoveUpdateModMovementForceMagnitude => {
+//                 PacketServer::MoveUpdateModMovementForceMagnitude
+//             }
+//             OpcodeServer::MoveUpdatePitchRate => PacketServer::MoveUpdatePitchRate,
+//             OpcodeServer::MoveUpdateRemoveInertia => PacketServer::MoveUpdateRemoveInertia,
+//             OpcodeServer::MoveUpdateRemoveMovementForce => {
+//                 PacketServer::MoveUpdateRemoveMovementForce
+//             }
+//             OpcodeServer::MoveUpdateRunBackSpeed => PacketServer::MoveUpdateRunBackSpeed,
+//             OpcodeServer::MoveUpdateRunSpeed => PacketServer::MoveUpdateRunSpeed,
+//             OpcodeServer::MoveUpdateSwimBackSpeed => PacketServer::MoveUpdateSwimBackSpeed,
+//             OpcodeServer::MoveUpdateSwimSpeed => PacketServer::MoveUpdateSwimSpeed,
+//             OpcodeServer::MoveUpdateTeleport => PacketServer::MoveUpdateTeleport,
+//             OpcodeServer::MoveUpdateTurnRate => PacketServer::MoveUpdateTurnRate,
+//             OpcodeServer::MoveUpdateWalkSpeed => PacketServer::MoveUpdateWalkSpeed,
+//             OpcodeServer::MultiFloorLeaveFloor => PacketServer::MultiFloorLeaveFloor,
+//             OpcodeServer::MultiFloorNewFloor => PacketServer::MultiFloorNewFloor,
+//             OpcodeServer::MythicPlusAllMapStats => PacketServer::MythicPlusAllMapStats,
+//             OpcodeServer::MythicPlusCurrentAffixes => PacketServer::MythicPlusCurrentAffixes,
+//             OpcodeServer::MythicPlusNewWeekRecord => PacketServer::MythicPlusNewWeekRecord,
+//             OpcodeServer::MythicPlusSeasonData => PacketServer::MythicPlusSeasonData,
+//             OpcodeServer::NeutralPlayerFactionSelectResult => {
+//                 PacketServer::NeutralPlayerFactionSelectResult
+//             }
+//             OpcodeServer::NewTaxiPath => PacketServer::NewTaxiPath,
+//             OpcodeServer::NewWorld => PacketServer::NewWorld,
+//             OpcodeServer::NotifyDestLocSpellCast => PacketServer::NotifyDestLocSpellCast,
+//             OpcodeServer::NotifyMissileTrajectoryCollision => {
+//                 PacketServer::NotifyMissileTrajectoryCollision
+//             }
+//             OpcodeServer::NotifyMoney => PacketServer::NotifyMoney,
+//             OpcodeServer::NotifyReceivedMail => PacketServer::NotifyReceivedMail,
+//             OpcodeServer::OfferPetitionError => PacketServer::OfferPetitionError,
+//             OpcodeServer::OnCancelExpectedRideVehicleAura => {
+//                 PacketServer::OnCancelExpectedRideVehicleAura
+//             }
+//             OpcodeServer::OnMonsterMove => PacketServer::OnMonsterMove,
+//             OpcodeServer::OpenAnimaDiversionUi => PacketServer::OpenAnimaDiversionUi,
+//             OpcodeServer::OpenArtifactForge => PacketServer::OpenArtifactForge,
+//             OpcodeServer::OpenContainer => PacketServer::OpenContainer,
+//             OpcodeServer::OpenHeartForge => PacketServer::OpenHeartForge,
+//             OpcodeServer::OpenItemForge => PacketServer::OpenItemForge,
+//             OpcodeServer::OpenLfgDungeonFinder => PacketServer::OpenLfgDungeonFinder,
+//             OpcodeServer::OpenShipmentNpcFromGossip => PacketServer::OpenShipmentNpcFromGossip,
+//             OpcodeServer::OpenShipmentNpcResult => PacketServer::OpenShipmentNpcResult,
+//             OpcodeServer::OverrideLight => PacketServer::OverrideLight,
+//             OpcodeServer::PageText => PacketServer::PageText,
+//             OpcodeServer::PartyCommandResult => PacketServer::PartyCommandResult,
+//             OpcodeServer::PartyInvite => PacketServer::PartyInvite,
+//             OpcodeServer::PartyKillLog => PacketServer::PartyKillLog,
+//             OpcodeServer::PartyMemberFullState => PacketServer::PartyMemberFullState,
+//             OpcodeServer::PartyMemberPartialState => PacketServer::PartyMemberPartialState,
+//             OpcodeServer::PartyNotifyLfgLeaderChange => PacketServer::PartyNotifyLfgLeaderChange,
+//             OpcodeServer::PartyUpdate => PacketServer::PartyUpdate,
+//             OpcodeServer::PastTimeEvents => PacketServer::PastTimeEvents,
+//             OpcodeServer::PauseMirrorTimer => PacketServer::PauseMirrorTimer,
+//             OpcodeServer::PendingRaidLock => PacketServer::PendingRaidLock,
+//             OpcodeServer::PetitionAlreadySigned => PacketServer::PetitionAlreadySigned,
+//             OpcodeServer::PetitionRenameGuildResponse => PacketServer::PetitionRenameGuildResponse,
+//             OpcodeServer::PetitionShowList => PacketServer::PetitionShowList,
+//             OpcodeServer::PetitionShowSignatures => PacketServer::PetitionShowSignatures,
+//             OpcodeServer::PetitionSignResults => PacketServer::PetitionSignResults,
+//             OpcodeServer::PetActionFeedback => PacketServer::PetActionFeedback,
+//             OpcodeServer::PetActionSound => PacketServer::PetActionSound,
+//             OpcodeServer::PetAdded => PacketServer::PetAdded,
+//             OpcodeServer::PetBattleChatRestricted => PacketServer::PetBattleChatRestricted,
+//             OpcodeServer::PetBattleDebugQueueDumpResponse => {
+//                 PacketServer::PetBattleDebugQueueDumpResponse
+//             }
+//             OpcodeServer::PetBattleFinalizeLocation => PacketServer::PetBattleFinalizeLocation,
+//             OpcodeServer::PetBattleFinalRound => PacketServer::PetBattleFinalRound,
+//             OpcodeServer::PetBattleFinished => PacketServer::PetBattleFinished,
+//             OpcodeServer::PetBattleFirstRound => PacketServer::PetBattleFirstRound,
+//             OpcodeServer::PetBattleInitialUpdate => PacketServer::PetBattleInitialUpdate,
+//             OpcodeServer::PetBattleMaxGameLengthWarning => {
+//                 PacketServer::PetBattleMaxGameLengthWarning
+//             }
+//             OpcodeServer::PetBattlePvpChallenge => PacketServer::PetBattlePvpChallenge,
+//             OpcodeServer::PetBattleQueueProposeMatch => PacketServer::PetBattleQueueProposeMatch,
+//             OpcodeServer::PetBattleQueueStatus => PacketServer::PetBattleQueueStatus,
+//             OpcodeServer::PetBattleReplacementsMade => PacketServer::PetBattleReplacementsMade,
+//             OpcodeServer::PetBattleRequestFailed => PacketServer::PetBattleRequestFailed,
+//             OpcodeServer::PetBattleRoundResult => PacketServer::PetBattleRoundResult,
+//             OpcodeServer::PetBattleSlotUpdates => PacketServer::PetBattleSlotUpdates,
+//             OpcodeServer::PetCastFailed => PacketServer::PetCastFailed,
+//             OpcodeServer::PetClearSpells => PacketServer::PetClearSpells,
+//             OpcodeServer::PetDismissSound => PacketServer::PetDismissSound,
+//             OpcodeServer::PetGodMode => PacketServer::PetGodMode,
+//             OpcodeServer::PetGuids => PacketServer::PetGuids,
+//             OpcodeServer::PetLearnedSpells => PacketServer::PetLearnedSpells,
+//             OpcodeServer::PetMode => PacketServer::PetMode,
+//             OpcodeServer::PetNameInvalid => PacketServer::PetNameInvalid,
+//             OpcodeServer::PetNewlyTamed => PacketServer::PetNewlyTamed,
+//             OpcodeServer::PetSlotUpdated => PacketServer::PetSlotUpdated,
+//             OpcodeServer::PetSpellsMessage => PacketServer::PetSpellsMessage,
+//             OpcodeServer::PetStableList => PacketServer::PetStableList,
+//             OpcodeServer::PetStableResult => PacketServer::PetStableResult,
+//             OpcodeServer::PetTameFailure => PacketServer::PetTameFailure,
+//             OpcodeServer::PetUnlearnedSpells => PacketServer::PetUnlearnedSpells,
+//             OpcodeServer::PhaseShiftChange => PacketServer::PhaseShiftChange,
+//             OpcodeServer::PlayedTime => PacketServer::PlayedTime,
+//             OpcodeServer::PlayerAzeriteItemEquippedStatusChanged => {
+//                 PacketServer::PlayerAzeriteItemEquippedStatusChanged
+//             }
+//             OpcodeServer::PlayerAzeriteItemGains => PacketServer::PlayerAzeriteItemGains,
+//             OpcodeServer::PlayerBonusRollFailed => PacketServer::PlayerBonusRollFailed,
+//             OpcodeServer::PlayerBound => PacketServer::PlayerBound,
+//             OpcodeServer::PlayerChoiceClear => PacketServer::PlayerChoiceClear,
+//             OpcodeServer::PlayerChoiceDisplayError => PacketServer::PlayerChoiceDisplayError,
+//             OpcodeServer::PlayerConditionResult => PacketServer::PlayerConditionResult,
+//             OpcodeServer::PlayerIsAdventureMapPoiValid => {
+//                 PacketServer::PlayerIsAdventureMapPoiValid
+//             }
+//             OpcodeServer::PlayerOpenSubscriptionInterstitial => {
+//                 PacketServer::PlayerOpenSubscriptionInterstitial
+//             }
+//             OpcodeServer::PlayerSaveGuildEmblem => PacketServer::PlayerSaveGuildEmblem,
+//             OpcodeServer::PlayerShowUiEventToast => PacketServer::PlayerShowUiEventToast,
+//             OpcodeServer::PlayerSkinned => PacketServer::PlayerSkinned,
+//             OpcodeServer::PlayerTabardVendorActivate => PacketServer::PlayerTabardVendorActivate,
+//             OpcodeServer::PlayerTutorialHighlightSpell => {
+//                 PacketServer::PlayerTutorialHighlightSpell
+//             }
+//             OpcodeServer::PlayerTutorialUnhighlightSpell => {
+//                 PacketServer::PlayerTutorialUnhighlightSpell
+//             }
+//             OpcodeServer::PlayMusic => PacketServer::PlayMusic,
+//             OpcodeServer::PlayObjectSound => PacketServer::PlayObjectSound,
+//             OpcodeServer::PlayOneShotAnimKit => PacketServer::PlayOneShotAnimKit,
+//             OpcodeServer::PlayOrphanSpellVisual => PacketServer::PlayOrphanSpellVisual,
+//             OpcodeServer::PlayScene => PacketServer::PlayScene,
+//             OpcodeServer::PlaySound => PacketServer::PlaySound,
+//             OpcodeServer::PlaySpeakerbotSound => PacketServer::PlaySpeakerbotSound,
+//             OpcodeServer::PlaySpellVisual => PacketServer::PlaySpellVisual,
+//             OpcodeServer::PlaySpellVisualKit => PacketServer::PlaySpellVisualKit,
+//             OpcodeServer::PlayTimeWarning => PacketServer::PlayTimeWarning,
+//             OpcodeServer::Pong => PacketServer::Pong,
+//             OpcodeServer::PowerUpdate => PacketServer::PowerUpdate,
+//             OpcodeServer::PreloadChildMap => PacketServer::PreloadChildMap,
+//             OpcodeServer::PrepopulateNameCache => PacketServer::PrepopulateNameCache,
+//             OpcodeServer::PreRessurect => PacketServer::PreRessurect,
+//             OpcodeServer::PrintNotification => PacketServer::PrintNotification,
+//             OpcodeServer::ProcResist => PacketServer::ProcResist,
+//             OpcodeServer::PushSpellToActionBar => PacketServer::PushSpellToActionBar,
+//             OpcodeServer::PvpCredit => PacketServer::PvpCredit,
+//             OpcodeServer::PvpMatchComplete => PacketServer::PvpMatchComplete,
+//             OpcodeServer::PvpMatchInitialize => PacketServer::PvpMatchInitialize,
+//             OpcodeServer::PvpMatchStart => PacketServer::PvpMatchStart,
+//             OpcodeServer::PvpMatchStatistics => PacketServer::PvpMatchStatistics,
+//             OpcodeServer::PvpOptionsEnabled => PacketServer::PvpOptionsEnabled,
+//             OpcodeServer::PvpTierRecord => PacketServer::PvpTierRecord,
+//             OpcodeServer::QueryBattlePetNameResponse => PacketServer::QueryBattlePetNameResponse,
+//             OpcodeServer::QueryCreatureResponse => PacketServer::QueryCreatureResponse,
+//             OpcodeServer::QueryGameObjectResponse => PacketServer::QueryGameObjectResponse,
+//             OpcodeServer::QueryGarrisonPetNameResponse => {
+//                 PacketServer::QueryGarrisonPetNameResponse
+//             }
+//             OpcodeServer::QueryGuildFollowInfoResponse => {
+//                 PacketServer::QueryGuildFollowInfoResponse
+//             }
+//             OpcodeServer::QueryGuildInfoResponse => PacketServer::QueryGuildInfoResponse,
+//             OpcodeServer::QueryItemTextResponse => PacketServer::QueryItemTextResponse,
+//             OpcodeServer::QueryNpcTextResponse => PacketServer::QueryNpcTextResponse,
+//             OpcodeServer::QueryPageTextResponse => PacketServer::QueryPageTextResponse,
+//             OpcodeServer::QueryPetitionResponse => PacketServer::QueryPetitionResponse,
+//             OpcodeServer::QueryPetNameResponse => PacketServer::QueryPetNameResponse,
+//             OpcodeServer::QueryPlayerNamesResponse => PacketServer::QueryPlayerNamesResponse,
+//             OpcodeServer::QueryPlayerNameByCommunityIdResponse => {
+//                 PacketServer::QueryPlayerNameByCommunityIdResponse
+//             }
+//             OpcodeServer::QueryQuestInfoResponse => PacketServer::QueryQuestInfoResponse,
+//             OpcodeServer::QueryRealmGuildMasterInfoResponse => {
+//                 PacketServer::QueryRealmGuildMasterInfoResponse
+//             }
+//             OpcodeServer::QueryTimeResponse => PacketServer::QueryTimeResponse,
+//             OpcodeServer::QuestCompletionNpcResponse => PacketServer::QuestCompletionNpcResponse,
+//             OpcodeServer::QuestConfirmAccept => PacketServer::QuestConfirmAccept,
+//             OpcodeServer::QuestForceRemoved => PacketServer::QuestForceRemoved,
+//             OpcodeServer::QuestGiverInvalidQuest => PacketServer::QuestGiverInvalidQuest,
+//             OpcodeServer::QuestGiverOfferRewardMessage => {
+//                 PacketServer::QuestGiverOfferRewardMessage
+//             }
+//             OpcodeServer::QuestGiverQuestComplete => PacketServer::QuestGiverQuestComplete,
+//             OpcodeServer::QuestGiverQuestDetails => PacketServer::QuestGiverQuestDetails,
+//             OpcodeServer::QuestGiverQuestFailed => PacketServer::QuestGiverQuestFailed,
+//             OpcodeServer::QuestGiverQuestListMessage => PacketServer::QuestGiverQuestListMessage,
+//             OpcodeServer::QuestGiverRequestItems => PacketServer::QuestGiverRequestItems,
+//             OpcodeServer::QuestGiverStatus => PacketServer::QuestGiverStatus,
+//             OpcodeServer::QuestGiverStatusMultiple => PacketServer::QuestGiverStatusMultiple,
+//             OpcodeServer::QuestLogFull => PacketServer::QuestLogFull,
+//             OpcodeServer::QuestNonLogUpdateComplete => PacketServer::QuestNonLogUpdateComplete,
+//             OpcodeServer::QuestPoiQueryResponse => PacketServer::QuestPoiQueryResponse,
+//             OpcodeServer::QuestPoiUpdateResponse => PacketServer::QuestPoiUpdateResponse,
+//             OpcodeServer::QuestPushResult => PacketServer::QuestPushResult,
+//             OpcodeServer::QuestSessionInfoResponse => PacketServer::QuestSessionInfoResponse,
+//             OpcodeServer::QuestSessionReadyCheck => PacketServer::QuestSessionReadyCheck,
+//             OpcodeServer::QuestSessionReadyCheckResponse => {
+//                 PacketServer::QuestSessionReadyCheckResponse
+//             }
+//             OpcodeServer::QuestSessionResult => PacketServer::QuestSessionResult,
+//             OpcodeServer::QuestUpdateAddCredit => PacketServer::QuestUpdateAddCredit,
+//             OpcodeServer::QuestUpdateAddCreditSimple => PacketServer::QuestUpdateAddCreditSimple,
+//             OpcodeServer::QuestUpdateAddPvpCredit => PacketServer::QuestUpdateAddPvpCredit,
+//             OpcodeServer::QuestUpdateComplete => PacketServer::QuestUpdateComplete,
+//             OpcodeServer::QuestUpdateFailed => PacketServer::QuestUpdateFailed,
+//             OpcodeServer::QuestUpdateFailedTimer => PacketServer::QuestUpdateFailedTimer,
+//             OpcodeServer::QueueSummaryUpdate => PacketServer::QueueSummaryUpdate,
+//             OpcodeServer::RafAccountInfo => PacketServer::RafAccountInfo,
+//             OpcodeServer::RafActivityStateChanged => PacketServer::RafActivityStateChanged,
+//             OpcodeServer::RaidDifficultySet => PacketServer::RaidDifficultySet,
+//             OpcodeServer::RaidGroupOnly => PacketServer::RaidGroupOnly,
+//             OpcodeServer::RaidInstanceMessage => PacketServer::RaidInstanceMessage,
+//             OpcodeServer::RaidMarkersChanged => PacketServer::RaidMarkersChanged,
+//             OpcodeServer::RandomRoll => PacketServer::RandomRoll,
+//             OpcodeServer::RatedPvpInfo => PacketServer::RatedPvpInfo,
+//             OpcodeServer::ReadyCheckCompleted => PacketServer::ReadyCheckCompleted,
+//             OpcodeServer::ReadyCheckResponse => PacketServer::ReadyCheckResponse,
+//             OpcodeServer::ReadyCheckStarted => PacketServer::ReadyCheckStarted,
+//             OpcodeServer::ReadItemResultFailed => PacketServer::ReadItemResultFailed,
+//             OpcodeServer::ReadItemResultOk => PacketServer::ReadItemResultOk,
+//             OpcodeServer::RealmLookupInfo => PacketServer::RealmLookupInfo,
+//             OpcodeServer::RealmQueryResponse => PacketServer::RealmQueryResponse,
+//             OpcodeServer::ReattachResurrect => PacketServer::ReattachResurrect,
+//             OpcodeServer::RecruitAFriendFailure => PacketServer::RecruitAFriendFailure,
+//             OpcodeServer::RefreshComponent => PacketServer::RefreshComponent,
+//             OpcodeServer::RefreshSpellHistory => PacketServer::RefreshSpellHistory,
+//             OpcodeServer::RemoveItemPassive => PacketServer::RemoveItemPassive,
+//             OpcodeServer::RemoveSpellFromActionBar => PacketServer::RemoveSpellFromActionBar,
+//             OpcodeServer::ReplaceTrophyResponse => PacketServer::ReplaceTrophyResponse,
+//             OpcodeServer::ReportPvpPlayerAfkResult => PacketServer::ReportPvpPlayerAfkResult,
+//             OpcodeServer::RequestCemeteryListResponse => PacketServer::RequestCemeteryListResponse,
+//             OpcodeServer::RequestPvpRewardsResponse => PacketServer::RequestPvpRewardsResponse,
+//             OpcodeServer::RequestScheduledPvpInfoResponse => {
+//                 PacketServer::RequestScheduledPvpInfoResponse
+//             }
+//             OpcodeServer::ResearchComplete => PacketServer::ResearchComplete,
+//             OpcodeServer::ResetCompressionContext => PacketServer::ResetCompressionContext,
+//             OpcodeServer::ResetFailedNotify => PacketServer::ResetFailedNotify,
+//             OpcodeServer::ResetQuestPoi => PacketServer::ResetQuestPoi,
+//             OpcodeServer::ResetRangedCombatTimer => PacketServer::ResetRangedCombatTimer,
+//             OpcodeServer::ResetWeeklyCurrency => PacketServer::ResetWeeklyCurrency,
+//             OpcodeServer::RespecWipeConfirm => PacketServer::RespecWipeConfirm,
+//             OpcodeServer::RespondInspectAchievements => PacketServer::RespondInspectAchievements,
+//             OpcodeServer::RestartGlobalCooldown => PacketServer::RestartGlobalCooldown,
+//             OpcodeServer::RestrictedAccountWarning => PacketServer::RestrictedAccountWarning,
+//             OpcodeServer::ResumeCast => PacketServer::ResumeCast,
+//             OpcodeServer::ResumeCastBar => PacketServer::ResumeCastBar,
+//             OpcodeServer::ResumeComms => PacketServer::ResumeComms,
+//             OpcodeServer::ResumeToken => PacketServer::ResumeToken,
+//             OpcodeServer::ResurrectRequest => PacketServer::ResurrectRequest,
+//             OpcodeServer::ResyncRunes => PacketServer::ResyncRunes,
+//             OpcodeServer::ReturnApplicantList => PacketServer::ReturnApplicantList,
+//             OpcodeServer::ReturnRecruitingClubs => PacketServer::ReturnRecruitingClubs,
+//             OpcodeServer::RoleChangedInform => PacketServer::RoleChangedInform,
+//             OpcodeServer::RoleChosen => PacketServer::RoleChosen,
+//             OpcodeServer::RolePollInform => PacketServer::RolePollInform,
+//             OpcodeServer::RuneforgeLegendaryCraftingOpenNpc => {
+//                 PacketServer::RuneforgeLegendaryCraftingOpenNpc
+//             }
+//             OpcodeServer::RuneRegenDebug => PacketServer::RuneRegenDebug,
+//             OpcodeServer::ScenarioCompleted => PacketServer::ScenarioCompleted,
+//             OpcodeServer::ScenarioPois => PacketServer::ScenarioPois,
+//             OpcodeServer::ScenarioProgressUpdate => PacketServer::ScenarioProgressUpdate,
+//             OpcodeServer::ScenarioShowCriteria => PacketServer::ScenarioShowCriteria,
+//             OpcodeServer::ScenarioState => PacketServer::ScenarioState,
+//             OpcodeServer::ScenarioUiUpdate => PacketServer::ScenarioUiUpdate,
+//             OpcodeServer::ScenarioVacate => PacketServer::ScenarioVacate,
+//             OpcodeServer::SceneObjectEvent => PacketServer::SceneObjectEvent,
+//             OpcodeServer::SceneObjectPetBattleFinalRound => {
+//                 PacketServer::SceneObjectPetBattleFinalRound
+//             }
+//             OpcodeServer::SceneObjectPetBattleFinished => {
+//                 PacketServer::SceneObjectPetBattleFinished
+//             }
+//             OpcodeServer::SceneObjectPetBattleFirstRound => {
+//                 PacketServer::SceneObjectPetBattleFirstRound
+//             }
+//             OpcodeServer::SceneObjectPetBattleInitialUpdate => {
+//                 PacketServer::SceneObjectPetBattleInitialUpdate
+//             }
+//             OpcodeServer::SceneObjectPetBattleReplacementsMade => {
+//                 PacketServer::SceneObjectPetBattleReplacementsMade
+//             }
+//             OpcodeServer::SceneObjectPetBattleRoundResult => {
+//                 PacketServer::SceneObjectPetBattleRoundResult
+//             }
+//             OpcodeServer::ScriptCast => PacketServer::ScriptCast,
+//             OpcodeServer::SeasonInfo => PacketServer::SeasonInfo,
+//             OpcodeServer::SellResponse => PacketServer::SellResponse,
+//             OpcodeServer::SendItemPassives => PacketServer::SendItemPassives,
+//             OpcodeServer::SendKnownSpells => PacketServer::SendKnownSpells,
+//             OpcodeServer::SendRaidTargetUpdateAll => PacketServer::SendRaidTargetUpdateAll,
+//             OpcodeServer::SendRaidTargetUpdateSingle => PacketServer::SendRaidTargetUpdateSingle,
+//             OpcodeServer::SendSpellCharges => PacketServer::SendSpellCharges,
+//             OpcodeServer::SendSpellHistory => PacketServer::SendSpellHistory,
+//             OpcodeServer::SendUnlearnSpells => PacketServer::SendUnlearnSpells,
+//             OpcodeServer::ServerFirstAchievements => PacketServer::ServerFirstAchievements,
+//             OpcodeServer::ServerTime => PacketServer::ServerTime,
+//             OpcodeServer::ServerTimeOffset => PacketServer::ServerTimeOffset,
+//             OpcodeServer::SetupCurrency => PacketServer::SetupCurrency,
+//             OpcodeServer::SetupResearchHistory => PacketServer::SetupResearchHistory,
+//             OpcodeServer::SetAiAnimKit => PacketServer::SetAiAnimKit,
+//             OpcodeServer::SetAllTaskProgress => PacketServer::SetAllTaskProgress,
+//             OpcodeServer::SetAnimTier => PacketServer::SetAnimTier,
+//             OpcodeServer::SetChrUpgradeTier => PacketServer::SetChrUpgradeTier,
+//             OpcodeServer::SetCurrency => PacketServer::SetCurrency,
+//             OpcodeServer::SetDfFastLaunchResult => PacketServer::SetDfFastLaunchResult,
+//             OpcodeServer::SetDungeonDifficulty => PacketServer::SetDungeonDifficulty,
+//             OpcodeServer::SetFactionAtWar => PacketServer::SetFactionAtWar,
+//             OpcodeServer::SetFactionNotVisible => PacketServer::SetFactionNotVisible,
+//             OpcodeServer::SetFactionStanding => PacketServer::SetFactionStanding,
+//             OpcodeServer::SetFactionVisible => PacketServer::SetFactionVisible,
+//             OpcodeServer::SetFlatSpellModifier => PacketServer::SetFlatSpellModifier,
+//             OpcodeServer::SetForcedReactions => PacketServer::SetForcedReactions,
+//             OpcodeServer::SetItemPurchaseData => PacketServer::SetItemPurchaseData,
+//             OpcodeServer::SetLootMethodFailed => PacketServer::SetLootMethodFailed,
+//             OpcodeServer::SetMaxWeeklyQuantity => PacketServer::SetMaxWeeklyQuantity,
+//             OpcodeServer::SetMeleeAnimKit => PacketServer::SetMeleeAnimKit,
+//             OpcodeServer::SetMovementAnimKit => PacketServer::SetMovementAnimKit,
+//             OpcodeServer::SetPctSpellModifier => PacketServer::SetPctSpellModifier,
+//             OpcodeServer::SetPetSpecialization => PacketServer::SetPetSpecialization,
+//             OpcodeServer::SetPlayerDeclinedNamesResult => {
+//                 PacketServer::SetPlayerDeclinedNamesResult
+//             }
+//             OpcodeServer::SetPlayHoverAnim => PacketServer::SetPlayHoverAnim,
+//             OpcodeServer::SetProficiency => PacketServer::SetProficiency,
+//             OpcodeServer::SetQuestReplayCooldownOverride => {
+//                 PacketServer::SetQuestReplayCooldownOverride
+//             }
+//             OpcodeServer::SetShipmentReadyResponse => PacketServer::SetShipmentReadyResponse,
+//             OpcodeServer::SetSpellCharges => PacketServer::SetSpellCharges,
+//             OpcodeServer::SetTaskComplete => PacketServer::SetTaskComplete,
+//             OpcodeServer::SetTimeZoneInformation => PacketServer::SetTimeZoneInformation,
+//             OpcodeServer::SetVehicleRecId => PacketServer::SetVehicleRecId,
+//             OpcodeServer::ShadowlandsCapacitanceUpdate => {
+//                 PacketServer::ShadowlandsCapacitanceUpdate
+//             }
+//             OpcodeServer::ShipmentFactionUpdateResult => PacketServer::ShipmentFactionUpdateResult,
+//             OpcodeServer::ShowBank => PacketServer::ShowBank,
+//             OpcodeServer::ShowMailbox => PacketServer::ShowMailbox,
+//             OpcodeServer::ShowNeutralPlayerFactionSelectUi => {
+//                 PacketServer::ShowNeutralPlayerFactionSelectUi
+//             }
+//             OpcodeServer::ShowQuestCompletionText => PacketServer::ShowQuestCompletionText,
+//             OpcodeServer::ShowTaxiNodes => PacketServer::ShowTaxiNodes,
+//             OpcodeServer::ShowTradeSkillResponse => PacketServer::ShowTradeSkillResponse,
+//             OpcodeServer::SocketGemsFailure => PacketServer::SocketGemsFailure,
+//             OpcodeServer::SocketGemsSuccess => PacketServer::SocketGemsSuccess,
+//             OpcodeServer::SpecialMountAnim => PacketServer::SpecialMountAnim,
+//             OpcodeServer::SpecInvoluntarilyChanged => PacketServer::SpecInvoluntarilyChanged,
+//             OpcodeServer::SpellAbsorbLog => PacketServer::SpellAbsorbLog,
+//             OpcodeServer::SpellCategoryCooldown => PacketServer::SpellCategoryCooldown,
+//             OpcodeServer::SpellChannelStart => PacketServer::SpellChannelStart,
+//             OpcodeServer::SpellChannelUpdate => PacketServer::SpellChannelUpdate,
+//             OpcodeServer::SpellCooldown => PacketServer::SpellCooldown,
+//             OpcodeServer::SpellDamageShield => PacketServer::SpellDamageShield,
+//             OpcodeServer::SpellDelayed => PacketServer::SpellDelayed,
+//             OpcodeServer::SpellDispellLog => PacketServer::SpellDispellLog,
+//             OpcodeServer::SpellEnergizeLog => PacketServer::SpellEnergizeLog,
+//             OpcodeServer::SpellExecuteLog => PacketServer::SpellExecuteLog,
+//             OpcodeServer::SpellFailedOther => PacketServer::SpellFailedOther,
+//             OpcodeServer::SpellFailure => PacketServer::SpellFailure,
+//             OpcodeServer::SpellFailureMessage => PacketServer::SpellFailureMessage,
+//             OpcodeServer::SpellGo => PacketServer::SpellGo,
+//             OpcodeServer::SpellHealAbsorbLog => PacketServer::SpellHealAbsorbLog,
+//             OpcodeServer::SpellHealLog => PacketServer::SpellHealLog,
+//             OpcodeServer::SpellInstakillLog => PacketServer::SpellInstakillLog,
+//             OpcodeServer::SpellInterruptLog => PacketServer::SpellInterruptLog,
+//             OpcodeServer::SpellMissLog => PacketServer::SpellMissLog,
+//             OpcodeServer::SpellNonMeleeDamageLog => PacketServer::SpellNonMeleeDamageLog,
+//             OpcodeServer::SpellOrDamageImmune => PacketServer::SpellOrDamageImmune,
+//             OpcodeServer::SpellPeriodicAuraLog => PacketServer::SpellPeriodicAuraLog,
+//             OpcodeServer::SpellPrepare => PacketServer::SpellPrepare,
+//             OpcodeServer::SpellStart => PacketServer::SpellStart,
+//             OpcodeServer::SpellVisualLoadScreen => PacketServer::SpellVisualLoadScreen,
+//             OpcodeServer::SpiritHealerConfirm => PacketServer::SpiritHealerConfirm,
+//             OpcodeServer::SplashScreenShowLatest => PacketServer::SplashScreenShowLatest,
+//             OpcodeServer::StandStateUpdate => PacketServer::StandStateUpdate,
+//             OpcodeServer::StartElapsedTimer => PacketServer::StartElapsedTimer,
+//             OpcodeServer::StartElapsedTimers => PacketServer::StartElapsedTimers,
+//             OpcodeServer::StartLightningStorm => PacketServer::StartLightningStorm,
+//             OpcodeServer::StartLootRoll => PacketServer::StartLootRoll,
+//             OpcodeServer::StartMirrorTimer => PacketServer::StartMirrorTimer,
+//             OpcodeServer::StartTimer => PacketServer::StartTimer,
+//             OpcodeServer::StopElapsedTimer => PacketServer::StopElapsedTimer,
+//             OpcodeServer::StopMirrorTimer => PacketServer::StopMirrorTimer,
+//             OpcodeServer::StopSpeakerbotSound => PacketServer::StopSpeakerbotSound,
+//             OpcodeServer::StreamingMovies => PacketServer::StreamingMovies,
+//             OpcodeServer::SummonCancel => PacketServer::SummonCancel,
+//             OpcodeServer::SummonRaidMemberValidateFailed => {
+//                 PacketServer::SummonRaidMemberValidateFailed
+//             }
+//             OpcodeServer::SummonRequest => PacketServer::SummonRequest,
+//             OpcodeServer::SupercededSpells => PacketServer::SupercededSpells,
+//             OpcodeServer::SuspendComms => PacketServer::SuspendComms,
+//             OpcodeServer::SuspendToken => PacketServer::SuspendToken,
+//             OpcodeServer::SyncWowEntitlements => PacketServer::SyncWowEntitlements,
+//             OpcodeServer::TalentsInvoluntarilyReset => PacketServer::TalentsInvoluntarilyReset,
+//             OpcodeServer::TaxiNodeStatus => PacketServer::TaxiNodeStatus,
+//             OpcodeServer::TextEmote => PacketServer::TextEmote,
+//             OpcodeServer::ThreatClear => PacketServer::ThreatClear,
+//             OpcodeServer::ThreatRemove => PacketServer::ThreatRemove,
+//             OpcodeServer::ThreatUpdate => PacketServer::ThreatUpdate,
+//             OpcodeServer::TimeAdjustment => PacketServer::TimeAdjustment,
+//             OpcodeServer::TimeSyncRequest => PacketServer::TimeSyncRequest,
+//             OpcodeServer::TitleEarned => PacketServer::TitleEarned,
+//             OpcodeServer::TitleLost => PacketServer::TitleLost,
+//             OpcodeServer::TotemCreated => PacketServer::TotemCreated,
+//             OpcodeServer::TotemDurationChanged => PacketServer::TotemDurationChanged,
+//             OpcodeServer::TotemMoved => PacketServer::TotemMoved,
+//             OpcodeServer::TradeStatus => PacketServer::TradeStatus,
+//             OpcodeServer::TradeUpdated => PacketServer::TradeUpdated,
+//             OpcodeServer::TrainerBuyFailed => PacketServer::TrainerBuyFailed,
+//             OpcodeServer::TrainerList => PacketServer::TrainerList,
+//             OpcodeServer::TransferAborted => PacketServer::TransferAborted,
+//             OpcodeServer::TransferPending => PacketServer::TransferPending,
+//             OpcodeServer::TransmogrifyNpc => PacketServer::TransmogrifyNpc,
+//             OpcodeServer::TreasurePickerResponse => PacketServer::TreasurePickerResponse,
+//             OpcodeServer::TriggerCinematic => PacketServer::TriggerCinematic,
+//             OpcodeServer::TriggerMovie => PacketServer::TriggerMovie,
+//             OpcodeServer::TurnInPetitionResult => PacketServer::TurnInPetitionResult,
+//             OpcodeServer::TutorialFlags => PacketServer::TutorialFlags,
+//             OpcodeServer::TwitterStatus => PacketServer::TwitterStatus,
+//             OpcodeServer::UiHealingRangeModified => PacketServer::UiHealingRangeModified,
+//             OpcodeServer::UiItemInteractionNpc => PacketServer::UiItemInteractionNpc,
+//             OpcodeServer::UiMapQuestLinesResponse => PacketServer::UiMapQuestLinesResponse,
+//             OpcodeServer::UndeleteCharacterResponse => PacketServer::UndeleteCharacterResponse,
+//             OpcodeServer::UndeleteCooldownStatusResponse => {
+//                 PacketServer::UndeleteCooldownStatusResponse
+//             }
+//             OpcodeServer::UnlearnedSpells => PacketServer::UnlearnedSpells,
+//             OpcodeServer::UnloadChildMap => PacketServer::UnloadChildMap,
+//             OpcodeServer::UpdateAadcStatusResponse => PacketServer::UpdateAadcStatusResponse,
+//             OpcodeServer::UpdateAccountData => PacketServer::UpdateAccountData,
+//             OpcodeServer::UpdateActionButtons => PacketServer::UpdateActionButtons,
+//             OpcodeServer::UpdateBnetSessionKey => PacketServer::UpdateBnetSessionKey,
+//             OpcodeServer::UpdateCapturePoint => PacketServer::UpdateCapturePoint,
+//             OpcodeServer::UpdateCelestialBody => PacketServer::UpdateCelestialBody,
+//             OpcodeServer::UpdateCharacterFlags => PacketServer::UpdateCharacterFlags,
+//             OpcodeServer::UpdateChargeCategoryCooldown => {
+//                 PacketServer::UpdateChargeCategoryCooldown
+//             }
+//             OpcodeServer::UpdateCooldown => PacketServer::UpdateCooldown,
+//             OpcodeServer::UpdateDailyMissionCounter => PacketServer::UpdateDailyMissionCounter,
+//             OpcodeServer::UpdateExpansionLevel => PacketServer::UpdateExpansionLevel,
+//             OpcodeServer::UpdateGameTimeState => PacketServer::UpdateGameTimeState,
+//             OpcodeServer::UpdateInstanceOwnership => PacketServer::UpdateInstanceOwnership,
+//             OpcodeServer::UpdateLastInstance => PacketServer::UpdateLastInstance,
+//             OpcodeServer::UpdateObject => PacketServer::UpdateObject,
+//             OpcodeServer::UpdatePrimarySpec => PacketServer::UpdatePrimarySpec,
+//             OpcodeServer::UpdateTalentData => PacketServer::UpdateTalentData,
+//             OpcodeServer::UpdateTaskProgress => PacketServer::UpdateTaskProgress,
+//             OpcodeServer::UpdateWeeklySpellUsage => PacketServer::UpdateWeeklySpellUsage,
+//             OpcodeServer::UpdateWorldState => PacketServer::UpdateWorldState,
+//             OpcodeServer::UserlistAdd => PacketServer::UserlistAdd,
+//             OpcodeServer::UserlistRemove => PacketServer::UserlistRemove,
+//             OpcodeServer::UserlistUpdate => PacketServer::UserlistUpdate,
+//             OpcodeServer::UseEquipmentSetResult => PacketServer::UseEquipmentSetResult,
+//             OpcodeServer::VasCheckTransferOkResponse => PacketServer::VasCheckTransferOkResponse,
+//             OpcodeServer::VasGetQueueMinutesResponse => PacketServer::VasGetQueueMinutesResponse,
+//             OpcodeServer::VasGetServiceStatusResponse => PacketServer::VasGetServiceStatusResponse,
+//             OpcodeServer::VasPurchaseComplete => PacketServer::VasPurchaseComplete,
+//             OpcodeServer::VasPurchaseStateUpdate => PacketServer::VasPurchaseStateUpdate,
+//             OpcodeServer::VendorInventory => PacketServer::VendorInventory,
+//             OpcodeServer::VignetteUpdate => PacketServer::VignetteUpdate,
+//             OpcodeServer::VoiceChannelInfoResponse => PacketServer::VoiceChannelInfoResponse,
+//             OpcodeServer::VoiceChannelSttTokenResponse => {
+//                 PacketServer::VoiceChannelSttTokenResponse
+//             }
+//             OpcodeServer::VoiceLoginResponse => PacketServer::VoiceLoginResponse,
+//             OpcodeServer::VoidItemSwapResponse => PacketServer::VoidItemSwapResponse,
+//             OpcodeServer::VoidStorageContents => PacketServer::VoidStorageContents,
+//             OpcodeServer::VoidStorageFailed => PacketServer::VoidStorageFailed,
+//             OpcodeServer::VoidStorageTransferChanges => PacketServer::VoidStorageTransferChanges,
+//             OpcodeServer::VoidTransferResult => PacketServer::VoidTransferResult,
+//             OpcodeServer::WaitQueueFinish => PacketServer::WaitQueueFinish,
+//             OpcodeServer::WaitQueueUpdate => PacketServer::WaitQueueUpdate,
+//             OpcodeServer::Warden3Data => PacketServer::Warden3Data,
+//             OpcodeServer::Warden3Disabled => PacketServer::Warden3Disabled,
+//             OpcodeServer::Warden3Enabled => PacketServer::Warden3Enabled,
+//             OpcodeServer::WarfrontComplete => PacketServer::WarfrontComplete,
+//             OpcodeServer::WargameRequestSuccessfullySentToOpponent => {
+//                 PacketServer::WargameRequestSuccessfullySentToOpponent
+//             }
+//             OpcodeServer::Weather => PacketServer::Weather,
+//             OpcodeServer::WeeklyRewardsProgressResult => PacketServer::WeeklyRewardsProgressResult,
+//             OpcodeServer::WeeklyRewardsResult => PacketServer::WeeklyRewardsResult,
+//             OpcodeServer::WeeklyRewardClaimResult => PacketServer::WeeklyRewardClaimResult,
+//             OpcodeServer::WeeklySpellUsage => PacketServer::WeeklySpellUsage,
+//             OpcodeServer::Who => PacketServer::Who,
+//             OpcodeServer::WhoIs => PacketServer::WhoIs,
+//             OpcodeServer::WillBeKickedForAddedSubscriptionTime => {
+//                 PacketServer::WillBeKickedForAddedSubscriptionTime
+//             }
+//             OpcodeServer::WorldMapOpenNpc => PacketServer::WorldMapOpenNpc,
+//             OpcodeServer::WorldQuestUpdateResponse => PacketServer::WorldQuestUpdateResponse,
+//             OpcodeServer::WorldServerInfo => PacketServer::WorldServerInfo,
+//             OpcodeServer::WowEntitlementNotification => PacketServer::WowEntitlementNotification,
+//             OpcodeServer::XpGainAborted => PacketServer::XpGainAborted,
+//             OpcodeServer::XpGainEnabled => PacketServer::XpGainEnabled,
+//             OpcodeServer::ZoneUnderAttack => PacketServer::ZoneUnderAttack,
+//             OpcodeServer::AccountHeirloomUpdate => PacketServer::AccountHeirloomUpdate,
+//             OpcodeServer::CompressedPacket => PacketServer::CompressedPacket,
+//             OpcodeServer::MultiplePackets => PacketServer::MultiplePackets,
+//         }
+//     }
+// }

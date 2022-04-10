@@ -1,3 +1,5 @@
+use deku::prelude::*;
+
 #[derive(Debug)]
 #[repr(i8)]
 pub enum ConnectionType {
@@ -17,7 +19,8 @@ pub enum OpcodeMisc {
     NullOpcode = 0xBADD,
 }
 
-#[derive(Debug)]
+#[derive(Debug, DekuRead)]
+#[deku(type = "u16", endian = "little")]
 #[repr(u16)]
 pub enum OpcodeClient {
     AbandonNpeResponse = 0x33F2,
@@ -810,7 +813,9 @@ pub enum OpcodeClient {
     WorldPortResponse = 0x35F9,
     WrapItem = 0x3994,
 }
-#[derive(Debug)]
+
+#[derive(Debug, DekuWrite)]
+#[deku(type = "u16")]
 #[repr(u16)]
 pub enum OpcodeServer {
     AbortNewWorld = 0x259A,

@@ -1,4 +1,4 @@
-use crate::packets::{PacketClient, PacketServer};
+use crate::packets::{PacketClient, PacketServer, RawClientPacket};
 use anyhow::anyhow;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -13,7 +13,7 @@ pub struct NewSession {
 #[derive(Debug)]
 pub enum ServerEventEnum {
     NewSession(NewSession),
-    NewClientPacket(SocketAddr, PacketClient),
+    NewClientPacket(SocketAddr, RawClientPacket),
 }
 
 #[derive(Debug)]
@@ -56,9 +56,9 @@ impl WorldServer {
                 Some(ServerEventEnum::NewSession(session)) => {
                     self.connections.insert(session.addr, session.sender);
                 }
-                Some(ServerEventEnum::NewClientPacket(sender, _)) => {
+                Some(ServerEventEnum::NewClientPacket(sender, packet)) => {
                     let conn = self.connections.get(&sender).unwrap();
-                    conn.send(todo!()).await.unwrap();
+                    // conn.send(packet).await.unwrap();
                 }
                 None => break,
             }

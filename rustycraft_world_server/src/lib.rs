@@ -4,21 +4,14 @@ pub mod world_events;
 pub mod world_listener;
 pub mod world_server;
 pub mod world_session;
+mod utils;
 
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate serde;
+#[macro_use]
+extern crate serde_repr;
+extern crate core;
 
 use crate::opcodes::OpcodeServer;
-use bytes::Bytes;
-
-pub trait ServerPacket {
-    const OPCODE: OpcodeServer;
-    fn write(&self) -> Bytes;
-}
-
-pub trait ClientPacket {
-    const OPCODE: OpcodeServer;
-    fn read(data: Bytes) -> Option<Self>
-    where
-        Self: Sized;
-}

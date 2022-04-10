@@ -55,7 +55,7 @@ impl WorldSocketManager {
 
         loop {
             if let Ok((stream, _)) = listener.accept().await {
-                tokio::spawn(T::new(stream, self.world_server_channel.clone()).handle());
+                tokio::spawn(T::new(stream, self.world_server_channel.clone())?.handle());
             }
         }
     }
@@ -66,6 +66,8 @@ pub trait WorldSessionHandler: 'static {
     fn new(
         socket: TcpStream,
         world_server_tx: mpsc::Sender<ServerEventEnum>, // Channel for communicate with world server
-    ) -> Self;
+    ) -> anyhow::Result<Self>
+    where
+        Self: Sized;
     async fn handle(mut self) -> anyhow::Result<()>;
 }
