@@ -360,11 +360,11 @@ impl prost_build::ServiceGenerator for ServiceGenerator {
                 const ORIGINAL_HASH: u32 = #original_hash;
                 # ( const #fields: #types = #values; ) *
                 # ( const #methods_consts: u8 = #ids; ) *
-                # ( async fn #methods(&mut self, _: #inputs) -> Result<#outputs, crate::errors::WowRpcResponse> {Err(crate::errors::WowRpcResponse::NotImplemented)} ) *
+                # ( async fn #methods(&mut self, _: #inputs) -> Result<#outputs, crate::rpc_responses::WowRpcResponse> {Err(crate::rpc_responses::WowRpcResponse::NotImplemented)} ) *
 
-                async fn dispatch(&mut self, msg: crate::messages::RawMessage) -> Result<bytes::Bytes, crate::errors::WowRpcResponse> {
+                async fn dispatch(&mut self, msg: crate::messages::RawMessage) -> Result<bytes::Bytes, crate::rpc_responses::WowRpcResponse> {
                     use prost::Message;
-                    let method_id = msg.headers.method_id.ok_or_else(|| crate::errors::WowRpcResponse::RpcMalformedRequest )? as u8;
+                    let method_id = msg.headers.method_id.ok_or_else(|| crate::rpc_responses::WowRpcResponse::RpcMalformedRequest )? as u8;
                     match method_id {
                       # ( #ids => {
                             let parsed = if let Some(0) = msg.headers.size
@@ -381,7 +381,7 @@ impl prost_build::ServiceGenerator for ServiceGenerator {
                             let mut outoing_message = crate::messages::OutgoingMessage{ headers, message: Some(response?) };
                             Ok(outoing_message.encode(true))
                         } ) *
-                        _ => Err( crate::errors::WowRpcResponse::RpcNotImplemented ),
+                        _ => Err( crate::rpc_responses::WowRpcResponse::RpcNotImplemented ),
                     }
                 }
             }
@@ -468,15 +468,13 @@ fn build_module(proto_dir: &str, out_dir: &str, out_filename: &str) {
 
     prost_build::Config::new()
         .out_dir(out_dir)
-        .type_attribute(".", " #[derive(serde::Serialize)]")
+        .type_attribute(".", " #[derive(serde::Serialize, serde::Deserialize)]")
         .service_generator(Box::new(ServiceGenerator { service_extensions }))
         .compile_protos(protos.as_slice(), &[proto_dir])
         .expect("Failed to build by prost");
 
     let nested_mods_ts = node_to_syn(&module, "", out_dir);
     let quoted_module = quote::quote! {
-        pub mod errors;
-        pub mod messages;
         #[allow(dead_code)]
         #[allow(warnings)]
         #nested_mods_ts
@@ -527,5 +525,5 @@ fn service_name_hash(name: String) -> u32 {
 }
 
 fn main() {
-    // build_module("./protoc", "src/", "lib.rs");
+    build_module("./protoc", "src/", "autogen.rs");
 }

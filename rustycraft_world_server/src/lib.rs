@@ -5,6 +5,7 @@ pub mod world_listener;
 pub mod world_server;
 pub mod world_session;
 mod utils;
+mod constants;
 
 #[macro_use]
 extern crate log;

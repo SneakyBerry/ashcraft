@@ -2,7 +2,7 @@ use bytes::{Bytes, BytesMut};
 use prost::Message;
 use rustls::ServerConfig;
 use rustycraft_protocol::bgs::protocol::Header;
-use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use rustycraft_protocol::messages::RawMessage;
 use std::net::SocketAddr;
 use std::sync::Arc;

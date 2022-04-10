@@ -1,6 +1,11 @@
+use crate::constants::{
+    AUTH_CHECK_SEED, CLIENT_TO_SERVER_CONNECTION, REALM_WIN_AUTH_SEED, SERVER_TO_CLIENT_CONNECTION,
+    SESSION_KEY,
+};
 use crate::opcodes::OpcodeClient;
 use crate::packets::auth::{
-    AuthChallenge, AuthResponse, AuthSession, AuthSuccessInfo, AuthWaitInfo,
+    AuthChallenge, AuthResponse, AuthSession, AuthSuccessInfo, AuthWaitInfo, CharacterTemplate,
+    CharacterTemplateClass, Class, EncryptedMode, GameTime, RaceClassAvailability,
 };
 use crate::packets::{PacketClient, PacketHeader, RawClientPacket, ServerPacket};
 use crate::world_listener::WorldSessionHandler;
@@ -9,18 +14,17 @@ use crate::OpcodeServer;
 use anyhow::anyhow;
 use bytes::{Buf, Bytes, BytesMut};
 use deku::prelude::*;
+use hmac::{Mac, SimpleHmac};
 use rand::Rng;
-use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::expansions::Expansions;
+use rustycraft_protocol::races::Races;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
+use sha2::{Digest, Sha256};
 use std::net::SocketAddr;
 use tokio::io::{split, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Sender;
-
-const SERVER_TO_CLIENT_CONNECTION: &[u8; 53] =
-    b"WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT - V2\n";
-const CLIENT_TO_SERVER_CONNECTION: &[u8; 53] =
-    b"WORLD OF WARCRAFT CONNECTION - CLIENT TO SERVER - V2\n";
 
 pub struct WorldClientSession {
     addr: SocketAddr,
@@ -28,11 +32,31 @@ pub struct WorldClientSession {
     client_socket_writer: WriteHalf<TcpStream>,
     world_server_events: Sender<ServerEventEnum>,
     server_challenge: [u8; 16],
+    encryption_key: [u8; 16],
+    session_key: [u8; 40],
     encryption_enabled: bool,
 }
 
+type HmacSha256 = SimpleHmac<Sha256>;
+
 impl WorldClientSession {
-    async fn init_connection(&mut self) -> anyhow::Result<()> {
+    async fn enter_encrypted_mode(&mut self) -> anyhow::Result<()> {
+        let encrypted_mode = EncryptedMode::new(&Vec::new());
+        let encrypt_mode_pkt =
+            ServerPacket::new(OpcodeServer::EnterEncryptedMode, encrypted_mode, false)
+                .serialize()?;
+        println!("{:X}", &encrypt_mode_pkt);
+        self.client_socket_writer
+            .write(&encrypt_mode_pkt.to_vec())
+            .await?;
+        let packet = Self::read_client_packet(&mut self.client_socket_reader).await?;
+        let (_, opcode) = OpcodeClient::from_bytes((&packet.payload, 0))?;
+        println!("Opcode: {:?}, payload: {:?}", &opcode, &packet);
+        self.encryption_enabled = true;
+        Ok(())
+    }
+
+    async fn initial_packets(&mut self) -> anyhow::Result<()> {
         self.client_socket_writer
             .write(SERVER_TO_CLIENT_CONNECTION)
             .await?;
@@ -41,31 +65,52 @@ impl WorldClientSession {
         if buf.to_vec() != CLIENT_TO_SERVER_CONNECTION.to_vec() {
             return Err(anyhow!("Bad response from client."));
         };
-        let challenge = AuthChallenge::new(self.server_challenge.clone(), rand::thread_rng().gen());
+        Ok(())
+    }
+
+    async fn init_encryption_state(&mut self) -> anyhow::Result<()> {
+        let dos_challenge = rand::thread_rng().gen();
+        let challenge = AuthChallenge::new(self.server_challenge.clone(), dos_challenge);
         let challenge_pkt =
             ServerPacket::new(OpcodeServer::AuthChallenge, challenge, false).serialize()?;
-        println!("{:X}", &challenge_pkt);
         self.client_socket_writer
             .write(&challenge_pkt.to_vec())
             .await?;
 
         let packet = Self::read_client_packet(&mut self.client_socket_reader).await?;
         let (_, opcode) = OpcodeClient::from_bytes((&packet.payload, 0))?;
-        let (_, session_pkt) = AuthSession::from_bytes((&packet.payload, 16))?;
-        println!("Opcode: {:?}, payload: {:?}", &opcode, &session_pkt);
-        // 080000000000000000000000000000006D25000000000101
-        // 080000000000000000000000000000006D25000000000000
-        // 070000000000000000000000000000006D250000000000
-        // 070000000000000000000000000000006D2500000000C0
-        // let success_info = AuthSuccessInfo;
-        let auth_response = AuthResponse::new(WowRpcResponse::Ok, None, None);
-        let auth_pkt =
-            ServerPacket::new(OpcodeServer::AuthResponse, auth_response, false).serialize()?;
-        println!("{:X}", &auth_pkt);
-        self.client_socket_writer.write(&auth_pkt.to_vec()).await?;
-        let packet = Self::read_client_packet(&mut self.client_socket_reader).await?;
-        let (_, opcode) = OpcodeClient::from_bytes((&packet.payload, 0))?;
-        println!("Opcode: {:?}, payload: {:?}", &opcode, &packet);
+        let (_, session_pkt): (_, AuthSession) = AuthSession::from_bytes((&packet.payload, 16))?;
+
+        let mut key_hasher = sha2::Sha256::new();
+        key_hasher.update(SESSION_KEY);
+        key_hasher.update(REALM_WIN_AUTH_SEED.as_bytes());
+
+        let digest_key_hash = key_hasher.finalize();
+        println!("{:?}", &digest_key_hash);
+
+        let mut hmac_digester = HmacSha256::new_from_slice(&digest_key_hash).unwrap();
+        hmac_digester.update(&session_pkt.local_challenge);
+        hmac_digester.update(&self.server_challenge);
+        hmac_digester.update(&AUTH_CHECK_SEED);
+        println!("{:?}", &session_pkt.local_challenge);
+        println!("{:?}", &self.server_challenge);
+        println!("{:?}", &AUTH_CHECK_SEED);
+        let res = hmac_digester.finalize().into_bytes();
+        println!(
+            "CLIENT DIGEST:{} {:?}",
+            session_pkt.digest.len(),
+            &session_pkt.digest
+        );
+        println!("SERVER DIGEST:{} {:?}", res.len(), &res);
+
+        // println!("Opcode: {:?}, payload: {:?}", &opcode, &session_pkt);
+        Ok(())
+    }
+
+    async fn init_connection(&mut self) -> anyhow::Result<()> {
+        self.initial_packets().await?;
+        self.init_encryption_state().await?;
+        self.enter_encrypted_mode().await?;
 
         Ok(())
     }
@@ -78,10 +123,10 @@ impl WorldClientSession {
         reader.read_buf(&mut aes_token).await?;
         let mut packet = bytes::BytesMut::with_capacity(pkt_size as usize);
         reader.read_buf(&mut packet).await?;
-        println!(
-            "Payload size: {}, aes_token: {:X}, packet: {:X}",
-            &pkt_size, &aes_token, &packet
-        );
+        // println!(
+        //     "Payload size: {}, aes_token: {:X}, packet: {:X}",
+        //     &pkt_size, &aes_token, &packet
+        // );
         Ok(RawClientPacket {
             header: PacketHeader {
                 size: pkt_size,
@@ -103,6 +148,8 @@ impl WorldSessionHandler for WorldClientSession {
             client_socket_writer: writer,
             world_server_events: world_server_tx,
             server_challenge: rand::thread_rng().gen(),
+            encryption_key: [0; 16],
+            session_key: [0; 40],
             encryption_enabled: false,
         })
     }

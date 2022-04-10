@@ -4,7 +4,7 @@ use rustycraft_protocol::bgs::protocol::account::v1::{
     GameLevelInfo, GameStatus, GetAccountStateRequest, GetAccountStateResponse,
     GetGameAccountStateRequest, GetGameAccountStateResponse, PrivacyInfo,
 };
-use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 
 #[async_trait::async_trait]
 impl AccountService for Server {

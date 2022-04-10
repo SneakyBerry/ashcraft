@@ -1,3 +1,4 @@
+use deku::prelude::*;
 use log::error;
 use prost::{DecodeError, EncodeError};
 use std::ffi::NulError;
@@ -5,7 +6,6 @@ use std::io::Error;
 use tokio::sync::mpsc::error::SendError;
 use tokio::task::JoinError;
 use tokio::time::error::Elapsed;
-use deku::prelude::*;
 
 #[derive(Debug, Clone, DekuWrite)]
 #[deku(type = "u32", endian = "little")]
@@ -698,5 +698,11 @@ impl<T> From<SendError<T>> for WowRpcResponse {
 impl From<JoinError> for WowRpcResponse {
     fn from(_: JoinError) -> Self {
         Self::Internal
+    }
+}
+
+impl From<serde_json::Error> for WowRpcResponse {
+    fn from(_: serde_json::Error) -> Self {
+        Self::RpcMalformedRequest
     }
 }

@@ -1,7 +1,4 @@
-use crate::realmlist::json::realm_list::{
-    ClientVersion, IpAddress, RealmCharacterCountEntry, RealmCharacterCountList, RealmEntry,
-    RealmIpAddressFamily, RealmListServerIpAddresses, RealmListUpdates, RealmState,
-};
+use crate::realmlist::json::realm_list::{ClientInformation, ClientVersion, IpAddress, RealmCharacterCountEntry, RealmCharacterCountList, RealmEntry, RealmIpAddressFamily, RealmListServerIpAddresses, RealmListTicketClientInformation, RealmListTicketIdentity, RealmListUpdates, RealmState};
 use crate::Server;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
@@ -11,8 +8,8 @@ use rustycraft_protocol::bgs::protocol::game_utilities::v1::{
     GetAllValuesForAttributeResponse,
 };
 use rustycraft_protocol::bgs::protocol::{Attribute, Variant};
-use rustycraft_protocol::errors::WowRpcResponse;
-use rustycraft_protocol::errors::WowRpcResponse::NotImplemented;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
+use rustycraft_protocol::rpc_responses::WowRpcResponse::NotImplemented;
 use serde::Serialize;
 use serde_json::to_string;
 use std::io::Write;
@@ -30,162 +27,214 @@ where
     out
 }
 
+fn extract_json_from_blob(blob: Vec<u8>) -> String {
+    let mut blob = String::from_utf8(blob).unwrap();
+    let sep_idx = blob.find(":").unwrap();
+    let blob_ready = &blob[sep_idx + 1..];
+    blob_ready[..blob_ready.len() - 1].to_owned()
+}
+
+impl Server {
+    async fn handle_realm_list_ticket_request(
+        &mut self,
+        request: ClientRequest,
+    ) -> Result<ClientResponse, WowRpcResponse> {
+        let a = request.get_param("Param_Identity").unwrap();
+        let param_identity_blob_ready =
+            extract_json_from_blob(a.blob_value.as_ref().unwrap().to_vec());
+        let aboba: RealmListTicketIdentity =
+            serde_json::from_str(&param_identity_blob_ready).unwrap();
+        println!("RealmListTicketIdentity: {:?}", &aboba);
+        let b = request.get_param("Param_ClientInfo").unwrap();
+        let param_client_info_blob_ready =
+            extract_json_from_blob(b.blob_value.as_ref().unwrap().to_vec());
+        let abiba: RealmListTicketClientInformation = serde_json::from_str(&param_client_info_blob_ready).unwrap();
+        println!("ClientInformation: {:?}", &abiba);
+        Ok(ClientResponse {
+            attribute: vec![Attribute {
+                name: "Param_RealmListTicket".to_owned(),
+                value: Variant {
+                    bool_value: None,
+                    int_value: None,
+                    float_value: None,
+                    string_value: None,
+                    blob_value: Some(b"AuthRealmListTicket".to_vec()),
+                    message_value: None,
+                    fourcc_value: None,
+                    uint_value: None,
+                    entity_id_value: None,
+                },
+            }],
+        })
+    }
+
+    async fn handle_last_char_played_request(
+        &mut self,
+        request: ClientRequest,
+    ) -> Result<ClientResponse, WowRpcResponse> {
+        Ok(ClientResponse { attribute: vec![] })
+    }
+
+    async fn handle_realm_list_request(
+        &mut self,
+        request: ClientRequest,
+    ) -> Result<ClientResponse, WowRpcResponse> {
+        let rl = RealmListUpdates {
+            updates: vec![RealmState {
+                update: Some(RealmEntry {
+                    wow_realm_address: 1024,
+                    cfg_timezones_id: 1,
+                    population_state: 1,
+                    cfg_categories_id: 1,
+                    version: ClientVersion {
+                        version_major: 9,
+                        version_minor: 2,
+                        version_revision: 0,
+                        version_build: 42698,
+                    },
+                    cfg_realms_id: 1,
+                    flags: 0,
+                    name: "ABOBA".to_string(),
+                    cfg_configs_id: 1,
+                    cfg_languages_id: 1,
+                }),
+                deleting: false,
+            }],
+        };
+
+        let cc = RealmCharacterCountList {
+            counts: vec![RealmCharacterCountEntry {
+                wow_realm_address: 1024,
+                count: 0,
+            }],
+        };
+
+        Ok(ClientResponse {
+            attribute: vec![
+                Attribute {
+                    name: "Param_RealmList".to_string(),
+                    value: Variant {
+                        bool_value: None,
+                        int_value: None,
+                        float_value: None,
+                        string_value: None,
+                        blob_value: Some(compress("JSONRealmListUpdates", &rl)),
+                        message_value: None,
+                        fourcc_value: None,
+                        uint_value: None,
+                        entity_id_value: None,
+                    },
+                },
+                Attribute {
+                    name: "Param_CharacterCountList".to_owned(),
+                    value: Variant {
+                        bool_value: None,
+                        int_value: None,
+                        float_value: None,
+                        string_value: None,
+                        blob_value: Some(compress("JSONRealmCharacterCountList", &cc)),
+                        message_value: None,
+                        fourcc_value: None,
+                        uint_value: None,
+                        entity_id_value: None,
+                    },
+                },
+            ],
+        })
+    }
+
+    async fn handle_realm_join_request(
+        &mut self,
+        request: ClientRequest,
+    ) -> Result<ClientResponse, WowRpcResponse> {
+        let resp = RealmListServerIpAddresses {
+            families: vec![RealmIpAddressFamily {
+                family: 1,
+                addresses: vec![IpAddress {
+                    ip: "127.0.0.1".to_string(),
+                    port: 9900,
+                }],
+            }],
+        };
+
+        Ok(ClientResponse {
+            attribute: vec![
+                Attribute {
+                    name: "Param_RealmJoinTicket".to_owned(),
+                    value: Variant {
+                        bool_value: None,
+                        int_value: None,
+                        float_value: None,
+                        string_value: None,
+                        blob_value: Some(b"Handlefa1".to_vec()),
+                        message_value: None,
+                        fourcc_value: None,
+                        uint_value: None,
+                        entity_id_value: None,
+                    },
+                },
+                Attribute {
+                    name: "Param_ServerAddresses".to_owned(),
+                    value: Variant {
+                        bool_value: None,
+                        int_value: None,
+                        float_value: None,
+                        string_value: None,
+                        blob_value: Some(compress("JSONRealmListServerIPAddresses", &resp)),
+                        message_value: None,
+                        fourcc_value: None,
+                        uint_value: None,
+                        entity_id_value: None,
+                    },
+                },
+                Attribute {
+                    name: "Param_JoinSecret".to_owned(),
+                    value: Variant {
+                        bool_value: None,
+                        int_value: None,
+                        float_value: None,
+                        string_value: None,
+                        blob_value: Some(rand::thread_rng().gen::<[u8; 32]>().to_vec()),
+                        message_value: None,
+                        fourcc_value: None,
+                        uint_value: None,
+                        entity_id_value: None,
+                    },
+                },
+            ],
+        })
+    }
+}
+
 #[async_trait::async_trait]
 impl GameUtilitiesService for Server {
     async fn process_client_request(
         &mut self,
         request: ClientRequest,
     ) -> Result<ClientResponse, WowRpcResponse> {
-        for attr in &request.attribute {
-            return match attr {
-                attr if attr.name == "Command_RealmListTicketRequest_v1_b9" => Ok(ClientResponse {
-                    attribute: vec![Attribute {
-                        name: "Param_RealmListTicket".to_owned(),
-                        value: Variant {
-                            bool_value: None,
-                            int_value: None,
-                            float_value: None,
-                            string_value: None,
-                            blob_value: Some(b"AuthRealmListTicket".to_vec()),
-                            message_value: None,
-                            fourcc_value: None,
-                            uint_value: None,
-                            entity_id_value: None,
-                        },
-                    }],
-                }),
-                attr if attr.name == "Command_LastCharPlayedRequest_v1_b9" => {
-                    Ok(ClientResponse { attribute: vec![] })
-                }
-                attr if attr.name == "Command_RealmListRequest_v1_b9" => {
-                    let rl = RealmListUpdates {
-                        updates: vec![RealmState {
-                            update: Some(RealmEntry {
-                                wow_realm_address: 16842753,
-                                cfg_timezones_id: 1,
-                                population_state: 1,
-                                cfg_categories_id: 1,
-                                version: ClientVersion {
-                                    version_major: 9,
-                                    version_minor: 2,
-                                    version_revision: 0,
-                                    version_build: 42698,
-                                },
-                                cfg_realms_id: 1,
-                                flags: 0,
-                                name: "ABOBA".to_string(),
-                                cfg_configs_id: 1,
-                                cfg_languages_id: 1,
-                            }),
-                            deleting: false,
-                        }],
-                    };
-
-                    let cc = RealmCharacterCountList {
-                        counts: vec![RealmCharacterCountEntry {
-                            wow_realm_address: 16842753,
-                            count: 0,
-                        }],
-                    };
-
-                    Ok(ClientResponse {
-                        attribute: vec![
-                            Attribute {
-                                name: "Param_RealmList".to_string(),
-                                value: Variant {
-                                    bool_value: None,
-                                    int_value: None,
-                                    float_value: None,
-                                    string_value: None,
-                                    blob_value: Some(compress("JSONRealmListUpdates", &rl)),
-                                    message_value: None,
-                                    fourcc_value: None,
-                                    uint_value: None,
-                                    entity_id_value: None,
-                                },
-                            },
-                            Attribute {
-                                name: "Param_CharacterCountList".to_owned(),
-                                value: Variant {
-                                    bool_value: None,
-                                    int_value: None,
-                                    float_value: None,
-                                    string_value: None,
-                                    blob_value: Some(compress("JSONRealmCharacterCountList", &cc)),
-                                    message_value: None,
-                                    fourcc_value: None,
-                                    uint_value: None,
-                                    entity_id_value: None,
-                                },
-                            },
-                        ],
-                    })
-                }
-                attr if attr.name == "Command_RealmJoinRequest_v1_b9" => {
-                    let resp = RealmListServerIpAddresses {
-                        families: vec![RealmIpAddressFamily {
-                            family: 1,
-                            addresses: vec![IpAddress {
-                                ip: "127.0.0.1".to_string(),
-                                port: 9900,
-                            }],
-                        }],
-                    };
-
-                    Ok(ClientResponse {
-                        attribute: vec![
-                            Attribute {
-                                name: "Param_RealmJoinTicket".to_owned(),
-                                value: Variant {
-                                    bool_value: None,
-                                    int_value: None,
-                                    float_value: None,
-                                    string_value: None,
-                                    blob_value: Some(b"Handlefa1".to_vec()),
-                                    message_value: None,
-                                    fourcc_value: None,
-                                    uint_value: None,
-                                    entity_id_value: None,
-                                },
-                            },
-                            Attribute {
-                                name: "Param_ServerAddresses".to_owned(),
-                                value: Variant {
-                                    bool_value: None,
-                                    int_value: None,
-                                    float_value: None,
-                                    string_value: None,
-                                    blob_value: Some(compress(
-                                        "JSONRealmListServerIPAddresses",
-                                        &resp,
-                                    )),
-                                    message_value: None,
-                                    fourcc_value: None,
-                                    uint_value: None,
-                                    entity_id_value: None,
-                                },
-                            },
-                            Attribute {
-                                name: "Param_JoinSecret".to_owned(),
-                                value: Variant {
-                                    bool_value: None,
-                                    int_value: None,
-                                    float_value: None,
-                                    string_value: None,
-                                    blob_value: Some(rand::thread_rng().gen::<[u8; 32]>().to_vec()),
-                                    message_value: None,
-                                    fourcc_value: None,
-                                    uint_value: None,
-                                    entity_id_value: None,
-                                },
-                            },
-                        ],
-                    })
-                }
-                _ => Err(NotImplemented),
-            };
+        if request
+            .get_param("Command_RealmListTicketRequest_v1_b9")
+            .is_some()
+        {
+            self.handle_realm_list_ticket_request(request).await
+        } else if request
+            .get_param("Command_LastCharPlayedRequest_v1_b9")
+            .is_some()
+        {
+            self.handle_last_char_played_request(request).await
+        } else if request
+            .get_param("Command_RealmListRequest_v1_b9")
+            .is_some()
+        {
+            self.handle_realm_list_request(request).await
+        } else if request
+            .get_param("Command_RealmJoinRequest_v1_b9")
+            .is_some()
+        {
+            self.handle_realm_join_request(request).await
+        } else {
+            Err(NotImplemented)
         }
-        Err(NotImplemented)
     }
 
     async fn get_all_values_for_attribute(

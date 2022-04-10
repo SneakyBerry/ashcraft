@@ -1,6 +1,8 @@
 use crate::OpcodeServer;
 use deku::prelude::*;
-use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::expansions::Expansions;
+use rustycraft_protocol::races::Races;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 
 #[derive(Debug, DekuRead)]
 pub struct Ping {
@@ -45,22 +47,22 @@ impl AuthChallenge {
 #[derive(Debug, DekuRead)]
 pub struct AuthSession {
     #[deku(endian = "little")]
-    dos_response: u64,
+    pub dos_response: u64,
     #[deku(endian = "little")]
-    region_id: u32,
+    pub region_id: u32,
     #[deku(endian = "little")]
-    battle_group_id: u32,
+    pub battle_group_id: u32,
     #[deku(endian = "little")]
-    realm_id: u32,
-    local_challenge: [u8; 16],
-    digest: [u8; 24],
+    pub realm_id: u32,
+    pub local_challenge: [u8; 16],
+    pub digest: [u8; 24],
     #[deku(bits = "1", pad_bits_after = "7")]
-    use_ip_v6: bool,
+    pub use_ip_v6: bool,
     #[deku(endian = "little")]
-    realm_join_ticket_size: u32,
+    pub realm_join_ticket_size: u32,
     #[deku(count = "realm_join_ticket_size")]
     #[deku(map = "crate::utils::parse_string")]
-    realm_join_ticket: String,
+    pub realm_join_ticket: String,
 }
 
 #[derive(Debug, DekuWrite)]
@@ -228,12 +230,16 @@ impl CharacterTemplate {
 #[derive(Debug, DekuWrite)]
 pub struct Class {
     id: u8,
-    active_expansion_level: u8,
-    account_expansion_level: u8,
+    active_expansion_level: Expansions,
+    account_expansion_level: Expansions,
 }
 
 impl Class {
-    pub fn new(id: u8, active_expansion_level: u8, account_expansion_level: u8) -> Class {
+    pub fn new(
+        id: u8,
+        active_expansion_level: Expansions,
+        account_expansion_level: Expansions,
+    ) -> Class {
         Class {
             id,
             active_expansion_level,
@@ -245,7 +251,7 @@ impl Class {
 // TODO: Move to another module
 #[derive(Debug, DekuWrite)]
 pub struct RaceClassAvailability {
-    race_id: u8,
+    race_id: Races,
     #[deku(update = "self.classes.len()", endian = "little")]
     classes_size: u32,
     #[deku(count = "classes_size")]
@@ -253,7 +259,7 @@ pub struct RaceClassAvailability {
 }
 
 impl RaceClassAvailability {
-    pub fn new(race_id: u8, classes: Vec<Class>) -> RaceClassAvailability {
+    pub fn new(race_id: Races, classes: Vec<Class>) -> RaceClassAvailability {
         RaceClassAvailability {
             race_id,
             classes_size: classes.len() as u32,
@@ -272,10 +278,10 @@ pub struct AuthSuccessInfo {
     ///affects the return value of the GetBillingTimeRested() client API call, it is the number of seconds you have left until the experience points and loot you receive from creatures and quests is reduced. It is only used in the Asia region in retail, it's not implemented in TC and will probably never be.
     #[deku(endian = "little")]
     time_rested: u32,
-    ///the current server expansion, the possible values are in @ref Expansions
-    active_expansion_level: u8,
-    ///the current expansion of this account, the possible values are in @ref Expansions
-    account_expansion_level: u8,
+    ///the current server expansion
+    active_expansion_level: Expansions,
+    ///the current expansion of this account
+    account_expansion_level: Expansions,
     ///@todo research
     #[deku(endian = "little")]
     time_seconds_until_pc_kick: u32,
@@ -333,8 +339,8 @@ impl AuthSuccessInfo {
     pub fn new(
         virtual_realm_address: u32,
         time_rested: u32,
-        active_expansion_level: u8,
-        account_expansion_level: u8,
+        active_expansion_level: Expansions,
+        account_expansion_level: Expansions,
         time_seconds_until_pc_kick: u32,
         currency_id: u32,
         time: u64,
@@ -402,6 +408,24 @@ impl AuthResponse {
             has_wait_info: wait_info.is_some(),
             success_info,
             wait_info,
+        }
+    }
+}
+
+#[derive(Debug, DekuWrite)]
+pub struct EncryptedMode {
+    #[deku(count = "32")]
+    hmac_sha_256: Vec<u8>,
+    #[deku(bits = "1")]
+    #[deku(pad_bits_after = "7")]
+    enabled: bool,
+}
+
+impl EncryptedMode {
+    pub fn new(encryption_key: &[u8]) -> EncryptedMode {
+        EncryptedMode {
+            hmac_sha_256: Vec::new(),
+            enabled: true,
         }
     }
 }

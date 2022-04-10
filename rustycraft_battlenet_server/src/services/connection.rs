@@ -3,7 +3,7 @@ use rustycraft_protocol::bgs::protocol::connection::v1::{
     ConnectRequest, ConnectResponse, ConnectionService, DisconnectRequest,
 };
 use rustycraft_protocol::bgs::protocol::{NoData, NoResponse};
-use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 
 #[async_trait::async_trait]
 impl ConnectionService for Server {

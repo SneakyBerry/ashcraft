@@ -20,7 +20,7 @@ use rustycraft_protocol::bgs::protocol::authentication::v1::AuthenticationServic
 use rustycraft_protocol::bgs::protocol::connection::v1::ConnectionService;
 use rustycraft_protocol::bgs::protocol::game_utilities::v1::GameUtilitiesService;
 use rustycraft_protocol::bgs::protocol::{Header, NoData};
-use rustycraft_protocol::errors::WowRpcResponse;
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use rustycraft_protocol::messages::{LoggingAttributes, OutgoingMessage, RawMessage};
 use std::fs::File;
 use std::io::BufReader;

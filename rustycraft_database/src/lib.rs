@@ -1,3 +1,5 @@
+mod redis;
+
 #[cfg(test)]
 mod tests {
     #[test]
