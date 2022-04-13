@@ -445,7 +445,6 @@ fn build_module(proto_dir: &str, out_dir: &str, out_filename: &str) {
     for package in &proto_files.file_descriptors {
         let mut last_node = &mut module;
         for submod in package.package().split(".") {
-            println!("{:?}", &submod);
             let submod = if submod.eq("v1") {
                 submod.to_owned()
             } else {

@@ -1,8 +1,14 @@
-use crate::realmlist::json::realm_list::{ClientInformation, ClientVersion, IpAddress, RealmCharacterCountEntry, RealmCharacterCountList, RealmEntry, RealmIpAddressFamily, RealmListServerIpAddresses, RealmListTicketClientInformation, RealmListTicketIdentity, RealmListUpdates, RealmState};
+use crate::realmlist::json::realm_list::{
+    ClientInformation, ClientVersion, IpAddress, RealmCharacterCountEntry, RealmCharacterCountList,
+    RealmEntry, RealmIpAddressFamily, RealmListServerIpAddresses, RealmListTicketClientInformation,
+    RealmListTicketIdentity, RealmListUpdates, RealmState,
+};
 use crate::Server;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use prost::Message;
 use rand::Rng;
+use rustycraft_common::Account;
 use rustycraft_protocol::bgs::protocol::game_utilities::v1::{
     ClientRequest, ClientResponse, GameUtilitiesService, GetAllValuesForAttributeRequest,
     GetAllValuesForAttributeResponse,
@@ -44,12 +50,12 @@ impl Server {
             extract_json_from_blob(a.blob_value.as_ref().unwrap().to_vec());
         let aboba: RealmListTicketIdentity =
             serde_json::from_str(&param_identity_blob_ready).unwrap();
-        println!("RealmListTicketIdentity: {:?}", &aboba);
         let b = request.get_param("Param_ClientInfo").unwrap();
         let param_client_info_blob_ready =
             extract_json_from_blob(b.blob_value.as_ref().unwrap().to_vec());
-        let abiba: RealmListTicketClientInformation = serde_json::from_str(&param_client_info_blob_ready).unwrap();
-        println!("ClientInformation: {:?}", &abiba);
+        let abiba: RealmListTicketClientInformation =
+            serde_json::from_str(&param_client_info_blob_ready).unwrap();
+        self.client_secret = abiba.info.secret;
         Ok(ClientResponse {
             attribute: vec![Attribute {
                 name: "Param_RealmListTicket".to_owned(),
@@ -156,7 +162,14 @@ impl Server {
                 }],
             }],
         };
-
+        let ticket = uuid::Uuid::new_v4().to_string();
+        let server_secret = rand::thread_rng().gen::<[u8; 32]>().to_vec();
+        let acc_data = Account {
+            server_secret: server_secret.clone(),
+            client_secret: self.client_secret.clone(),
+        };
+        self.redis.set(&ticket.clone(), &acc_data).await.unwrap();
+        println!("Set {:?} to {:?}", &acc_data, ticket.as_bytes().to_vec());
         Ok(ClientResponse {
             attribute: vec![
                 Attribute {
@@ -166,7 +179,7 @@ impl Server {
                         int_value: None,
                         float_value: None,
                         string_value: None,
-                        blob_value: Some(b"Handlefa1".to_vec()),
+                        blob_value: Some(ticket.as_bytes().to_vec()),
                         message_value: None,
                         fourcc_value: None,
                         uint_value: None,
@@ -194,7 +207,7 @@ impl Server {
                         int_value: None,
                         float_value: None,
                         string_value: None,
-                        blob_value: Some(rand::thread_rng().gen::<[u8; 32]>().to_vec()),
+                        blob_value: Some(server_secret),
                         message_value: None,
                         fourcc_value: None,
                         uint_value: None,

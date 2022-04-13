@@ -1,4 +1,4 @@
-pub const SERVER_PRIVATE_KEY: &str = "
+pub const SERVER_PRIVATE_KEY: &[u8; 1679] = b"\
 -----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA7rPc1NPDtFRRzmZbyzK48PeSU8YZ8gyFL4omqXpFn2DE683q
 f41Z2FeyYHsJTJtouMft7x6ADeZrN1tTkOsYEw1/Q2SD2pjmrMIwooKlxsvH+4af
@@ -25,8 +25,7 @@ kldaGwO1vxgl4OfDQCo7dXzisciViwtVBvQZ+jnm6J0vJBFUHAPt9+WZTIlQQIjm
 71LtseMCgYBSAhs6lshtz+ujR3fmc4QqJVGqeXvEBPAVm6yYoKYRLwVs/rFv3WLN
 LOwwBQ6lz7P9RqYYB5wVlaRvEhb9+lCve/xVcxMeZ5GkOBPxVygYV9l/wNdE25Nz
 OHYtKG3GK3GEcFDwZU2LPHq21EroUAdtRfbrJ4KW2yc8igtXKxTBYw==
------END RSA PRIVATE KEY-----
-"; // TrinityCore private key for compatability reasons
+-----END RSA PRIVATE KEY-----\0"; // TrinityCore private key for compatability reasons
 
 pub const SERVER_TO_CLIENT_CONNECTION: &[u8; 53] =
     b"WORLD OF WARCRAFT CONNECTION - SERVER TO CLIENT - V2\n";
@@ -46,11 +45,10 @@ pub const ENCRYPTION_KEY_SEED: [u8; 16] = [
     0xE9, 0x75, 0x3C, 0x50, 0x90, 0x93, 0x61, 0xDA, 0x3B, 0x07, 0xEE, 0xFA, 0xFF, 0x9D, 0x41, 0xB8,
 ]; // reversed from client
 
-pub const REALM_WIN_AUTH_SEED: &str = "A14DA228C6A6AFF1DDBA51218939E557"; // reversed from client
+pub const REALM_WIN_AUTH_SEED: [u8; 16] = [
+    0xF7, 0x5C, 0x93, 0x80, 0xCC, 0xB2, 0x4A, 0x48, 0xA2, 0x4E, 0xEE, 0x52, 0xC1, 0x59, 0x4A, 0x7E,
+]; // reversed from client
 
-pub const SESSION_KEY: [u8; 64] = [
-    243, 225, 60, 251, 213, 237, 94, 116, 89, 121, 112, 196, 201, 162, 12, 102, 10, 251, 134, 159,
-    58, 153, 211, 24, 75, 32, 0, 115, 62, 225, 94, 158, 73, 113, 10, 48, 251, 164, 144, 164, 17,
-    130, 12, 199, 105, 140, 171, 109, 207, 153, 134, 112, 250, 66, 125, 76, 15, 185, 163, 192, 119,
-    40, 190, 217,
-];
+pub const ENABLE_ENCRYPTION_SEED: [u8; 16] = [
+    0x90, 0x9C, 0xD0, 0x50, 0x5A, 0x2C, 0x14, 0xDD, 0x5C, 0x2C, 0xC0, 0x64, 0x14, 0xF3, 0xFE, 0xC9
+]; // reversed from client

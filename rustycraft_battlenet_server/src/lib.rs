@@ -1,5 +1,4 @@
 pub mod config;
-pub mod dispatcher;
 mod realmlist;
 pub mod services;
 pub mod socket_manager;
@@ -27,6 +26,7 @@ use std::io::BufReader;
 use std::net::SocketAddr;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
+use rustycraft_database::redis::RedisClient;
 
 pub enum State {
     Created,
@@ -48,6 +48,10 @@ pub fn load_keys(path: &str) -> anyhow::Result<Vec<PrivateKey>> {
 pub struct Server {
     token: u8,
     addr: SocketAddr,
+    redis: RedisClient,
+    ticket: Option<String>,
+    server_secret: Vec<u8>,
+    client_secret: Vec<u8>,
     rx: Receiver<RawMessage>,
     tx: Sender<SocketEvents>,
 }
@@ -79,6 +83,10 @@ impl SessionHandler for Server {
         Server {
             token: 0,
             addr,
+            redis: RedisClient::new().unwrap(),
+            ticket: None,
+            server_secret: Vec::new(),
+            client_secret: Vec::new(),
             rx,
             tx,
         }

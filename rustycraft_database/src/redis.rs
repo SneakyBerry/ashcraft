@@ -1,5 +1,6 @@
-use redis::{AsyncCommands, Commands, RedisResult};
-use serde::{Deserialize, Serialize};
+use redis::{AsyncCommands, RedisResult};
+use serde::de::DeserializeOwned;
+use serde::{Serialize};
 
 pub struct RedisClient {
     client: redis::Client,
@@ -12,20 +13,31 @@ impl RedisClient {
         })
     }
 
-    pub async fn write<T>(&self, key: &str, data: &T) -> anyhow::Result<()>
+    pub async fn set<T>(&self, key: &str, data: &T) -> anyhow::Result<()>
     where
-        T: Serialize,
+        T: Serialize + Storable,
     {
         let mut conn = self.client.get_async_connection().await?;
-        Ok(conn.set(key, serde_json::to_string(data)?).await?)
+        Ok(conn
+            .set(
+                format!("{}__{}", T::key_prefix(), key),
+                serde_json::to_string(data)?,
+            )
+            .await?)
     }
 
     pub async fn get<T>(&self, key: &str) -> anyhow::Result<T>
     where
-        T: Deserialize<'static>,
+        T: DeserializeOwned + Storable,
     {
         let mut conn = self.client.get_async_connection().await?;
-        let data: String = conn.get(key).await?;
-        Ok(serde_json::from_str(&data)?)
+        let key = format!("{}__{}", T::key_prefix(), key);
+        let data: Vec<u8> = conn.get(key.clone()).await?;
+        conn.del(key).await?;
+        Ok(serde_json::from_slice(&data)?)
     }
+}
+
+pub trait Storable {
+    fn key_prefix() -> &'static str;
 }

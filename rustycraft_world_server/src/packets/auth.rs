@@ -1,15 +1,20 @@
-use crate::OpcodeServer;
+use std::ffi::c_void;
+use std::os::raw::c_uint;
+use crate::constants::{ENABLE_ENCRYPTION_SEED, SERVER_PRIVATE_KEY};
 use deku::prelude::*;
+use hmac::{Hmac, Mac};
 use rustycraft_protocol::expansions::Expansions;
 use rustycraft_protocol::races::Races;
 use rustycraft_protocol::rpc_responses::WowRpcResponse;
+use sha2::Sha256;
+use crate::crypt::RSA;
 
 #[derive(Debug, DekuRead)]
 pub struct Ping {
     #[deku(endian = "little")]
-    serial: u32,
+    pub serial: u32,
     #[deku(endian = "little")]
-    latency: u32,
+    pub latency: u32,
 }
 
 #[derive(Debug, DekuWrite)]
@@ -28,9 +33,9 @@ impl From<Ping> for Pong {
 
 #[derive(Debug, DekuWrite)]
 pub struct AuthChallenge {
-    challenge: [u8; 16],
     #[deku(endian = "little")]
     dos_challenge: [u32; 8],
+    challenge: [u8; 16],
     dos_zero_bits: u8,
 }
 
@@ -59,7 +64,7 @@ pub struct AuthSession {
     #[deku(bits = "1", pad_bits_after = "7")]
     pub use_ip_v6: bool,
     #[deku(endian = "little")]
-    pub realm_join_ticket_size: u32,
+    realm_join_ticket_size: u32,
     #[deku(count = "realm_join_ticket_size")]
     #[deku(map = "crate::utils::parse_string")]
     pub realm_join_ticket: String,
@@ -414,7 +419,7 @@ impl AuthResponse {
 
 #[derive(Debug, DekuWrite)]
 pub struct EncryptedMode {
-    #[deku(count = "32")]
+    #[deku(count = "256")]
     hmac_sha_256: Vec<u8>,
     #[deku(bits = "1")]
     #[deku(pad_bits_after = "7")]
@@ -422,9 +427,14 @@ pub struct EncryptedMode {
 }
 
 impl EncryptedMode {
-    pub fn new(encryption_key: &[u8]) -> EncryptedMode {
+    pub fn new(encryptor: &RSA, encryption_key: &[u8]) -> EncryptedMode {
+        let mut hash = <Hmac<Sha256>>::new_from_slice(encryption_key).unwrap();
+        hash.update(&[true as u8]);
+        hash.update(&ENABLE_ENCRYPTION_SEED);
+        let key_hash = hash.finalize().into_bytes();
+        let signature = encryptor.sign(&key_hash);
         EncryptedMode {
-            hmac_sha_256: Vec::new(),
+            hmac_sha_256: signature,
             enabled: true,
         }
     }

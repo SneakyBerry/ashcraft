@@ -1,14 +1,10 @@
 use crate::opcodes::{OpcodeClient, OpcodeServer};
-use crate::packets::auth::AuthChallenge;
-use bytes::{Bytes, BytesMut};
-use deku::prelude::*;
-use serde::ser::SerializeStruct;
-use serde::{Serialize, Serializer};
-use std::fmt::Debug;
+use bytes::Bytes;
 use deku::bitvec::{BitVec, Msb0};
+use deku::prelude::*;
+use std::fmt::Debug;
 
 pub mod auth;
-
 
 fn write(output: &mut BitVec<Msb0, u8>, packet_size: u32) -> Result<(), DekuError> {
     packet_size.write(output, ())
@@ -23,45 +19,27 @@ pub struct PacketHeader {
     pub tag: Vec<u8>,
 }
 
-#[derive(Debug)]
-pub struct ServerPacket<T>
-where
-    T: DekuContainerWrite,
-{
-    need_encryption: bool,
-    opcode: OpcodeServer,
-    payload: T,
-}
-
 #[derive(Debug, DekuWrite)]
-struct ReadyServerPacket {
+pub struct ServerPacket {
     #[deku(ctx = "payload.len() as u32")] // 2 is size of opcode
     header: PacketHeader,
     payload: Vec<u8>,
 }
 
-impl<T> ServerPacket<T>
-where
-    T: DekuContainerWrite,
-{
-    pub fn new(opcode: OpcodeServer, payload: T, need_encryption: bool) -> ServerPacket<T> {
+
+impl ServerPacket {
+    pub fn new(aes_tag: Vec<u8>, payload: Bytes) -> ServerPacket {
+        assert_eq!(aes_tag.len(), 12);
         ServerPacket {
-            need_encryption,
-            opcode,
-            payload,
+            header: PacketHeader {
+                size: payload.len() as u32,
+                tag: aes_tag,
+            },
+            payload: payload.to_vec(),
         }
     }
-    pub fn serialize(mut self) -> Result<Bytes, deku::DekuError> {
-        let mut serialized_payload: Vec<u8> = self.opcode.to_bytes()?;
-        serialized_payload.extend(self.payload.to_bytes()?);
-        let inner_struct = ReadyServerPacket {
-            header: PacketHeader {
-                size: 0,            // will be set on write
-                tag: vec![0; 12],   // We don't use encryption in this case.
-            },
-            payload: serialized_payload,
-        };
-        inner_struct.to_bytes().map(Bytes::from)
+    pub fn serialize(&self) -> Result<Bytes, deku::DekuError> {
+        self.to_bytes().map(Bytes::from)
     }
 }
 

@@ -1116,6 +1116,7 @@ dependencies = [
  "rand",
  "rustls",
  "rustls-pemfile 0.3.0",
+ "rustycraft_common",
  "rustycraft_database",
  "rustycraft_logging",
  "rustycraft_protocol",
@@ -1124,6 +1125,15 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "uuid",
+]
+
+[[package]]
+name = "rustycraft_common"
+version = "0.1.0"
+dependencies = [
+ "rustycraft_database",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

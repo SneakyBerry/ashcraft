@@ -1,4 +1,4 @@
-mod redis;
+pub mod redis;
 
 #[cfg(test)]
 mod tests {

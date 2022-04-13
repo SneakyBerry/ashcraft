@@ -10,6 +10,7 @@ edition = "2021"
 rustycraft_protocol = { path = "../rustycraft_protocol" }
 rustycraft_logging = { path = "../rustycraft_logging" }
 rustycraft_database = { path = "../rustycraft_database" }
+rustycraft_common = { path = "../rustycraft_common" }
 
 bytes = "1.1"
 prost = "0.9"

@@ -11,12 +11,6 @@ use rustycraft_protocol::bgs::protocol::{EntityId, Header, NoData, NoResponse};
 use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use rustycraft_protocol::messages::OutgoingMessage;
 
-const SESSION_KEY: [u8; 64] = [
-    243, 225, 60, 251, 213, 237, 94, 116, 89, 121, 112, 196, 201, 162, 12, 102, 10, 251, 134, 159,
-    58, 153, 211, 24, 75, 32, 0, 115, 62, 225, 94, 158, 73, 113, 10, 48, 251, 164, 144, 164, 17,
-    130, 12, 199, 105, 140, 171, 109, 207, 153, 134, 112, 250, 66, 125, 76, 15, 185, 163, 192, 119,
-    40, 190, 217,
-];
 
 #[async_trait::async_trait]
 impl AuthenticationService for Server {
@@ -53,7 +47,7 @@ impl AuthenticationService for Server {
             connected_region: None,
             battle_tag: None,
             geoip_country: None,
-            session_key: Some(SESSION_KEY.to_vec()),
+            session_key: Some((0..64).map(|_| rand::random::<u8>()).collect()),
             restricted_mode: None,
             client_id: None,
         };

@@ -8,14 +8,17 @@ edition = "2021"
 [dependencies]
 rustycraft_logging = { path = "../rustycraft_logging" }
 rustycraft_protocol = { path = "../rustycraft_protocol" }
+rustycraft_database = { path = "../rustycraft_database" }
+rustycraft_common = { path = "../rustycraft_common" }
 
 rand = "0.8"
 deku = "0.13"
-serde = { version = "1.0", features = ["derive"] }
-serde_repr = "0.1"
 aes-gcm = "0.9"
 hmac = "0.12"
 sha2 = "0.10"
+boring-sys = "2.0"
+boring = "2.0"
+lazy_static = "1.4"
 tokio = { version = "1.17", features = ["full"] }
 anyhow = "1.0"
 bytes = "1.1"

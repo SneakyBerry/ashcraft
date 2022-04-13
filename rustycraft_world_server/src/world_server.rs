@@ -1,4 +1,4 @@
-use crate::packets::{PacketClient, PacketServer, RawClientPacket};
+use crate::packets::{PacketServer, RawClientPacket};
 use anyhow::anyhow;
 use std::collections::HashMap;
 use std::net::SocketAddr;

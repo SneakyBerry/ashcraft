@@ -19,7 +19,7 @@ pub enum OpcodeMisc {
     NullOpcode = 0xBADD,
 }
 
-#[derive(Debug, DekuRead)]
+#[derive(Debug, Eq, PartialEq, DekuRead)]
 #[deku(type = "u16", endian = "little")]
 #[repr(u16)]
 pub enum OpcodeClient {
