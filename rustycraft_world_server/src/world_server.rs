@@ -1,5 +1,9 @@
-use crate::packets::{PacketServer, RawClientPacket};
+use crate::opcodes::OpcodeClient;
+use crate::packets::auth::{Ping, Pong};
+use crate::packets::{ClientPacket, IntoServerPacket, RawClientPacket};
+use crate::OpcodeServer;
 use anyhow::anyhow;
+use deku::DekuContainerRead;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use tokio::sync::mpsc;
@@ -7,18 +11,18 @@ use tokio::sync::mpsc;
 #[derive(Debug)]
 pub struct NewSession {
     pub addr: SocketAddr,
-    pub sender: mpsc::Sender<PacketServer>,
+    pub sender: mpsc::Sender<Box<dyn IntoServerPacket>>,
 }
 
 #[derive(Debug)]
 pub enum ServerEventEnum {
     NewSession(NewSession),
-    NewClientPacket(SocketAddr, RawClientPacket),
+    NewClientPacket(SocketAddr, ClientPacket),
 }
 
 #[derive(Debug)]
 pub struct WorldServer {
-    connections: HashMap<SocketAddr, mpsc::Sender<PacketServer>>,
+    connections: HashMap<SocketAddr, mpsc::Sender<Box<dyn IntoServerPacket>>>,
     events: mpsc::Receiver<ServerEventEnum>,
 }
 
@@ -58,7 +62,13 @@ impl WorldServer {
                 }
                 Some(ServerEventEnum::NewClientPacket(sender, packet)) => {
                     let conn = self.connections.get(&sender).unwrap();
-                    // conn.send(packet).await.unwrap();
+                    match packet {
+                        ClientPacket::Ping(ping) => {
+                            let pong = Pong::from(ping);
+                            conn.send(Box::new(pong)).await.unwrap();
+                        },
+                        _ => ()
+                    };
                 }
                 None => break,
             }

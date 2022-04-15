@@ -6,8 +6,7 @@ use boring_sys::{
 };
 use bytes::Bytes;
 use std::ffi::c_void;
-use std::os::raw::{c_char, c_int, c_uchar, c_uint};
-use std::sync::{Arc, Mutex};
+use std::os::raw::{c_int, c_uint};
 
 pub struct RSA {
     c_rsa: *mut boring_sys::RSA,
@@ -125,7 +124,7 @@ impl AES128 {
         assert_eq!(self.encrypting, false);
         let out = if self.initialized {
             let mut tag = tag.to_vec();
-            let mut len = data.len() as i32;
+            let len = data.len() as i32;
             let mut out = data.clone().to_vec();
             let mut _out_len = 0;
             let iv = self.get_iv();
@@ -174,7 +173,7 @@ impl AES128 {
         assert_eq!(self.encrypting, true);
         let mut tag = vec![0; 12];
         let out = if self.initialized {
-            let mut len = data.len() as i32;
+            let len = data.len() as i32;
             let mut out = Vec::with_capacity(data.len());
             out.extend((0..data.len()).map(|_| 0));
             let mut _out_len = 0;
@@ -196,7 +195,6 @@ impl AES128 {
                     data.as_ptr(),
                     len as c_int,
                 );
-                println!("OUT: {:?}", &out);
                 assert_ne!(res, 0);
 
                 let res = EVP_CipherFinal_ex(
@@ -254,7 +252,7 @@ impl AES128Companion {
         self.client_decrypt.decrypt(data, tag)
     }
 
-    pub fn encrypt(&mut self, mut data: &[u8]) -> anyhow::Result<EncryptionResult> {
+    pub fn encrypt(&mut self, data: &[u8]) -> anyhow::Result<EncryptionResult> {
         self.server_encrypt.encrypt(data)
     }
 }

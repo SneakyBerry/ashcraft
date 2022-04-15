@@ -96,7 +96,7 @@ impl Server {
                         version_major: 9,
                         version_minor: 2,
                         version_revision: 0,
-                        version_build: 42698,
+                        version_build: 43206,
                     },
                     cfg_realms_id: 1,
                     flags: 0,
@@ -169,7 +169,6 @@ impl Server {
             client_secret: self.client_secret.clone(),
         };
         self.redis.set(&ticket.clone(), &acc_data).await.unwrap();
-        println!("Set {:?} to {:?}", &acc_data, ticket.as_bytes().to_vec());
         Ok(ClientResponse {
             attribute: vec![
                 Attribute {

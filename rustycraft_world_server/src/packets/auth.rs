@@ -1,13 +1,13 @@
-use std::ffi::c_void;
-use std::os::raw::c_uint;
-use crate::constants::{ENABLE_ENCRYPTION_SEED, SERVER_PRIVATE_KEY};
+use crate::constants::ENABLE_ENCRYPTION_SEED;
+use crate::crypt::RSA;
+use crate::packets::{ClientPacket, IntoServerPacket};
+use crate::OpcodeServer;
 use deku::prelude::*;
 use hmac::{Hmac, Mac};
 use rustycraft_protocol::expansions::Expansions;
 use rustycraft_protocol::races::Races;
 use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use sha2::Sha256;
-use crate::crypt::RSA;
 
 #[derive(Debug, DekuRead)]
 pub struct Ping {
@@ -21,6 +21,12 @@ pub struct Ping {
 pub struct Pong {
     #[deku(endian = "little")]
     serial: u32,
+}
+
+impl IntoServerPacket for Pong {
+    fn get_opcode(&self) -> OpcodeServer {
+        OpcodeServer::Pong
+    }
 }
 
 impl From<Ping> for Pong {
@@ -37,6 +43,12 @@ pub struct AuthChallenge {
     dos_challenge: [u32; 8],
     challenge: [u8; 16],
     dos_zero_bits: u8,
+}
+
+impl IntoServerPacket for AuthChallenge {
+    fn get_opcode(&self) -> OpcodeServer {
+        OpcodeServer::AuthChallenge
+    }
 }
 
 impl AuthChallenge {
@@ -64,8 +76,8 @@ pub struct AuthSession {
     #[deku(bits = "1", pad_bits_after = "7")]
     pub use_ip_v6: bool,
     #[deku(endian = "little")]
-    realm_join_ticket_size: u32,
-    #[deku(count = "realm_join_ticket_size")]
+    _realm_join_ticket_size: u32,
+    #[deku(count = "_realm_join_ticket_size")]
     #[deku(map = "crate::utils::parse_string")]
     pub realm_join_ticket: String,
 }
@@ -100,9 +112,7 @@ pub struct VirtualRealmNameInfo {
     is_local: bool,
     #[deku(bits = "1", pad_bits_after = "6")]
     is_internal: bool,
-    #[deku(update = "self.realm_name_actual.len()")]
     realm_name_actual_len: u8,
-    #[deku(update = "self.realm_name_normalized.len()")]
     realm_name_normalized_len: u8,
     #[deku(count = "realm_name_actual_len")]
     #[deku(writer = "crate::utils::string_writer(deku::output, &self.realm_name_actual)")]
@@ -401,6 +411,12 @@ pub struct AuthResponse {
     wait_info: Option<AuthWaitInfo>,
 }
 
+impl IntoServerPacket for AuthResponse {
+    fn get_opcode(&self) -> OpcodeServer {
+        OpcodeServer::AuthResponse
+    }
+}
+
 impl AuthResponse {
     pub fn new(
         result: WowRpcResponse,
@@ -424,6 +440,12 @@ pub struct EncryptedMode {
     #[deku(bits = "1")]
     #[deku(pad_bits_after = "7")]
     enabled: bool,
+}
+
+impl IntoServerPacket for EncryptedMode {
+    fn get_opcode(&self) -> OpcodeServer {
+        OpcodeServer::EnterEncryptedMode
+    }
 }
 
 impl EncryptedMode {

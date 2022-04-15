@@ -1,12 +1,13 @@
+pub mod constants;
+pub mod crypt;
 pub mod opcodes;
 pub mod packets;
+mod session_modules;
+pub mod utils;
 pub mod world_events;
 pub mod world_listener;
 pub mod world_server;
 pub mod world_session;
-pub mod utils;
-pub mod constants;
-pub mod crypt;
 
 #[macro_use]
 extern crate log;
