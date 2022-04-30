@@ -8,6 +8,7 @@ use bytes::Bytes;
 use std::ffi::c_void;
 use std::os::raw::{c_int, c_uint};
 
+#[derive(Debug)]
 pub struct RSA {
     c_rsa: *mut boring_sys::RSA,
 }
@@ -225,6 +226,7 @@ impl AES128 {
     }
 }
 
+#[derive(Debug)]
 pub struct AES128Companion {
     server_encrypt: AES128,
     client_decrypt: AES128,

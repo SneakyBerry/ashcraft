@@ -1,10 +1,10 @@
 use deku::prelude::*;
+use enum_iterator::IntoEnumIterator;
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, DekuRead, IntoEnumIterator)]
 #[deku(type = "u8")]
 #[repr(u8)]
 pub enum Races {
-    RaceNone = 0,          // SKIP
     RaceHuman = 1,         // TITLE Human
     RaceOrc = 2,           // TITLE Orc
     RaceDwarf = 3,         // TITLE Dwarf

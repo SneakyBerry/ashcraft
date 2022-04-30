@@ -6,9 +6,10 @@ use rustycraft_protocol::expansions::Expansions;
 #[derive(Debug, DekuWrite)]
 pub struct SetTimeZoneInformation {
     #[deku(bits = "7")]
+    #[deku(pad_bits_after = "1")]
     server_tz_len: u8,
     #[deku(bits = "7")]
-    #[deku(pad_bits_after = "2")]
+    #[deku(pad_bits_after = "1")]
     game_tz_len: u8,
     #[deku(count = "server_time_tz_len")]
     #[deku(writer = "crate::utils::string_writer(deku::output, &self.server_tz)")]

@@ -1,5 +1,8 @@
 use crate::opcodes::OpcodeClient;
-use crate::packets::auth::{AuthSession, Ping, Pong};
+use crate::packets::auth::{AuthContinuedSession, AuthSession, Ping, Pong};
+use crate::packets::characters::{
+    CheckCharacterNameAvailability, CreateCharacterRequest, ReorderCharacters,
+};
 use crate::OpcodeServer;
 use bytes::{Bytes, BytesMut};
 use deku::bitvec::{BitVec, Msb0};
@@ -9,8 +12,10 @@ use std::marker::PhantomData;
 use std::mem::size_of_val;
 
 pub mod auth;
+pub mod characters;
 pub mod client_config;
 pub mod system;
+pub mod objects;
 
 fn write(output: &mut BitVec<Msb0, u8>, packet_size: u32) -> Result<(), DekuError> {
     packet_size.write(output, ())
@@ -63,15 +68,43 @@ impl TryFrom<Vec<u8>> for ClientPacket {
             }
             OpcodeClient::EnterEncryptedModeAck => ClientPacket::EnterEncryptedModeAck,
             OpcodeClient::LogDisconnect => ClientPacket::LogDisconnect,
+            OpcodeClient::EnumCharacters => ClientPacket::EnumCharacters,
+            OpcodeClient::GetUndeleteCharacterCooldownStatus => {
+                ClientPacket::GetUndeleteCharacterCooldownStatus
+            }
+            OpcodeClient::BattlePayGetPurchaseList => ClientPacket::BattlePayGetPurchaseList,
+            OpcodeClient::BattlePayGetProductList => ClientPacket::BattlePayGetProductList,
+            OpcodeClient::UpdateVasPurchaseStates => ClientPacket::UpdateVasPurchaseStates,
+            OpcodeClient::ServerTimeOffsetRequest => ClientPacket::ServerTimeOffsetRequest,
+            OpcodeClient::PlayerLogin => ClientPacket::PlayerLogin,
+            OpcodeClient::ReorderCharacters => {
+                ClientPacket::ReorderCharacters(ReorderCharacters::from_bytes(rest_data)?.1)
+            }
+            OpcodeClient::KeepAlive => ClientPacket::KeepAlive,
+            OpcodeClient::CheckCharacterNameAvailability => {
+                ClientPacket::CheckCharacterNameAvailability(
+                    CheckCharacterNameAvailability::from_bytes(rest_data)?.1,
+                )
+            }
+            OpcodeClient::CreateCharacter => {
+                ClientPacket::CreateCharacter(CreateCharacterRequest::from_bytes(rest_data)?.1)
+            }
+            OpcodeClient::AuthContinuedSession => {
+                ClientPacket::AuthContinuedSession(AuthContinuedSession::from_bytes(rest_data)?.1)
+            }
             _ => {
-                error!("Unhandled opcode: {:?}", opcode);
+                error!(
+                    "Unhandled opcode: {:?}, payload: {:X}",
+                    opcode,
+                    &Bytes::from(data)
+                );
                 Err(anyhow!("Unhandled opcode"))?
             }
         })
     }
 }
 
-pub trait IntoServerPacket: DekuContainerWrite + Debug + Send {
+pub trait IntoServerPacket: DekuContainerWrite + Debug + Send + Sync {
     fn get_opcode(&self) -> OpcodeServer;
     fn serialize(&self) -> Result<Bytes, DekuError> {
         let mut buf = BytesMut::with_capacity(2 + size_of_val(&self));
@@ -126,7 +159,7 @@ pub enum ClientPacket {
     AuctionSellCommodity,
     AuctionSellItem,
     AuctionSetFavoriteItem,
-    AuthContinuedSession,
+    AuthContinuedSession(AuthContinuedSession),
     AuthSession(AuthSession),
     AutobankItem,
     AutobankReagent,
@@ -265,7 +298,7 @@ pub enum ClientPacket {
     ChatReportFiltered,
     ChatReportIgnored,
     ChatUnregisterAllAddonPrefixes,
-    CheckCharacterNameAvailability,
+    CheckCharacterNameAvailability(CheckCharacterNameAvailability),
     CheckIsAdventureMapPoiValid,
     ChoiceResponse,
     ChromieTimeSelectExpansion,
@@ -316,7 +349,7 @@ pub enum ClientPacket {
     ConversationLineStarted,
     ConvertRaid,
     CovenantRenownRequestCatchupState,
-    CreateCharacter,
+    CreateCharacter(CreateCharacterRequest),
     CreateShipment,
     DbQueryBulk,
     DeclineGuildInvites,
@@ -682,7 +715,7 @@ pub enum ClientPacket {
     ReclaimCorpse,
     RemoveNewItem,
     RemoveRafRecruit,
-    ReorderCharacters,
+    ReorderCharacters(ReorderCharacters),
     RepairItem,
     ReplaceTrophy,
     RepopRequest,

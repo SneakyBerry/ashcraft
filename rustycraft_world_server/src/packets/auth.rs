@@ -1,13 +1,30 @@
+use crate::classes::Classes;
 use crate::constants::ENABLE_ENCRYPTION_SEED;
-use crate::crypt::RSA;
+use crate::crypt::{INITIALIZED_RSA, RSA};
 use crate::packets::{ClientPacket, IntoServerPacket};
+use crate::races::Races;
 use crate::OpcodeServer;
+use bytes::{BufMut, BytesMut};
 use deku::prelude::*;
 use hmac::{Hmac, Mac};
+use rand::Rng;
 use rustycraft_protocol::expansions::Expansions;
-use rustycraft_protocol::races::Races;
 use rustycraft_protocol::rpc_responses::WowRpcResponse;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
+
+#[derive(Debug, DekuWrite)]
+#[deku(type = "u32")]
+#[deku(endian = "little")]
+#[repr(u32)]
+pub enum ConnectToSerial {
+    None = 0,
+    Realm = 14,
+    WorldAttempt1 = 17,
+    WorldAttempt2 = 35,
+    WorldAttempt3 = 53,
+    WorldAttempt4 = 71,
+    WorldAttempt5 = 89,
+}
 
 #[derive(Debug, DekuRead)]
 pub struct Ping {
@@ -80,6 +97,16 @@ pub struct AuthSession {
     #[deku(count = "_realm_join_ticket_size")]
     #[deku(map = "crate::utils::parse_string")]
     pub realm_join_ticket: String,
+}
+
+#[derive(Debug, DekuRead)]
+pub struct AuthContinuedSession {
+    #[deku(endian = "little")]
+    pub dos_response: u64,
+    #[deku(endian = "little")]
+    pub raw: u64,
+    pub local_challenge: [u8; 16],
+    pub digest: [u8; 24],
 }
 
 #[derive(Debug, DekuWrite)]
@@ -178,7 +205,7 @@ impl GameTime {
         GameTime {
             billing_plan,
             time_remain,
-            unknown_735: 0,
+            unknown_735: 4,
             in_game_room1: in_game_room,
             in_game_room2: in_game_room,
             in_game_room3: in_game_room,
@@ -210,10 +237,11 @@ pub struct CharacterTemplate {
     classes_size: u32,
     #[deku(count = "classes_size")]
     classes: Vec<CharacterTemplateClass>,
-    #[deku(bits = "7", update = "self.name.len()")]
+    #[deku(bits = "7")]
+    #[deku(pad_bits_after = "1")]
     name_len: u8, // Not actually 8 bits, only 7
-    #[deku(bits = "10", update = "self.description.len()", endian = "little")]
-    #[deku(pad_bits_after = "7")]
+    #[deku(bits = "10", endian = "little")]
+    #[deku(pad_bits_after = "6")]
     description_len: u16, // Not actually 16 bits, only 10
     #[deku(count = "name_len")]
     #[deku(writer = "crate::utils::string_writer(deku::output, &self.name)")]
@@ -244,19 +272,19 @@ impl CharacterTemplate {
 
 #[derive(Debug, DekuWrite)]
 pub struct Class {
-    id: u8,
+    class: Classes,
     active_expansion_level: Expansions,
     account_expansion_level: Expansions,
 }
 
 impl Class {
     pub fn new(
-        id: u8,
+        class: Classes,
         active_expansion_level: Expansions,
         account_expansion_level: Expansions,
     ) -> Class {
         Class {
-            id,
+            class,
             active_expansion_level,
             account_expansion_level,
         }
@@ -459,5 +487,82 @@ impl EncryptedMode {
             hmac_sha_256: signature,
             enabled: true,
         }
+    }
+}
+
+#[derive(Debug, DekuWrite)]
+pub struct ConnectTo {
+    #[deku(skip)]
+    signature_size: u32,
+    #[deku(count = "signature_size")]
+    signature: Vec<u8>,
+    #[deku(skip)]
+    where_buf_size: u32,
+    #[deku(count = "where_buf_size")]
+    where_buf: Vec<u8>,
+    #[deku(endian = "little")]
+    port: u16,
+    serial: ConnectToSerial,
+    conn: u8,
+    #[deku(endian = "little")]
+    key: u64,
+}
+
+#[derive(Debug, Clone, Copy, DekuWrite)]
+#[deku(type = "u8")]
+#[repr(u8)]
+pub enum AddrType {
+    IPv4 = 1,
+    IPv6 = 2,
+}
+
+impl ConnectTo {
+    pub fn new(
+        account_id: u32,
+        serial: ConnectToSerial,
+        address: &[u8; 4],
+        port: u16,
+        addr_type: AddrType,
+    ) -> ConnectTo {
+        let key: u32 = rand::thread_rng().gen_range(0..0x7FFFFFFF);
+        let key = account_id as u64 | 1 << 32 | ((key as u64) << 1) << 32;
+        let mut where_buf = BytesMut::new();
+        where_buf.put_u8(addr_type as u8);
+        where_buf.extend(address);
+        let tp = addr_type as u32;
+
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(&where_buf);
+        hasher.update(&tp.to_le_bytes());
+        hasher.update(&port.to_le_bytes());
+        let hash = hasher.finalize();
+
+        let signature = INITIALIZED_RSA.sign(&hash);
+
+        ConnectTo {
+            signature_size: signature.len() as u32,
+            signature,
+            where_buf_size: where_buf.len() as u32,
+            where_buf: where_buf.to_vec(),
+            port,
+            serial,
+            conn: 1,
+            key,
+        }
+    }
+}
+
+impl IntoServerPacket for ConnectTo {
+    fn get_opcode(&self) -> OpcodeServer {
+        OpcodeServer::ConnectTo
+    }
+}
+
+#[derive(Debug, Clone, Copy, DekuWrite)]
+pub struct ResumeComms {}
+
+impl IntoServerPacket for ResumeComms {
+    fn get_opcode(&self) -> OpcodeServer {
+        OpcodeServer::ResumeComms
     }
 }

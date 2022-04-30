@@ -1,1 +1,1 @@
-mod crypt;
+pub mod crypt;

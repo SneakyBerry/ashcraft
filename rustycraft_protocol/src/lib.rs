@@ -2,7 +2,6 @@ mod autogen;
 pub mod expansions;
 pub mod messages;
 pub mod rpc_responses;
-pub mod races;
 pub mod autogen_impls;
 
 pub use autogen::bgs;

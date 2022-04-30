@@ -2,6 +2,7 @@ use redis::{AsyncCommands, RedisResult};
 use serde::de::DeserializeOwned;
 use serde::{Serialize};
 
+#[derive(Debug)]
 pub struct RedisClient {
     client: redis::Client,
 }
