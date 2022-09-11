@@ -1,0 +1,22 @@
+#[package]
+#name = "rustycraft"
+#version = "0.0.1"
+#edition = "2021"
+#
+#[[bin]]
+#name = "world_server"
+#path = "./rustycraft_world_server/src/main.rs"
+#
+#[[bin]]
+#name = "battlenet_server"
+#path = "./rustycraft_battlenet_server/src/main.rs"
+
+[workspace]
+members = [
+    "./rustycraft_battlenet_server",
+    "./rustycraft_common",
+    "./rustycraft_database",
+    "./rustycraft_logging",
+    "./rustycraft_protocol",
+    "./rustycraft_world_server"
+]

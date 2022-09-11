@@ -1,7 +1,5 @@
-use crate::utils::pack_u128;
 use deku::bitvec::{BitSlice, BitVec, Msb0};
 use deku::prelude::*;
-use std::array::TryFromSliceError;
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub struct ObjectGuid {
@@ -24,9 +22,26 @@ pub struct ObjectGuid {
     pub sub_type: u8,
 }
 
+impl ObjectGuid {
+    pub fn as_raw(&self) -> (u64, u64) {
+        let mut low = 0u64;
+        let mut high = 0u64;
+        low |= self.low as u64 & 0xFFFFFFFFFF;
+        low |= ((self.server_id) as u64) << 40;
+
+        high |= (self.high as u64) << 58;
+        high |= (self.unk as u64 & 0x7) << 45;
+        high |= (self.realm_id as u64 & 0x1FFF) << 42;
+        high |= (self.map_id as u64 & 0x1FFF) << 29;
+        high |= (self.entry as u64 & 0x7FFFFF) << 6;
+        high |= self.sub_type as u64 & 0x3F;
+        (low, high)
+    }
+}
+
 // we don't actually need it but DekuContainerRead have DekuRead in supertraits.
 impl<'a> DekuRead<'a, ()> for ObjectGuid {
-    fn read(input: &BitSlice<Msb0, u8>, ctx: ()) -> Result<(&BitSlice<Msb0, u8>, Self), DekuError>
+    fn read(_input: &BitSlice<Msb0, u8>, _ctx: ()) -> Result<(&BitSlice<Msb0, u8>, Self), DekuError>
     where
         Self: Sized,
     {
@@ -58,25 +73,23 @@ impl<'a> DekuContainerRead<'a> for ObjectGuid {
     }
 }
 
-
 impl DekuWrite for ObjectGuid {
     fn write(&self, output: &mut BitVec<Msb0, u8>, ctx: ()) -> Result<(), DekuError> {
         todo!()
     }
 }
 
-
 impl DekuContainerWrite for ObjectGuid {
     fn to_bytes(&self) -> Result<Vec<u8>, DekuError> {
         let mut low = 0u64;
         let mut high = 0u64;
-        low |= (self.low as u64 & 0xFFFFFFFFFF);
+        low |= self.low as u64 & 0xFFFFFFFFFF;
         low |= ((self.server_id) as u64) << 40;
 
         high |= (self.high as u64) << 58;
         high |= (self.unk as u64 & 0x7) << 45;
         high |= (self.realm_id as u64 & 0x1FFF) << 42;
-        high |=  (self.map_id as u64 & 0x1FFF) << 29;
+        high |= (self.map_id as u64 & 0x1FFF) << 29;
         high |= (self.entry as u64 & 0x7FFFFF) << 6;
         high |= self.sub_type as u64 & 0x3F;
 
@@ -91,7 +104,6 @@ impl DekuContainerWrite for ObjectGuid {
     }
 }
 
-
 impl ObjectGuid {
     pub fn new() -> ObjectGuid {
         ObjectGuid {
@@ -102,7 +114,7 @@ impl ObjectGuid {
             realm_id: 0,
             map_id: 0,
             entry: 0,
-            sub_type: 0
+            sub_type: 0,
         }
     }
 }

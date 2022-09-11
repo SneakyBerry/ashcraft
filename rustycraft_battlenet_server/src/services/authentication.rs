@@ -8,9 +8,8 @@ use rustycraft_protocol::bgs::protocol::challenge::v1::{
     ChallengeExternalRequest, ChallengeListener,
 };
 use rustycraft_protocol::bgs::protocol::{EntityId, Header, NoData, NoResponse};
-use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use rustycraft_protocol::messages::OutgoingMessage;
-
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 
 #[async_trait::async_trait]
 impl AuthenticationService for Server {

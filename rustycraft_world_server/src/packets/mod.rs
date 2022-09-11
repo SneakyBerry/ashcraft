@@ -1,5 +1,5 @@
 use crate::opcodes::OpcodeClient;
-use crate::packets::auth::{AuthContinuedSession, AuthSession, Ping, Pong};
+use crate::packets::auth::{AuthContinuedSession, AuthSession, Ping};
 use crate::packets::characters::{
     CheckCharacterNameAvailability, CreateCharacterRequest, ReorderCharacters,
 };
@@ -8,14 +8,13 @@ use bytes::{Bytes, BytesMut};
 use deku::bitvec::{BitVec, Msb0};
 use deku::prelude::*;
 use std::fmt::Debug;
-use std::marker::PhantomData;
 use std::mem::size_of_val;
 
 pub mod auth;
 pub mod characters;
 pub mod client_config;
-pub mod system;
 pub mod objects;
+pub mod system;
 
 fn write(output: &mut BitVec<Msb0, u8>, packet_size: u32) -> Result<(), DekuError> {
     packet_size.write(output, ())

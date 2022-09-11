@@ -1,5 +1,5 @@
 use crate::classes::Classes;
-use crate::guid::{ObjectGuid};
+use crate::guid::ObjectGuid;
 use crate::packets::IntoServerPacket;
 use crate::races::Races;
 use crate::OpcodeServer;
@@ -424,7 +424,7 @@ impl IntoServerPacket for CreateCharacterResponse {
 #[derive(Debug, DekuRead)]
 pub struct ReorderCharacters {
     // guid: ObjectGuid,
-// new_pos: u8,
+    // new_pos: u8,
 }
 
 #[derive(Debug, DekuWrite)]

@@ -71,7 +71,6 @@ impl<T> From<mpsc::error::SendError<T>> for Error {
 }
 
 impl RealmServer {
-
     pub(crate) async fn init_connection(&mut self) -> Result<(), Error> {
         self.initial_packets().await?;
         self.init_session().await?;

@@ -1,5 +1,7 @@
 use crate::crypt::{AES128Companion, RSA};
 use crate::packets::auth::ResumeComms;
+use crate::packets::characters::LoginVerifyWorld;
+use crate::packets::objects::UpdateObject;
 use crate::realm_server::Error;
 use crate::session_modules::crypt::EncryptedModeTrait;
 use crate::world_listener::SessionHandler;
@@ -11,8 +13,6 @@ use std::sync::Arc;
 use tokio::io::{split, ReadHalf, WriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, RwLock};
-use crate::packets::characters::LoginVerifyWorld;
-use crate::packets::objects::UpdateObject;
 
 #[derive(Debug)]
 pub struct WorldSession {

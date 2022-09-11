@@ -1,7 +1,7 @@
 use crate::classes::Classes;
 use crate::constants::ENABLE_ENCRYPTION_SEED;
 use crate::crypt::{INITIALIZED_RSA, RSA};
-use crate::packets::{ClientPacket, IntoServerPacket};
+use crate::packets::IntoServerPacket;
 use crate::races::Races;
 use crate::OpcodeServer;
 use bytes::{BufMut, BytesMut};

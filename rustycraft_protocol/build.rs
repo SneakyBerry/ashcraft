@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::env;
 
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
@@ -390,7 +391,8 @@ impl prost_build::ServiceGenerator for ServiceGenerator {
     }
 }
 
-fn build_module(proto_dir: &str, out_dir: &str, out_filename: &str) {
+fn build_module(proto_dir: &str, out_filename: &str) {
+    let out_dir = env::var("OUT_DIR").unwrap();
     let protos = collect_protos(proto_dir);
     let mut extensions = HashMap::new();
 
@@ -466,13 +468,13 @@ fn build_module(proto_dir: &str, out_dir: &str, out_filename: &str) {
     }
 
     prost_build::Config::new()
-        .out_dir(out_dir)
+        .out_dir(&out_dir)
         .type_attribute(".", " #[derive(serde::Serialize, serde::Deserialize)]")
         .service_generator(Box::new(ServiceGenerator { service_extensions }))
         .compile_protos(protos.as_slice(), &[proto_dir])
         .expect("Failed to build by prost");
 
-    let nested_mods_ts = node_to_syn(&module, "", out_dir);
+    let nested_mods_ts = node_to_syn(&module, "", &out_dir);
     let quoted_module = quote::quote! {
         #[allow(dead_code)]
         #[allow(warnings)]
@@ -524,5 +526,5 @@ fn service_name_hash(name: String) -> u32 {
 }
 
 fn main() {
-    build_module("./protoc", "src/", "autogen.rs");
+    build_module("./protoc", "autogen.rs");
 }

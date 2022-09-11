@@ -12,7 +12,7 @@ rustycraft_database = { path = "../rustycraft_database" }
 rustycraft_common = { path = "../rustycraft_common" }
 
 rand = "0.8"
-deku = "0.13"
+deku = "0.13.1"
 aes-gcm = "0.9"
 hmac = "0.12"
 sha2 = "0.10"

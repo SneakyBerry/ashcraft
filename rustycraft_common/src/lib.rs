@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use rustycraft_database::redis::Storable;
+use std::collections::HashMap;
 
 #[macro_use]
 extern crate serde;

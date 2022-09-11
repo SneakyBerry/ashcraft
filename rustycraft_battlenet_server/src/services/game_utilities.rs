@@ -1,12 +1,11 @@
 use crate::realmlist::json::realm_list::{
-    ClientInformation, ClientVersion, IpAddress, RealmCharacterCountEntry, RealmCharacterCountList,
-    RealmEntry, RealmIpAddressFamily, RealmListServerIpAddresses, RealmListTicketClientInformation,
+    ClientVersion, IpAddress, RealmCharacterCountEntry, RealmCharacterCountList, RealmEntry,
+    RealmIpAddressFamily, RealmListServerIpAddresses, RealmListTicketClientInformation,
     RealmListTicketIdentity, RealmListUpdates, RealmState,
 };
 use crate::Server;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
-use prost::Message;
 use rand::Rng;
 use rustycraft_common::Account;
 use rustycraft_protocol::bgs::protocol::game_utilities::v1::{
@@ -34,7 +33,7 @@ where
 }
 
 fn extract_json_from_blob(blob: Vec<u8>) -> String {
-    let mut blob = String::from_utf8(blob).unwrap();
+    let blob = String::from_utf8(blob).unwrap();
     let sep_idx = blob.find(":").unwrap();
     let blob_ready = &blob[sep_idx + 1..];
     blob_ready[..blob_ready.len() - 1].to_owned()
@@ -45,14 +44,14 @@ impl Server {
         &mut self,
         request: ClientRequest,
     ) -> Result<ClientResponse, WowRpcResponse> {
-        let a = request.get_param("Param_Identity").unwrap();
+        let param_identity = request.get_param("Param_Identity").unwrap();
         let param_identity_blob_ready =
-            extract_json_from_blob(a.blob_value.as_ref().unwrap().to_vec());
-        let aboba: RealmListTicketIdentity =
+            extract_json_from_blob(param_identity.blob_value.as_ref().unwrap().to_vec());
+        let _ticket_identity: RealmListTicketIdentity =
             serde_json::from_str(&param_identity_blob_ready).unwrap();
-        let b = request.get_param("Param_ClientInfo").unwrap();
+        let client_info = request.get_param("Param_ClientInfo").unwrap();
         let param_client_info_blob_ready =
-            extract_json_from_blob(b.blob_value.as_ref().unwrap().to_vec());
+            extract_json_from_blob(client_info.blob_value.as_ref().unwrap().to_vec());
         let abiba: RealmListTicketClientInformation =
             serde_json::from_str(&param_client_info_blob_ready).unwrap();
         self.client_secret = abiba.info.secret;
@@ -76,14 +75,14 @@ impl Server {
 
     async fn handle_last_char_played_request(
         &mut self,
-        request: ClientRequest,
+        _request: ClientRequest,
     ) -> Result<ClientResponse, WowRpcResponse> {
         Ok(ClientResponse { attribute: vec![] })
     }
 
     async fn handle_realm_list_request(
         &mut self,
-        request: ClientRequest,
+        _request: ClientRequest,
     ) -> Result<ClientResponse, WowRpcResponse> {
         let rl = RealmListUpdates {
             updates: vec![RealmState {
@@ -151,7 +150,7 @@ impl Server {
 
     async fn handle_realm_join_request(
         &mut self,
-        request: ClientRequest,
+        _request: ClientRequest,
     ) -> Result<ClientResponse, WowRpcResponse> {
         let resp = RealmListServerIpAddresses {
             families: vec![RealmIpAddressFamily {

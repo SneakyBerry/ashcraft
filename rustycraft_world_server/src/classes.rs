@@ -1,7 +1,6 @@
 use deku::prelude::*;
 use enum_iterator::IntoEnumIterator;
 
-
 #[derive(Debug, Clone, DekuWrite, DekuRead, IntoEnumIterator)]
 #[deku(type = "u8")]
 #[repr(u8)]

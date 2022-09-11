@@ -14,19 +14,19 @@ extern crate log;
 use crate::socket_manager::{SessionHandler, SocketEvents};
 use rustls::{Certificate, PrivateKey};
 use rustls_pemfile::{certs, rsa_private_keys};
+use rustycraft_database::redis::RedisClient;
 use rustycraft_protocol::bgs::protocol::account::v1::AccountService;
 use rustycraft_protocol::bgs::protocol::authentication::v1::AuthenticationService;
 use rustycraft_protocol::bgs::protocol::connection::v1::ConnectionService;
 use rustycraft_protocol::bgs::protocol::game_utilities::v1::GameUtilitiesService;
 use rustycraft_protocol::bgs::protocol::{Header, NoData};
-use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use rustycraft_protocol::messages::{LoggingAttributes, OutgoingMessage, RawMessage};
+use rustycraft_protocol::rpc_responses::WowRpcResponse;
 use std::fs::File;
 use std::io::BufReader;
 use std::net::SocketAddr;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::{Receiver, Sender};
-use rustycraft_database::redis::RedisClient;
 
 pub enum State {
     Created,
@@ -49,8 +49,8 @@ pub struct Server {
     token: u8,
     addr: SocketAddr,
     redis: RedisClient,
-    ticket: Option<String>,
-    server_secret: Vec<u8>,
+    _ticket: Option<String>,
+    _server_secret: Vec<u8>,
     client_secret: Vec<u8>,
     rx: Receiver<RawMessage>,
     tx: Sender<SocketEvents>,
@@ -84,8 +84,8 @@ impl SessionHandler for Server {
             token: 0,
             addr,
             redis: RedisClient::new().unwrap(),
-            ticket: None,
-            server_secret: Vec::new(),
+            _ticket: None,
+            _server_secret: Vec::new(),
             client_secret: Vec::new(),
             rx,
             tx,
