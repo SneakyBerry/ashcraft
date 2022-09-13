@@ -9,11 +9,11 @@
 #
 #[[bin]]
 #name = "battlenet_server"
-#path = "./rustycraft_battlenet_server/src/main.rs"
+#path = "./rustycraft_auth_server/src/main.rs"
 
 [workspace]
 members = [
-    "./rustycraft_battlenet_server",
+    "rustycraft_auth_server",
     "./rustycraft_common",
     "./rustycraft_database",
     "./rustycraft_logging",
