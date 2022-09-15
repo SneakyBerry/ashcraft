@@ -1,5 +1,5 @@
+use crate::packets::{DekuWriteDebug, Opcode, RequestResult};
 use deku::prelude::*;
-use crate::packets::{Opcode, DekuWriteDebug, RequestResult};
 
 #[derive(Debug, DekuRead)]
 pub(crate) struct LogonProofRequest {

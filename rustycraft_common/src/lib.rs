@@ -25,8 +25,7 @@ pub struct BattleNetAccount {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Account {
-    pub server_secret: Vec<u8>,
-    pub client_secret: Vec<u8>,
+    pub session_key: Vec<u8>,
 }
 
 impl Storable for Account {

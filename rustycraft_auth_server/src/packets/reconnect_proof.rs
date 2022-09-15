@@ -1,5 +1,5 @@
-use deku::prelude::*;
 use crate::packets::Opcode;
+use deku::prelude::*;
 
 #[derive(Debug, DekuWrite)]
 pub(crate) struct ReconnectProofResponse {

@@ -1,6 +1,6 @@
+use deku::bitvec::{BitVec, Msb0};
 use deku::prelude::*;
 use std::fmt::Debug;
-use deku::bitvec::{BitVec, Msb0};
 
 pub mod logon_challenge;
 pub mod logon_proof;

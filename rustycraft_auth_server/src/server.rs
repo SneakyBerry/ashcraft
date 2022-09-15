@@ -6,7 +6,10 @@ use crate::packets::realm::{
 use crate::packets::{AuthResult, DekuWriteDebug, Opcode, RequestResult, VERSION_CHALLENGE};
 use bytes::BytesMut;
 use deku::prelude::*;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use rustycraft_common::Account;
+use rustycraft_database::redis::RedisClient;
+use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncWriteExt, Interest};
 use tokio::net::TcpStream;
 use wow_srp::normalized_string::NormalizedString;
 use wow_srp::server::{SrpProof, SrpServer, SrpVerifier};
@@ -21,15 +24,19 @@ enum ClientState {
 }
 
 pub struct Client {
+    redis: Arc<RedisClient>,
     stream: TcpStream,
     state: ClientState,
+    username: Option<String>,
 }
 
 impl Client {
-    pub fn new(stream: TcpStream) -> Client {
+    pub fn new(stream: TcpStream, redis: Arc<RedisClient>) -> Client {
         Client {
+            redis,
             stream,
             state: ClientState::Connected,
+            username: None,
         }
     }
 
@@ -45,6 +52,8 @@ impl Client {
                 Opcode::RealmList => self.handle_realm_list().await,
                 _ => todo!(),
             };
+
+            // Write response to client socket
             match res {
                 Ok(result) => {
                     trace!("[{:?}] Response: {:?}", self.stream.peer_addr(), result);
@@ -91,6 +100,7 @@ impl Client {
             protocol_version: None,
             result: AuthResult::WowFailDisconnected,
         })?;
+        self.username = Some(data.username);
         let proof = SrpVerifier::from_username_and_password(username, password).into_proof();
 
         let response = LogonChallengeResponse {
@@ -142,6 +152,19 @@ impl Client {
                     cmd: Opcode::AuthLogonProof,
                     protocol_version: None,
                     result: AuthResult::WowFailIncorrectPassword,
+                })?;
+            self.redis
+                .set(
+                    self.username.as_ref().unwrap(),
+                    &Account {
+                        session_key: server.session_key().to_vec(),
+                    },
+                )
+                .await
+                .map_err(|_| RequestResult {
+                    cmd: Opcode::AuthLogonProof,
+                    protocol_version: None,
+                    result: AuthResult::WowFailDbBusy,
                 })?;
             self.state = ClientState::LoggedIn(Some(server));
             Ok(Box::new(LogonProofResponse {

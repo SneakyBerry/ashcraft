@@ -1,4 +1,4 @@
-use crate::packets::{parse_reverse, parse_string, Opcode, DekuWriteDebug, RequestResult, Version};
+use crate::packets::{parse_reverse, parse_string, DekuWriteDebug, Opcode, RequestResult, Version};
 use deku::prelude::*;
 use wow_srp::GENERATOR_LENGTH;
 

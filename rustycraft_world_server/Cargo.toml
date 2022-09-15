@@ -7,17 +7,14 @@ edition = "2021"
 
 [dependencies]
 rustycraft_logging = { path = "../rustycraft_logging" }
-rustycraft_protocol = { path = "../rustycraft_protocol" }
 rustycraft_database = { path = "../rustycraft_database" }
 rustycraft_common = { path = "../rustycraft_common" }
 
+paste = "1.0.9"
+derive_builder = "0.11.2"
+wow_srp = { version = "0.5.1", features = ["wrath-header"]}
 rand = "0.8"
 deku = "0.13.1"
-aes-gcm = "0.9"
-hmac = "0.12"
-sha2 = "0.10"
-boring-sys = "2.0"
-boring = "2.0"
 lazy_static = "1.4"
 tokio = { version = "1.17" }
 anyhow = "1.0"

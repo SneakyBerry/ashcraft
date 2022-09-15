@@ -34,7 +34,6 @@ impl RedisClient {
         let mut conn = self.client.get_async_connection().await?;
         let key = format!("{}__{}", T::key_prefix(), key);
         let data: Vec<u8> = conn.get(key.clone()).await?;
-        conn.del(key).await?;
         Ok(serde_json::from_slice(&data)?)
     }
 }

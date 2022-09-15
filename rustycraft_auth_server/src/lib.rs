@@ -1,7 +1,7 @@
-pub mod socket_manager;
+mod config;
 mod packets;
 mod server;
-mod config;
+pub mod socket_manager;
 
 #[macro_use]
 extern crate log;
