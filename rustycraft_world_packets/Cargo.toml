@@ -1,0 +1,15 @@
+[package]
+name = "rustycraft_world_packets"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+paste = "1.0.9"
+derive_builder = "0.11.2"
+anyhow = "1.0.65"
+wow_srp = "0.5.1"
+deku = "0.13.1"
+bytes = "1.2.1"

@@ -1,13 +1,13 @@
-use crate::packets::area::Area;
-use crate::packets::class::Class;
-use crate::packets::gear::CharacterGear;
-use crate::packets::gender::Gender;
-use crate::packets::guid::Guid;
-use crate::packets::map::Map;
-use crate::packets::opcodes::Opcode;
-use crate::packets::race::Race;
-use crate::packets::vector3d::Vector3d;
-use crate::packets::ServerPacket;
+use crate::area::Area;
+use crate::class::Class;
+use crate::gear::CharacterGear;
+use crate::gender::Gender;
+use crate::guid::Guid;
+use crate::map::Map;
+use crate::opcodes::Opcode;
+use crate::race::Race;
+use crate::position::Vector3d;
+use crate::ServerPacket;
 use crate::{read_c_string, write_c_string};
 use deku::prelude::*;
 
@@ -19,7 +19,7 @@ pub struct CharacterEnumServer {
 }
 
 impl CharacterEnumServer {
-    pub(crate) fn new(characters: Vec<Character>) -> CharacterEnumServer {
+    pub fn new(characters: Vec<Character>) -> CharacterEnumServer {
         CharacterEnumServer {
             characters_count: 0,
             characters,

@@ -1,8 +1,8 @@
-use crate::packets::guid::Guid;
-use crate::packets::map::Map;
-use crate::packets::opcodes::Opcode;
-use crate::packets::vector3d::Vector3d;
-use crate::packets::ServerPacket;
+use crate::guid::Guid;
+use crate::map::Map;
+use crate::opcodes::Opcode;
+use crate::position::Vector3d;
+use crate::ServerPacket;
 use deku::prelude::*;
 
 #[derive(Debug, DekuRead)]

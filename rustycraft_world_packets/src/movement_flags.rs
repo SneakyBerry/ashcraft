@@ -1,11 +1,11 @@
 use crate::define_flags;
 use deku::prelude::*;
 
-#[derive(DekuWrite)]
+#[derive(Clone, DekuWrite)]
 pub struct ExtraMovementFlags {
+    #[deku(endian = "little")]
     inner: u16,
 }
-
 
 define_flags!(
     StructName: ExtraMovementFlags
@@ -28,8 +28,9 @@ define_flags!(
         UNK16 = 0x8000
 });
 
-#[derive(DekuWrite)]
+#[derive(Clone, DekuWrite)]
 pub struct MovementFlags {
+    #[deku(endian = "little")]
     inner: u32,
 }
 

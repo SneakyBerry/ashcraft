@@ -1,7 +1,7 @@
-use crate::packets::expansion::Expansion;
-use crate::packets::opcodes::Opcode;
-use crate::packets::response_code::ResponseCode;
-use crate::packets::ServerPacket;
+use crate::expansion::Expansion;
+use crate::opcodes::Opcode;
+use crate::response_code::ResponseCode;
+use crate::ServerPacket;
 use crate::read_c_string;
 use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
@@ -65,11 +65,11 @@ fn read_compressed_addon_info(
 #[derive(Debug, DekuWrite)]
 pub struct AuthOk {
     #[deku(endian = "little")]
-    pub(crate) billing_time: u32,
-    pub(crate) billing_flags: u8,
+    pub billing_time: u32,
+    pub billing_flags: u8,
     #[deku(endian = "little")]
-    pub(crate) billing_rested: u32,
-    pub(crate) expansion: Expansion,
+    pub billing_rested: u32,
+    pub expansion: Expansion,
 }
 
 #[derive(Debug, DekuWrite)]

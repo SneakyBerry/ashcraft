@@ -4,8 +4,11 @@ use std::ops::Sub;
 #[derive(Debug, Clone, DekuWrite, DekuRead, Builder)]
 #[deku(endian = "little")]
 pub struct Vector3d {
+    #[deku(endian = "little")]
     pub x: f32,
+    #[deku(endian = "little")]
     pub y: f32,
+    #[deku(endian = "little")]
     pub z: f32,
 }
 
@@ -26,7 +29,7 @@ impl Sub for &Vector3d {
 
 #[cfg(test)]
 mod test {
-    use crate::packets::vector3d::Vector3d;
+    use crate::position::Vector3d;
 
     #[test]
     fn test_distance_zero() {

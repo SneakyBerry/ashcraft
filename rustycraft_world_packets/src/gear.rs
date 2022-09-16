@@ -1,4 +1,4 @@
-use crate::packets::inventory::InventoryType;
+use crate::inventory::InventoryType;
 use deku::prelude::*;
 
 #[derive(Debug, Copy, Clone, DekuWrite, DekuRead)]

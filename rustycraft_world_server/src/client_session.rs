@@ -1,25 +1,35 @@
-use crate::packets::area::Area;
-use crate::packets::auth::{AuthChallengeServer, AuthOk, AuthResponseServer, AuthSessionClient};
-use crate::packets::characters::{Character, CharacterEnumServer};
-use crate::packets::class::Class;
-use crate::packets::expansion::Expansion;
-use crate::packets::gear::CharacterGear;
-use crate::packets::gender::Gender;
-use crate::packets::guid::Guid;
-use crate::packets::inventory::InventoryType;
-use crate::packets::login::{CmsgPlayerLogin, SmsgLoginVerifyWorld};
-use crate::packets::map::Map;
-use crate::packets::opcodes::Opcode;
-use crate::packets::race::Race;
-use crate::packets::response_code::ResponseCode;
-use crate::packets::tutorial::SmsgTutorialFlags;
-use crate::packets::vector3d::Vector3d;
-use crate::packets::ServerPacket;
 use anyhow::anyhow;
 use bytes::{Bytes, BytesMut};
 use deku::prelude::*;
 use rustycraft_common::Account;
 use rustycraft_database::redis::RedisClient;
+use rustycraft_world_packets::area::Area;
+use rustycraft_world_packets::auth::{
+    AuthChallengeServer, AuthOk, AuthResponseServer, AuthSessionClient,
+};
+use rustycraft_world_packets::characters::{Character, CharacterEnumServer};
+use rustycraft_world_packets::class::Class;
+use rustycraft_world_packets::expansion::Expansion;
+use rustycraft_world_packets::gear::CharacterGear;
+use rustycraft_world_packets::gender::Gender;
+use rustycraft_world_packets::guid::{Guid, HighGuid};
+use rustycraft_world_packets::inventory::InventoryType;
+use rustycraft_world_packets::login::{CmsgPlayerLogin, SmsgLoginVerifyWorld};
+use rustycraft_world_packets::map::Map;
+use rustycraft_world_packets::movement_block::{
+    LivingBuilder, MovementBlockBuilder, MovementBlockLivingVariants,
+};
+use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags};
+use rustycraft_world_packets::object::{Object, ObjectType, ObjectUpdateType, SmsgUpdateObject};
+use rustycraft_world_packets::opcodes::Opcode;
+use rustycraft_world_packets::position::Vector3d;
+use rustycraft_world_packets::power::Power;
+use rustycraft_world_packets::race::Race;
+use rustycraft_world_packets::response_code::ResponseCode;
+use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
+use rustycraft_world_packets::tutorial::SmsgTutorialFlags;
+use rustycraft_world_packets::update_mask::{UpdateMask, UpdateType};
+use rustycraft_world_packets::ServerPacket;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -39,7 +49,10 @@ pub struct ClientSession {
 
 fn char_data() -> CharacterEnumServer {
     CharacterEnumServer::new(vec![Character {
-        guid: Guid { guid: 0 },
+        guid: Guid {
+            high_guid: HighGuid::Player,
+            guid: 0,
+        },
         name: "Abobus".to_string(),
         race: Race::Human,
         class: Class::Warrior,
@@ -230,8 +243,91 @@ impl ClientSession {
             },
             orientation: 0.0,
         })
-        .await?;
-        self.send_packet(SmsgTutorialFlags::default()).await?;
+        .await
+        .unwrap();
+        self.send_packet(SmsgTutorialFlags::default())
+            .await
+            .unwrap();
+        // let update_mask = UpdatePlayer::new()
+        //     .set_object_GUID(Guid::new(4))
+        //     .set_unit_BYTES_0(Race::Human, Class::Warrior, Gender::Female, Power::Rage)
+        //     .set_object_SCALE_X(1.0)
+        //     .set_unit_health(100)
+        //     .set_unit_MAXHEALTH(100)
+        //     .set_unit_LEVEL(1)
+        //     .set_unit_FACTIONTEMPLATE(1)
+        //     .set_unit_DISPLAYID(50)
+        //     .set_unit_NATIVEDISPLAYID(50);
+
+        let mut update_mask = UpdateMask::new(UpdateType::Player);
+        let guid = Guid {
+            high_guid: HighGuid::Player,
+            guid: 4,
+        };
+        update_mask
+            .set_value(0, guid.as_u64() as u32)
+            .set_value(1, (guid.as_u64() >> 32 as u32) as u32)
+            .set_value(
+                23,
+                u32::from_le_bytes([
+                    Race::Human as u8,
+                    Class::Warrior as u8,
+                    Gender::Female as u8,
+                    Power::Rage as u8,
+                ]),
+            )
+            .set_value(4, 1)
+            .set_value(24, 100)
+            .set_value(32, 100)
+            .set_value(54, 1)
+            .set_value(55, 1)
+            .set_value(67, 50)
+            .set_value(68, 50);
+
+        let update_flag = MovementBlockBuilder::default()
+            .living(MovementBlockLivingVariants::Living(
+                LivingBuilder::default()
+                    .backwards_running_speed(4.5)
+                    .backwards_swimming_speed(0.0)
+                    .extra_flags(ExtraMovementFlags::new(0))
+                    .fall_time(0.0)
+                    .flags(MovementFlags::new(0))
+                    .flight_speed(0.0)
+                    .backwards_flight_speed(0.0)
+                    .living_orientation(0.0)
+                    .living_position(Vector3d {
+                        x: -8949.95,
+                        y: -132.493,
+                        z: 83.5312,
+                    })
+                    .pitch_rate(0.0)
+                    .running_speed(7.0)
+                    .swimming_speed(0.0)
+                    .timestamp(0)
+                    .turn_rate(std::f32::consts::PI)
+                    .walking_speed(1.0)
+                    .build()
+                    .unwrap(),
+            ))
+            .set_self()
+            .build()
+            .unwrap();
+        let update_object = SmsgUpdateObject::new(vec![Object {
+            update_type: ObjectUpdateType::CreateObject2 {
+                guid3: Guid {
+                    high_guid: HighGuid::Player,
+                    guid: 4,
+                }
+                .into(),
+                object_type: ObjectType::Player,
+                mask2: update_mask,
+                movement2: update_flag,
+            },
+        }]);
+        self.send_packet(update_object).await.unwrap();
+        self.send_packet(SmsgTimeSyncReq { time_sync: 0 })
+            .await
+            .unwrap();
         Ok(())
     }
 }

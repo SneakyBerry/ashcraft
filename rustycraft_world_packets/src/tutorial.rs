@@ -1,5 +1,5 @@
-use crate::packets::opcodes::Opcode;
-use crate::packets::ServerPacket;
+use crate::opcodes::Opcode;
+use crate::ServerPacket;
 use deku::prelude::*;
 
 #[derive(Debug, Default, DekuWrite)]

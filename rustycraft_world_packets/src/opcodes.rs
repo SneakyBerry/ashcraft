@@ -2,7 +2,7 @@ use deku::prelude::*;
 
 #[derive(Debug, Copy, Clone, DekuWrite, DekuRead)]
 #[deku(type = "u16", endian = "little")]
-pub(crate) enum Opcode {
+pub enum Opcode {
     CmsgBootme = 0x001,
     CmsgDblookup = 0x002,
     SmsgDblookup = 0x003,
