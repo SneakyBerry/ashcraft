@@ -54,7 +54,7 @@ pub enum ObjectUpdateType {
     },
     #[deku(id = "0x3")]
     CreateObject2 {
-        guid: PackedGuid,       // 12
+        guid: PackedGuid,        // 12
         object_type: ObjectType, // 13
         movement2: MovementBlock,
         update_fields: UpdateFields,

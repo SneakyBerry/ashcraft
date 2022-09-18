@@ -53,7 +53,7 @@ impl UpdateFields {
         UpdateFields {
             amount_of_blocks: header.len() as u8,
             mask: header,
-            values
+            values,
         }
     }
 

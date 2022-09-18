@@ -5,7 +5,7 @@ use crate::power::Power;
 use crate::race::Race;
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone)]
 pub struct UnitData {
     pub race: Race,
     pub class: Class,
@@ -13,12 +13,20 @@ pub struct UnitData {
     pub power: Power,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone)]
 pub struct ClassSpecific {
     pub stand_state: u8,
     pub pet_talents: u8,
     pub vis_flag: u8,
     pub anim_tier: u8,
+}
+
+#[derive(Debug, Clone)]
+pub struct AttackPower {
+    pub power: u32,
+    pub a: u16,
+    pub b: u16,
+    pub mul: f32,
 }
 
 pub enum UnitFlags {
@@ -112,6 +120,7 @@ pub enum UnitDynFlags {
     TappedByAllThreatList = 0x0080, // Lua_UnitIsTappedByAllThreatList
 }
 
+#[derive(Debug, Clone)]
 pub enum NPCFlags {
     None = 0x003B0000,       // SKIP
     Gossip = 0x003B0001,     // TITLE has gossip menu DESCRIPTION 100%
@@ -143,100 +152,93 @@ pub enum NPCFlags {
     Mailbox = 0x04000000,       // TITLE is mailbox
 }
 
-#[macro_export]
-macro_rules! unit_fields {
-    (
-        Offset: $offset:tt;
-        impl Unit for $struct_name:ident
-    ) => {
-        impl_accessors!(
-            Offset: $offset;
-            Size: 0x008E;
-            impl $struct_name {
-                0x0000 => unit_charm: Guid;
-                0x0002 => unit_summon: Guid;
-                0x0004 => unit_critter: Guid;
-                0x0006 => unit_charmed_by: Guid;
-                0x0008 => unit_summoned_by: Guid;
-                0x000A => unit_created_by: Guid;
-                0x000C => unit_target: Guid;
+pub mod unit {
+    #[macro_export]
+    macro_rules! unit_fields {
+        (
+            impl Unit for $struct_name:ident
+        ) => {
+            impl_accessors!(
+                Offset: 0x0006;
+                Size: 0x008E;
+                impl $struct_name {
+                    0x0000 => unit_charm: Guid;
+                    0x0002 => unit_summon: Guid;
+                    0x0004 => unit_critter: Guid;
+                    0x0006 => unit_charmed_by: Guid;
+                    0x0008 => unit_summoned_by: Guid;
+                    0x000A => unit_created_by: Guid;
+                    0x000C => unit_target: Guid;
 
-                0x000E => unit_channel_object: Guid;
-                0x0010 => unit_channel_spell: u32;
+                    0x000E => unit_channel_object: Guid;
+                    0x0010 => unit_channel_spell: u32;
 
-                0x0011 => unit_unit_data: UnitData;
+                    0x0011 => unit_unit_data: UnitData;
 
-                0x0012 => unit_health: u32;
-                0x0013 => unit_power: [u32; 7];                           // [mana, rage, focus, energy, happiness, runes, runic_power]
-                0x001A => unit_max_health: u32;
-                0x001B => unit_max_power: [u32; 7];                       // [mana, rage, focus, energy, happiness, runes, runic_power]
-                0x0022 => unit_regen_flat_mod: [u32; 7];                  // [mana, rage, focus, energy, happiness, runes, runic_power]
-                0x0029 => unit_regen_interrupted_flat_mod: [u32; 7];      // [mana, rage, focus, energy, happiness, runes, runic_power]
+                    0x0012 => unit_health: u32;
+                    0x0013 => unit_power: [u32; 7];                           // [mana, rage, focus, energy, happiness, runes, runic_power]
+                    0x001A => unit_max_health: u32;
+                    0x001B => unit_max_power: [u32; 7];                       // [mana, rage, focus, energy, happiness, runes, runic_power]
+                    0x0022 => unit_regen_flat_mod: [u32; 7];                  // [mana, rage, focus, energy, happiness, runes, runic_power]
+                    0x0029 => unit_regen_interrupted_flat_mod: [u32; 7];      // [mana, rage, focus, energy, happiness, runes, runic_power]
 
-                0x0030 => unit_level: u32;
+                    0x0030 => unit_level: u32;
 
-                0x0031 => unit_faction_template: u32;
-                0x0032 => unit_virtual_item_slot_id: [u32; 3];
-                0x0035 => unit_flags: bool;
-                0x0036 => unit_flags_2: bool;
+                    0x0031 => unit_faction_template: u32;
+                    0x0032 => unit_virtual_item_slot_id: [u32; 3];
+                    0x0035 => unit_flags: [bool; 2];
 
-                0x0037 => unit_aura_state: u32;
-                0x0038 => unit_base_attack_time_main_off_hand: [f32; 2];
-                0x003A => unit_ranged_attack_time: f32;
-                0x003B => unit_bounding_radius: f32;
-                0x003C => unit_combat_reach: f32;
+                    0x0037 => unit_aura_state: u32;
+                    0x0038 => unit_base_attack_time_main_off_hand: [f32; 2];
+                    0x003A => unit_ranged_attack_time: f32;
+                    0x003B => unit_bounding_radius: f32;
+                    0x003C => unit_combat_reach: f32;
 
-                0x003D => unit_display_id: u32;
-                0x003E => unit_native_display_id: u32;
-                0x003F => unit_mount_display_id: u32;
+                    0x003D => unit_display_id: u32;
+                    0x003E => unit_native_display_id: u32;
+                    0x003F => unit_mount_display_id: u32;
 
-                0x0040 => unit_min_max_damage: [f32; 2];
-                0x0042 => unit_min_max_offhand_damage: [f32; 2];
+                    0x0040 => unit_min_max_damage: [f32; 2];
+                    0x0042 => unit_min_max_offhand_damage: [f32; 2];
 
-                0x0044 => unit_class_specific: ClassSpecific;
+                    0x0044 => unit_class_specific: ClassSpecific;
 
-                0x0045 => unit_pet_number: u32;
-                0x0046 => unit_pet_name_timestamp: u32;
-                0x0047 => unit_pet_experience: u32;
-                0x0048 => unit_pet_next_level_exp: u32;
+                    0x0045 => unit_pet_number: u32;
+                    0x0046 => unit_pet_name_timestamp: u32;
+                    0x0047 => unit_pet_experience: u32;
+                    0x0048 => unit_pet_next_level_exp: u32;
 
-                0x0049 => unit_dynamic_flags: bool;
+                    0x0049 => unit_dynamic_flags: [bool; 1];
 
-                0x004A => unit_mod_cast_speed: f32;
-                0x004B => unit_created_by_spell: u32;
+                    0x004A => unit_mod_cast_speed: f32;
+                    0x004B => unit_created_by_spell: u32;
 
-                0x004C => unit_npc_flags: bool;
-                0x004D => unit_npc_emote_state: u32;
-                //
-                0x004E => unit_stat: [u32; 5];                // [strength, agility, stamina, intellect, spirit]
-                0x0053 => unit_stat_pos_effects:  [u32; 5];   // [strength, agility, stamina, intellect, spirit]
-                0x0058 => unit_stat_neg_effects:  [u32; 5];   // [strength, agility, stamina, intellect, spirit]
-                //
-                0x005D => unit_resistance: [u32; 7];          // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x0064 => unit_resistance_pos: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x006B => unit_resistance_neg: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                //
-                0x0072 => unit_base_mana: u32;
-                0x0073 => unit_base_health: u32;
-                //
-                0x0074 => unit_bytes_2: u32;
-                //
-                0x0075 => unit_attack_power_melee: AttackPower;
-                0x0078 => unit_attack_power_ranged: AttackPower;
-                0x007B => unit_min_max_ranged_damage: [f32; 2];
-                0x007D => unit_power_cost_mod: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x0084 => unit_power_cost_mul: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x008B => unit_max_health_modifier: u32;
-                0x008C => unit_hover_height: u32;
-                0x008D => unit_padding: ();
-            }
-        );
-    };
-}
-
-pub struct AttackPower {
-    pub power: u32,
-    pub a: u16,
-    pub b: u16,
-    pub mul: f32
+                    0x004C => unit_npc_flags: [bool; 1];
+                    0x004D => unit_npc_emote_state: u32;
+                    //
+                    0x004E => unit_stat: [u32; 5];                // [strength, agility, stamina, intellect, spirit]
+                    0x0053 => unit_stat_pos_effects:  [u32; 5];   // [strength, agility, stamina, intellect, spirit]
+                    0x0058 => unit_stat_neg_effects:  [u32; 5];   // [strength, agility, stamina, intellect, spirit]
+                    //
+                    0x005D => unit_resistance: [u32; 7];          // [normal, holy, fire, nature, frost, shadow, arcane]
+                    0x0064 => unit_resistance_pos: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
+                    0x006B => unit_resistance_neg: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
+                    //
+                    0x0072 => unit_base_mana: u32;
+                    0x0073 => unit_base_health: u32;
+                    //
+                    0x0074 => unit_bytes_2: u32;
+                    //
+                    0x0075 => unit_attack_power_melee: AttackPower;
+                    0x0078 => unit_attack_power_ranged: AttackPower;
+                    0x007B => unit_min_max_ranged_damage: [f32; 2];
+                    0x007D => unit_power_cost_mod: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
+                    0x0084 => unit_power_cost_mul: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
+                    0x008B => unit_max_health_modifier: u32;
+                    0x008C => unit_hover_height: u32;
+                    0x008D => unit_padding: ();
+                }
+            );
+        };
+    }
 }

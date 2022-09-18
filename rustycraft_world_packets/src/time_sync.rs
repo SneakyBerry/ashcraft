@@ -4,7 +4,7 @@ use deku::prelude::*;
 
 #[derive(Debug, DekuWrite)]
 pub struct SmsgTimeSyncReq {
-    #[deku(endian="little")]
+    #[deku(endian = "little")]
     pub time_sync: u32,
 }
 

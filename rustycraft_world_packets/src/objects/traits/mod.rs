@@ -12,7 +12,6 @@ pub trait Storable: ObjectField {
     fn load(val: Self::StoredType) -> Self;
 }
 
-
 #[cfg(test)]
 mod test {
     use crate::guid::{Guid, HighGuid};
@@ -44,13 +43,6 @@ mod test {
         u64: u64 { 0x00F9B6DD91FA0543 }
         guid: Guid { Guid::new( HighGuid::Corpse, 0x00F9B6DD91FA0543 ) }
         object_type: ObjectType { ObjectType::Container }
-        guid_36: [Guid; 36] {
-            let mut guids = [Guid::default(); 36];
-            for i in 0..36_u64 {
-                guids[i as usize] = Guid::new(HighGuid::Corpse, i)
-            };
-            guids
-        }
         vect_3d: Vector3d { Vector3d {
             x: 12.0,
             y: 34.0,

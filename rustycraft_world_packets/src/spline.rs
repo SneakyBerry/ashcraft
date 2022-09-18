@@ -1,5 +1,5 @@
-use deku::prelude::*;
 use crate::define_flags;
+use deku::prelude::*;
 
 #[derive(Clone, DekuWrite)]
 pub struct SplineFlag {

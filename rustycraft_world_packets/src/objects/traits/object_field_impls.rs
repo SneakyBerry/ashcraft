@@ -3,8 +3,7 @@ use crate::object::ObjectType;
 use crate::objects::game_object::GameObjectBytes;
 use crate::objects::item::ItemEnchantment;
 use crate::objects::player::{
-    Bytes1, Bytes2, Bytes3, Bytes4, PlayerEnchantment, PlayerFieldBytes2Offsets, QuestLogItem,
-    Rune, VisibleItem,
+    Bytes1, Bytes2, Bytes3, Bytes4, PlayerEnchantment, PlayerFieldBytes2Offsets, QuestLogItem, Rune,
 };
 use crate::objects::traits::ObjectField;
 use crate::objects::unit::{AttackPower, ClassSpecific, UnitData};
@@ -23,7 +22,7 @@ macro_rules! object_field_array {
     };
 }
 
-object_field_array!(2, 3, 5, 6, 7, 12, 16, 18, 19, 21, 23, 24, 25, 29, 32, 36, 64, 128, 384);
+object_field_array!(1, 2, 3, 5, 6, 7, 12, 16, 18, 19, 21, 23, 24, 25, 28, 32, 36, 64, 128, 384);
 
 impl ObjectField for u32 {
     const SIZE: u16 = 1;
@@ -97,46 +96,42 @@ impl ObjectField for AttackPower {
     const SIZE: u16 = 3;
 }
 
-// impl ObjectField for Bytes1 {
-//     const SIZE: u16 = 1;
-// }
-//
-// impl ObjectField for Bytes2 {
-//     const SIZE: u16 = 1;
-// }
-//
-// impl ObjectField for Bytes3 {
-//     const SIZE: u16 = 1;
-// }
-//
-// impl ObjectField for Bytes4 {
-//     const SIZE: u16 = 1;
-// }
-//
-// impl ObjectField for QuestLogItem {
-//     const SIZE: u16 = 4;
-// }
-//
-// impl ObjectField for VisibleItem {
-//     const SIZE: u16 = 3;
-// }
-//
-// impl ObjectField for PlayerFieldBytes2Offsets {
-//     const SIZE: u16 = 1;
-// }
-//
-// impl ObjectField for Rune {
-//     const SIZE: u16 = 4;
-// }
-//
-// impl ObjectField for PlayerEnchantment {
-//     const SIZE: u16 = 2;
-// }
-//
-// impl<T, TT> ObjectField for (T, TT)
-// where
-//     T: ObjectField,
-//     TT: ObjectField,
-// {
-//     const SIZE: u16 = T::SIZE + TT::SIZE;
-// }
+impl ObjectField for Bytes1 {
+    const SIZE: u16 = 1;
+}
+
+impl ObjectField for Bytes2 {
+    const SIZE: u16 = 1;
+}
+
+impl ObjectField for Bytes3 {
+    const SIZE: u16 = 1;
+}
+
+impl ObjectField for Bytes4 {
+    const SIZE: u16 = 1;
+}
+
+impl ObjectField for QuestLogItem {
+    const SIZE: u16 = 5;
+}
+
+impl ObjectField for PlayerFieldBytes2Offsets {
+    const SIZE: u16 = 1;
+}
+
+impl ObjectField for Rune {
+    const SIZE: u16 = 4;
+}
+
+impl ObjectField for PlayerEnchantment {
+    const SIZE: u16 = 2;
+}
+
+impl<T1, T2> ObjectField for (T1, T2)
+where
+    T1: ObjectField,
+    T2: ObjectField,
+{
+    const SIZE: u16 = T1::SIZE + T2::SIZE;
+}

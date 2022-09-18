@@ -1,4 +1,4 @@
-use crate::guid::{TypeMask};
+use crate::guid::TypeMask;
 use crate::object::ObjectType;
 use crate::update_flag::UpdateFlag;
 use crate::update_mask::UpdateFields;
@@ -14,8 +14,6 @@ pub struct BaseObject {
     is_new_object: bool,
     is_object_updated: bool,
 }
-
-
 
 pub struct GameObject {
     is_set_flags_count: u8,

@@ -3,8 +3,7 @@ use crate::object::ObjectType;
 use crate::objects::game_object::{GameObjectBytes, GameObjectState, GameObjectTypes};
 use crate::objects::item::ItemEnchantment;
 use crate::objects::player::{
-    Bytes1, Bytes2, Bytes3, Bytes4, PlayerEnchantment, PlayerFieldBytes2Offsets, QuestLogItem,
-    Rune, VisibleItem,
+    Bytes1, Bytes2, Bytes3, Bytes4, PlayerEnchantment, PlayerFieldBytes2Offsets, QuestLogItem, Rune,
 };
 use crate::objects::traits::{ObjectField, Storable};
 use crate::objects::unit::{AttackPower, ClassSpecific, UnitData};
@@ -15,38 +14,6 @@ use crate::gender::Gender;
 use crate::power::Power;
 use crate::race::Race;
 use deku::prelude::*;
-
-macro_rules! storable_array {
-    ( $ ( [$t:ty; $n:expr] ), + ) => {
-        $ (
-            impl Storable for [$t; $n]
-            {
-                type StoredType = [[u8; 4]; Self::SIZE as usize];
-
-                fn store(self) -> Self::StoredType {
-                    let mut res = [[0_u8; 4]; Self::SIZE as usize];
-                    for (i, entry) in self.into_iter().enumerate() {
-                        let stored = <$t as Storable>::store(entry);
-                        for ii in 0..stored.len() {
-                            res[i * stored.len() + ii] = stored[ii];
-                        }
-                    }
-                    res
-                }
-
-                fn load(val: Self::StoredType) -> Self {
-                    let mut res = [<$t>::default(); $n];
-                    for i in 0..$n {
-                        res[i] = <$t>::load([val[i * 2], val[i * 2 + 1]]);
-                    }
-                    res
-                }
-            }
-        ) *
-    };
-}
-
-storable_array!([Guid; 36]);
 
 impl Storable for u32 {
     type StoredType = [[u8; 4]; Self::SIZE as usize];
@@ -181,26 +148,6 @@ impl Storable for (u16, u16) {
     }
 }
 
-// impl<T, TT> Storable for (T, TT)
-//     where
-//         T: Storable,
-//         TT: Storable,
-// {
-//     type StoredType = [[u8; 4]; <(T, TT)>::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         let l = self.0.store();
-//         let r = self.1.store();
-//         [l[0], r[0]]
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let l = T::load(val[0]);
-//         let r = TT::load(val[1]);
-//         (l, r)
-//     }
-// }
-
 impl Storable for Guid {
     type StoredType = [[u8; 4]; Self::SIZE as usize];
 
@@ -210,7 +157,7 @@ impl Storable for Guid {
 
     /// Panics if high guid is incorrect
     fn load(val: Self::StoredType) -> Self {
-        let u_val = <u64 as Storable>::load(val);
+        let u_val = Storable::load(val);
         let high_guid = HighGuid::from_bytes((&val[1][2..], 0))
             .expect("Corrupted high guid")
             .1;
@@ -246,10 +193,10 @@ impl Storable for Vector3d {
     }
 
     fn load(val: Self::StoredType) -> Self {
-        let x = <_ as Storable>::load([val[0]]);
-        let y = <_ as Storable>::load([val[1]]);
-        let z = <_ as Storable>::load([val[2]]);
-        let rotation = <_ as Storable>::load([val[3]]);
+        let x = Storable::load([val[0]]);
+        let y = Storable::load([val[1]]);
+        let z = Storable::load([val[2]]);
+        let rotation = Storable::load([val[3]]);
         Self { x, y, z, rotation }
     }
 }
@@ -266,9 +213,9 @@ impl Storable for ItemEnchantment {
     }
 
     fn load(val: Self::StoredType) -> Self {
-        let charges = <u32 as Storable>::load([val[0]]);
-        let duration = <u32 as Storable>::load([val[1]]);
-        let id = <u32 as Storable>::load([val[2]]);
+        let charges = Storable::load([val[0]]);
+        let duration = Storable::load([val[1]]);
+        let id = Storable::load([val[2]]);
         Self {
             charges,
             duration,
@@ -291,14 +238,52 @@ impl Storable for GameObjectBytes {
     }
 
     fn load(val: Self::StoredType) -> Self {
-        let (state, r#type, art_kit, anim_progress) = <(_, _, _, _) as Storable>::load([val[0]]);
-
-        let state = GameObjectState::from_bytes((&state.to_le_bytes(), 0))
-            .expect("Corrupted GameObjectState")
-            .1;
-        let r#type = GameObjectTypes::from_bytes((&r#type.to_le_bytes(), 8))
-            .expect("Corrupted GameObjectTypes")
-            .1;
+        let (state, r#type, art_kit, anim_progress): (u8, _, _, _) = Storable::load([val[0]]);
+        let state = match state {
+            0 => GameObjectState::Active,
+            1 => GameObjectState::Ready,
+            2 => GameObjectState::Destroyed,
+            _ => panic!("Corrupted GameObjectState"),
+        };
+        let r#type = match r#type {
+            0 => GameObjectTypes::Door,
+            1 => GameObjectTypes::Button,
+            2 => GameObjectTypes::QuestGiver,
+            3 => GameObjectTypes::Chest,
+            4 => GameObjectTypes::Binder,
+            5 => GameObjectTypes::Generic,
+            6 => GameObjectTypes::Trap,
+            7 => GameObjectTypes::Chair,
+            8 => GameObjectTypes::SpellFocus,
+            9 => GameObjectTypes::Text,
+            10 => GameObjectTypes::Goober,
+            11 => GameObjectTypes::Transport,
+            12 => GameObjectTypes::AreaDamage,
+            13 => GameObjectTypes::Camera,
+            14 => GameObjectTypes::MapObject,
+            15 => GameObjectTypes::MoTransport,
+            16 => GameObjectTypes::DuelArbiter,
+            17 => GameObjectTypes::FishingNode,
+            18 => GameObjectTypes::SummoningRitual,
+            19 => GameObjectTypes::Mailbox,
+            20 => GameObjectTypes::DoNotUse,
+            21 => GameObjectTypes::Guardpost,
+            22 => GameObjectTypes::SpellCaster,
+            23 => GameObjectTypes::MeetingStone,
+            24 => GameObjectTypes::FlagStand,
+            25 => GameObjectTypes::FishingHole,
+            26 => GameObjectTypes::FlagDrop,
+            27 => GameObjectTypes::MiniGame,
+            28 => GameObjectTypes::DoNotUse2,
+            29 => GameObjectTypes::CapturePoint,
+            30 => GameObjectTypes::AuraGenerator,
+            31 => GameObjectTypes::DungeonDifficulty,
+            32 => GameObjectTypes::BarberChair,
+            33 => GameObjectTypes::DestructibleBuilding,
+            34 => GameObjectTypes::GuildBank,
+            35 => GameObjectTypes::Trapdoor,
+            _ => panic!("Corrupted GameObjectTypes"),
+        };
         Self {
             state,
             r#type,
@@ -322,18 +307,12 @@ impl Storable for UnitData {
     }
 
     fn load(val: Self::StoredType) -> Self {
-        let race = Race::from_bytes((&val[0], 0))
-            .expect("Corrupted GameObjectState")
-            .1;
-        let class = Class::from_bytes((&val[0], 8))
-            .expect("Corrupted GameObjectTypes")
-            .1;
+        let race = Race::from_bytes((&val[0], 0)).expect("Corrupted Race").1;
+        let class = Class::from_bytes((&val[0], 8)).expect("Corrupted Class").1;
         let gender = Gender::from_bytes((&val[0], 16))
-            .expect("Corrupted GameObjectTypes")
+            .expect("Corrupted Gender")
             .1;
-        let power = Power::from_bytes((&val[0], 32))
-            .expect("Corrupted GameObjectTypes")
-            .1;
+        let power = Power::from_bytes((&val[0], 32)).expect("Corrupted Power").1;
         Self {
             race,
             class,
@@ -357,8 +336,7 @@ impl Storable for ClassSpecific {
     }
 
     fn load(val: Self::StoredType) -> Self {
-        let (stand_state, pet_talents, vis_flag, anim_tier) =
-            <(_, _, _, _) as Storable>::load([val[0]]);
+        let (stand_state, pet_talents, vis_flag, anim_tier) = Storable::load([val[0]]);
         Self {
             stand_state,
             pet_talents,
@@ -373,228 +351,210 @@ impl Storable for AttackPower {
 
     fn store(self) -> Self::StoredType {
         let power = self.power.to_le_bytes();
-        let ab = <(_, _) as Storable>::store((self.a, self.b));
+        let ab = Storable::store((self.a, self.b));
         let mul = self.mul.to_le_bytes();
 
         [power, ab[0], mul]
     }
 
     fn load(val: Self::StoredType) -> Self {
-        let power = <_ as Storable>::load([val[0]]);
-        let (a, b) = <_ as Storable>::load([val[1]]);
-        let mul = <_ as Storable>::load([val[2]]);
+        let power = Storable::load([val[0]]);
+        let (a, b) = Storable::load([val[1]]);
+        let mul = Storable::load([val[2]]);
         Self { power, a, b, mul }
     }
 }
 
+impl Storable for Bytes1 {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
 
+    fn store(self) -> Self::StoredType {
+        (self.skin, self.face, self.hairstyle, self.hair_color).store()
+    }
 
-// impl Storable for Bytes1 {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         (self.skin, self.face, self.hairstyle, self.hair_color).store()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let (skin, face, hairstyle, hair_color) = <(_, _, _, _) as Storable>::load([val[0]]);
-//         Self {
-//             skin,
-//             face,
-//             hairstyle,
-//             hair_color,
-//         }
-//     }
-// }
-//
-// impl Storable for Bytes2 {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         (
-//             self.facial,
-//             self.party,
-//             self.bank_bag_slots,
-//             self.rest_state,
-//         )
-//             .store()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let (facial, party, bank_bag_slots, rest_state) =
-//             <(_, _, _, _) as Storable>::load([val[0]]);
-//
-//         Self {
-//             facial,
-//             party,
-//             bank_bag_slots,
-//             rest_state,
-//         }
-//     }
-// }
-//
-// impl Storable for Bytes3 {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         (
-//             self.gender,
-//             self.inebriation,
-//             self.pvp_title,
-//             self.arena_faction,
-//         )
-//             .store()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let (gender, inebriation, pvp_title, arena_faction) =
-//             <(_, _, _, _) as Storable>::load([val[0]]);
-//
-//         Self {
-//             gender,
-//             inebriation,
-//             pvp_title,
-//             arena_faction,
-//         }
-//     }
-// }
-//
-// impl Storable for Bytes4 {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         (
-//             self.flags,
-//             self.raf_grantable_level,
-//             self.action_bar_toggles,
-//             self.lifetime_max_pvp_rank,
-//         )
-//             .store()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let (flags, raf_grantable_level, action_bar_toggles, lifetime_max_pvp_rank) =
-//             <(_, _, _, _) as Storable>::load([val[0]]);
-//
-//         Self {
-//             flags,
-//             raf_grantable_level,
-//             action_bar_toggles,
-//             lifetime_max_pvp_rank,
-//         }
-//     }
-// }
-//
-// impl Storable for PlayerFieldBytes2Offsets {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         (
-//             self.override_spells_id,
-//             self.ignore_power_regen_prediction_mask,
-//             self.aura_vision,
-//         )
-//             .store()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let (override_spells_id, ignore_power_regen_prediction_mask, aura_vision) =
-//             <(_, _, _) as Storable>::load([val[0]]);
-//
-//         Self {
-//             override_spells_id,
-//             ignore_power_regen_prediction_mask,
-//             aura_vision,
-//         }
-//     }
-// }
-//
-// impl Storable for QuestLogItem {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         let id = self.id.to_le_bytes();
-//         let state = self.state.to_le_bytes();
-//         let counts = <(_, _) as Storable>::store((self.counts1, self.counts2));
-//         let time = self.time.to_le_bytes();
-//
-//         [id, state, counts[0], time]
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let id = <_ as Storable>::load([val[0]]);
-//         let state = <_ as Storable>::load([val[1]]);
-//         let (counts1, counts2) = <_ as Storable>::load([val[2]]);
-//         let time = <_ as Storable>::load([val[3]]);
-//         Self {
-//             id,
-//             state,
-//             counts1,
-//             counts2,
-//             time,
-//         }
-//     }
-// }
-//
-// impl Storable for PlayerEnchantment {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         let id = self.id.to_le_bytes();
-//         let permanent_temporary = <(_, _) as Storable>::store((self.permanent, self.temporary));
-//         [id, permanent_temporary[0]]
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let id = <_ as Storable>::load([val[0]]);
-//         let (permanent, temporary) = <_ as Storable>::load([val[1]]);
-//         Self {
-//             id,
-//             permanent,
-//             temporary,
-//         }
-//     }
-// }
-//
-// impl Storable for VisibleItem {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         let entry_id = self.entry_id.to_le_bytes();
-//         let enchantment = <PlayerEnchantment as Storable>::store(self.enchantment);
-//         [entry_id, enchantment[0], enchantment[1]]
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         let entry_id = <_ as Storable>::load([val[0]]);
-//         let enchantment = <_ as Storable>::load([val[1], val[2]]);
-//         Self {
-//             entry_id,
-//             enchantment,
-//         }
-//     }
-// }
-//
-// impl Storable for bool {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         todo!()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         todo!()
-//     }
-// }
-//
-// impl Storable for Rune {
-//     type StoredType = [[u8; 4]; Self::SIZE as usize];
-//
-//     fn store(self) -> Self::StoredType {
-//         todo!()
-//     }
-//
-//     fn load(val: Self::StoredType) -> Self {
-//         todo!()
-//     }
-// }
+    fn load(val: Self::StoredType) -> Self {
+        let (skin, face, hairstyle, hair_color) = Storable::load([val[0]]);
+        Self {
+            skin,
+            face,
+            hairstyle,
+            hair_color,
+        }
+    }
+}
+
+impl Storable for Bytes2 {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        (
+            self.facial,
+            self.party,
+            self.bank_bag_slots,
+            self.rest_state,
+        )
+            .store()
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let (facial, party, bank_bag_slots, rest_state) = Storable::load([val[0]]);
+
+        Self {
+            facial,
+            party,
+            bank_bag_slots,
+            rest_state,
+        }
+    }
+}
+
+impl Storable for Bytes3 {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        (
+            self.gender,
+            self.inebriation,
+            self.pvp_title,
+            self.arena_faction,
+        )
+            .store()
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let (gender, inebriation, pvp_title, arena_faction) = Storable::load([val[0]]);
+
+        Self {
+            gender,
+            inebriation,
+            pvp_title,
+            arena_faction,
+        }
+    }
+}
+
+impl Storable for Bytes4 {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        (
+            self.flags,
+            self.raf_grantable_level,
+            self.action_bar_toggles,
+            self.lifetime_max_pvp_rank,
+        )
+            .store()
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let (flags, raf_grantable_level, action_bar_toggles, lifetime_max_pvp_rank) =
+            Storable::load([val[0]]);
+
+        Self {
+            flags,
+            raf_grantable_level,
+            action_bar_toggles,
+            lifetime_max_pvp_rank,
+        }
+    }
+}
+
+impl Storable for PlayerFieldBytes2Offsets {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        (
+            self.override_spells_id,
+            self.ignore_power_regen_prediction_mask,
+            self.aura_vision,
+        )
+            .store()
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let (override_spells_id, ignore_power_regen_prediction_mask, aura_vision) =
+            Storable::load([val[0]]);
+
+        Self {
+            override_spells_id,
+            ignore_power_regen_prediction_mask,
+            aura_vision,
+        }
+    }
+}
+
+impl Storable for QuestLogItem {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        let id = self.id.to_le_bytes();
+        let state = self.state.to_le_bytes();
+        let counts1 = (self.counts1, self.counts2).store();
+        let counts2 = (self.counts3, self.counts4).store();
+        let time = self.time.to_le_bytes();
+
+        [id, state, counts1[0], counts2[0], time]
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let id = Storable::load([val[0]]);
+        let state = Storable::load([val[1]]);
+        let (counts1, counts2) = Storable::load([val[2]]);
+        let (counts3, counts4) = Storable::load([val[3]]);
+        let time = Storable::load([val[4]]);
+        Self {
+            id,
+            state,
+            counts1,
+            counts2,
+            counts3,
+            counts4,
+            time,
+        }
+    }
+}
+
+impl Storable for PlayerEnchantment {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        let id = self.id.to_le_bytes();
+        let permanent_temporary = Storable::store((self.permanent, self.temporary));
+        [id, permanent_temporary[0]]
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let id = Storable::load([val[0]]);
+        let (permanent, temporary) = Storable::load([val[1]]);
+        Self {
+            id,
+            permanent,
+            temporary,
+        }
+    }
+}
+
+impl Storable for Rune {
+    type StoredType = [[u8; 4]; Self::SIZE as usize];
+
+    fn store(self) -> Self::StoredType {
+        let blood = self.blood.store();
+        let unholy = self.unholy.store();
+        let frost = self.frost.store();
+        let death = self.death.store();
+        [blood[0], unholy[0], frost[0], death[0]]
+    }
+
+    fn load(val: Self::StoredType) -> Self {
+        let blood = Storable::load([val[0]]);
+        let unholy = Storable::load([val[1]]);
+        let frost = Storable::load([val[2]]);
+        let death = Storable::load([val[3]]);
+        Self {
+            blood,
+            unholy,
+            frost,
+            death,
+        }
+    }
+}

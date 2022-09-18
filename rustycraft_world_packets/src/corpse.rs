@@ -1,5 +1,5 @@
-use deku::prelude::*;
 use crate::setters;
+use deku::prelude::*;
 
 setters!(
     pub struct 0x0080 => Corpse {

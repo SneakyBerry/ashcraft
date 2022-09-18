@@ -68,7 +68,7 @@ fn char_data() -> CharacterEnumServer {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            rotation: 0.0
+            rotation: 0.0,
         },
         guild_id: 0,
         flags: 0,
@@ -240,7 +240,7 @@ impl ClientSession {
                 x: 200.0,
                 y: 200.0,
                 z: 200.0,
-                rotation: 0.0
+                rotation: 0.0,
             },
         })
         .await
@@ -295,7 +295,7 @@ impl ClientSession {
                         x: -8949.95,
                         y: -132.493,
                         z: 83.5312,
-                        rotation: 0.0
+                        rotation: 0.0,
                     })
                     .pitch_rate(0.0)
                     .running_speed(7.0)

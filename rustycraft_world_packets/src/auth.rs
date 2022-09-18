@@ -1,8 +1,8 @@
 use crate::expansion::Expansion;
 use crate::opcodes::Opcode;
+use crate::read_c_string;
 use crate::response_code::ResponseCode;
 use crate::ServerPacket;
-use crate::read_c_string;
 use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
 

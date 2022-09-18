@@ -1,10 +1,6 @@
-// use crate::guid::Guid;
-// use crate::objects::traits::sealed::Sealed;
-// use crate::objects::{ObjectInner, UpdateObject};
-// use crate::position::Vector3d;
-// use deku::bitvec::{BitArray, BitVec};
 use deku::prelude::*;
-#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GameObjectBytes {
     pub state: GameObjectState,
     pub r#type: GameObjectTypes,
@@ -12,16 +8,14 @@ pub struct GameObjectBytes {
     pub anim_progress: u8,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
-#[deku(type = "u8")]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum GameObjectState {
     Active = 0,    // show in world as used and not reset (closed door open)
     Ready = 1,     // show in world as ready (closed door close)
     Destroyed = 2, // show the object in-game as already used and not yet reset (e.g. door opened by a cannon blast)
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
-#[deku(type = "u8")]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum GameObjectTypes {
     Door = 0,
     Button = 1,
@@ -61,25 +55,26 @@ pub enum GameObjectTypes {
     Trapdoor = 35,
 }
 
-#[macro_export]
-macro_rules! game_object_fields {
-    (
-        Offset: $offset:tt;
-        impl GameObject for $struct_name:ident
-    ) => {
-        impl_accessors!(
-            Offset: $offset;
-            Size: 0x000C;
-            impl $struct_name {
-                0x0000 => game_object_created_by: Guid;
-                0x0002 => game_object_display_id: u32;
-                0x0003 => game_object_flags: bool;
-                0x0004 => game_object_parent_rotation: Vector3d;
-                0x0008 => game_object_dynamic: (u16, u16);
-                0x0009 => game_object_faction: u32;
-                0x000A => game_object_level: u32;
-                0x000B => game_object_bytes: GameObjectBytes;
-            }
-        );
-    };
+pub mod game_object {
+    #[macro_export]
+    macro_rules! game_object_fields {
+        (
+            impl GameObject for $struct_name:ident
+        ) => {
+            impl_accessors!(
+                Offset: 0x0006;
+                Size: 0x000C;
+                impl $struct_name {
+                    0x0000 => game_object_created_by: Guid;
+                    0x0002 => game_object_display_id: u32;
+                    0x0003 => game_object_flags: [bool; 1];
+                    0x0004 => game_object_parent_rotation: Vector3d;
+                    0x0008 => game_object_dynamic: (u16, u16);
+                    0x0009 => game_object_faction: u32;
+                    0x000A => game_object_level: u32;
+                    0x000B => game_object_bytes: GameObjectBytes;
+                }
+            );
+        };
+    }
 }
