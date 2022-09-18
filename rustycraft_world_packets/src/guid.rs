@@ -19,7 +19,6 @@ pub struct PackedGuid {
     parts: Vec<u8>,
 }
 
-
 /// Tricky part where we read high_guid from tail
 fn read_high_guid(rest: &BitSlice<Msb0, u8>) -> Result<(&BitSlice<Msb0, u8>, HighGuid), DekuError> {
     let res = HighGuid::read(&rest[48..], ())?;
@@ -31,13 +30,6 @@ impl Guid {
         Guid {
             high_guid: high,
             guid: guid & 0x0000FFFFFFFFFFFF,
-        }
-    }
-
-    pub fn blank() -> Guid {
-        Self {
-            high_guid: HighGuid::Player,
-            guid: 0
         }
     }
 
@@ -79,6 +71,15 @@ impl Guid {
     }
 }
 
+impl Default for Guid {
+    fn default() -> Self {
+        Self {
+            high_guid: HighGuid::Player,
+            guid: 0,
+        }
+    }
+}
+
 impl From<Guid> for PackedGuid {
     fn from(guid: Guid) -> Self {
         let mut parts = vec![];
@@ -89,10 +90,7 @@ impl From<Guid> for PackedGuid {
                 parts.push(val);
             }
         }
-        PackedGuid {
-            mask,
-            parts
-        }
+        PackedGuid { mask, parts }
     }
 }
 
@@ -175,9 +173,9 @@ pub enum TypeMask {
 #[cfg(test)]
 mod test {
     use crate::guid::{Guid, HighGuid, PackedGuid};
+    use deku::DekuContainerRead;
     use deku::DekuContainerWrite;
     use std::io::{Cursor, Read};
-    use deku::DekuContainerRead;
 
     #[test]
     fn test_packed() {
@@ -194,7 +192,7 @@ mod test {
         let packed_guid = vec![0b10110111, 0xBA, 0xB0, 0xBA, 0x0B, 0xF0, 0x40];
         let (_, packed1) = PackedGuid::from_bytes((&packed_guid, 0)).unwrap();
         assert_eq!(packed, packed1);
-        let (_, guid2) =  Guid::from_bytes((&0x4000F00B00BAB0BAu64.to_le_bytes(), 0)).unwrap();
+        let (_, guid2) = Guid::from_bytes((&0x4000F00B00BAB0BAu64.to_le_bytes(), 0)).unwrap();
         assert_eq!(guid1, guid2);
     }
 }

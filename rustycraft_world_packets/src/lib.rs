@@ -41,7 +41,8 @@ extern crate paste;
 extern crate derive_builder;
 #[macro_use]
 extern crate thiserror;
-extern crate alloc;
+#[macro_use]
+extern crate const_format;
 
 
 #[derive(Debug, Error)]

@@ -7,21 +7,21 @@ use deku::prelude::*;
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct UnitData {
-    race: Race,
-    class: Class,
-    gender: Gender,
-    power: Power,
+    pub race: Race,
+    pub class: Class,
+    pub gender: Gender,
+    pub power: Power,
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct ClassSpecific {
-    stand_state: u8,
-    pet_talents: u8,
-    vis_flag: u8,
-    anim_tier: u8,
+    pub stand_state: u8,
+    pub pet_talents: u8,
+    pub vis_flag: u8,
+    pub anim_tier: u8,
 }
 
-enum UnitFlags {
+pub enum UnitFlags {
     ServerControlled = 0x003B0001, // set only when unit movement is controlled by server - by SPLINE/MONSTER_MOVE packets, together with STUNNED; only set to units controlled by client; client function CGUnit_C::IsClientControlled returns false when set for owner
     NonAttackable = 0x003B0002, // not attackable, set when creature starts to cast spells with SPELL_EFFECT_SPAWN and cast time, removed when spell hits caster, original name is SPAWNING. Rename when it will be removed from all scripts
     RemoveClientControl = 0x003B0004, // This is a legacy flag used to disable movement player's movement while controlling other units, SMSG_CLIENT_CONTROL replaces this functionality clientside now. CONFUSED and FLEEING flags have the same effect on client movement asDISABLE_MOVE_CONTROL in addition to preventing spell casts/autoattack (they all allow climbing steeper hills and emotes while moving)
@@ -66,7 +66,7 @@ enum UnitFlags {
                          // ALLOWED               = (0xFFFFFFFF & ~DISALLOWED)
 }
 
-enum UnitFlags2 {
+pub enum UnitFlags2 {
     FeignDeath = 0x003B0001,
     HideBody = 0x003B0002, // Hide unit model (show only player equip)
     IgnoreReputation = 0x003B0004,
@@ -100,7 +100,7 @@ enum UnitFlags2 {
     Unused12 = 0x40000000,
     Unused13 = 0x80000000,
 }
-enum UnitDynFlags {
+pub enum UnitDynFlags {
     None = 0x003B,
     Lootable = 0x0001,
     TrackUnit = 0x0002,
@@ -112,7 +112,7 @@ enum UnitDynFlags {
     TappedByAllThreatList = 0x0080, // Lua_UnitIsTappedByAllThreatList
 }
 
-enum NPCFlags {
+pub enum NPCFlags {
     None = 0x003B0000,       // SKIP
     Gossip = 0x003B0001,     // TITLE has gossip menu DESCRIPTION 100%
     QuestGiver = 0x003B0002, // TITLE is quest giver DESCRIPTION guessed, probably ok
@@ -153,7 +153,7 @@ macro_rules! unit_fields {
             Offset: $offset;
             Size: 0x008E;
             impl $struct_name {
-                0x003B => unit_charm: Guid;
+                0x0000 => unit_charm: Guid;
                 0x0002 => unit_summon: Guid;
                 0x0004 => unit_critter: Guid;
                 0x0006 => unit_charmed_by: Guid;
@@ -177,8 +177,8 @@ macro_rules! unit_fields {
 
                 0x0031 => unit_faction_template: u32;
                 0x0032 => unit_virtual_item_slot_id: [u32; 3];
-                0x0035 => unit_flags: bitmask;
-                0x0036 => unit_flags_2: bitmask;
+                0x0035 => unit_flags: bool;
+                0x0036 => unit_flags_2: bool;
 
                 0x0037 => unit_aura_state: u32;
                 0x0038 => unit_base_attack_time_main_off_hand: [f32; 2];
@@ -200,12 +200,12 @@ macro_rules! unit_fields {
                 0x0047 => unit_pet_experience: u32;
                 0x0048 => unit_pet_next_level_exp: u32;
 
-                0x0049 => unit_dynamic_flags: bitmask;
+                0x0049 => unit_dynamic_flags: bool;
 
                 0x004A => unit_mod_cast_speed: f32;
                 0x004B => unit_created_by_spell: u32;
 
-                0x004C => unit_npc_flags: bitmask;
+                0x004C => unit_npc_flags: bool;
                 0x004D => unit_npc_emote_state: u32;
                 //
                 0x004E => unit_stat: [u32; 5];                // [strength, agility, stamina, intellect, spirit]
@@ -228,7 +228,7 @@ macro_rules! unit_fields {
                 0x0084 => unit_power_cost_mul: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
                 0x008B => unit_max_health_modifier: u32;
                 0x008C => unit_hover_height: u32;
-                0x008D => unit_padding: None;
+                0x008D => unit_padding: ();
             }
         );
     };

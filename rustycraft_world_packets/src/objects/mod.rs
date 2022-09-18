@@ -1,21 +1,20 @@
 use crate::guid::Guid;
 use crate::object::ObjectType;
-use alloc::collections;
 use deku::bitvec::{BitVec, Lsb0};
 use deku::prelude::*;
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
-mod container;
-mod corpse;
-mod dynamic_object;
-mod game_object;
-mod item;
-mod object;
-mod player;
-pub mod traits;
-mod unit;
-mod utils;
+pub(crate) mod container;
+pub(crate) mod corpse;
+pub(crate) mod dynamic_object;
+pub(crate) mod game_object;
+pub(crate) mod item;
+pub(crate) mod object;
+pub(crate) mod player;
+pub(crate) mod traits;
+pub(crate) mod unit;
+pub(crate) mod utils;
 
 pub(crate) type ObjectInner = BTreeMap<u16, [u8; 4]>;
 
@@ -125,6 +124,7 @@ macro_rules! impl_base {
         }
     };
 }
+
 macro_rules! impl_accessors {
     (
         Offset: $offset:expr;
@@ -143,7 +143,9 @@ macro_rules! impl_accessors {
             let starts = [$( $start, )* $size];
             let i = 1;
             $(
-            if starts[i] != $start + <$type>::SIZE { panic!("Bad fields mapping") };
+            if starts[i] != $start + <$type>::SIZE {
+               panic!("Bad fields mapping")
+            };
             let i = i + 1;
             )*;
         };
@@ -154,13 +156,17 @@ macro_rules! impl_accessors {
 mod test {
     use super::*;
     use crate::guid::{Guid, HighGuid};
-    use crate::{container_fields, corpse_fields, dynamic_object_fields, game_object_fields, item_fields, object_fields};
-    use deku::prelude::*;
-    use std::mem::size_of;
-    use crate::position::Vector3d;
     use crate::objects::game_object::GameObjectBytes;
     use crate::objects::item::ItemEnchantment;
-
+    use crate::objects::player::*;
+    use crate::objects::unit::*;
+    use crate::position::Vector3d;
+    use crate::{
+        container_fields, corpse_fields, dynamic_object_fields, game_object_fields, item_fields,
+        object_fields, player_fields, unit_fields,
+    };
+    use deku::prelude::*;
+    use std::mem::size_of;
 
     const OBJECT_BIT_VEC_SIZE: usize = 0x0006;
     const ITEM_BIT_VEC_SIZE: usize = OBJECT_BIT_VEC_SIZE + 0x003A;
@@ -181,34 +187,44 @@ mod test {
     impl_base!(impl Base for TestStruct;);
 
     object_fields!(
-        Offset: 0x00012;
+        Offset: 0x0000;
         impl Object for TestStruct
     );
 
     container_fields!(
-        Offset: 0x00017;
+        Offset: 0x1000;
         impl Container for TestStruct
     );
 
     corpse_fields!(
-        Offset: 0x00061;
+        Offset: 0x2000;
         impl Corpse for TestStruct
     );
 
     dynamic_object_fields!(
-        Offset: 0x0007F;
+        Offset: 0x3000;
         impl DynamicObject for TestStruct
     );
 
     game_object_fields!(
-        Offset: 0x00085;
+        Offset: 0x4000;
         impl GameObject for TestStruct
     );
 
     item_fields!(
-        Offset: 0x00091;
+        Offset: 0x5000;
         impl Item for TestStruct
     );
+
+    unit_fields!(
+        Offset: 0x6000;
+        impl Unit for TestStruct
+    );
+
+    // player_fields!(
+    //     Offset: 0x7000;
+    //     impl Player for TestStruct
+    // );
 
     impl_accessors!(
         Offset: 0x0;
