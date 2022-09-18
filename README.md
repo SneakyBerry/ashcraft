@@ -7,12 +7,12 @@ Project inspired by [TrinityCore](https://github.com/TrinityCore/TrinityCore)
 
 The main goal is to create modern, distributed, scalable World of Warcraft server emulator. 
 
-#### Current supported version of World of Warcraft: *9.2.0 build 43206*
+#### Current supported version of World of Warcraft: *3.3.5a build 12340*
 
 ### What's ready for the prototype
 - [x] Basic login to the realm
 - [x] Switch client from realm server to world server
-- [x] Create a character
+- [ ] Create a character
 - [ ] Log into the world
 
 #### Plans to alpha
