@@ -14,8 +14,6 @@ pub struct CmsgPlayerLogin {
 pub struct SmsgLoginVerifyWorld {
     pub map: Map,
     pub position: Vector3d,
-    #[deku(endian = "little")]
-    pub orientation: f32,
 }
 
 impl ServerPacket for SmsgLoginVerifyWorld {

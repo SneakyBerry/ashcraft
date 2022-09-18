@@ -1,13 +1,13 @@
 use crate::guid::{TypeMask};
 use crate::object::ObjectType;
 use crate::update_flag::UpdateFlag;
-use crate::update_mask::UpdateMask;
+use crate::update_mask::UpdateFields;
 
 pub struct BaseObject {
     object_type: TypeMask,
     object_type_id: ObjectType,
     update_flag: UpdateFlag,
-    update_mask: UpdateMask,
+    update_mask: UpdateFields,
     // ???
     values_count: u16,
     is_in_world: bool,

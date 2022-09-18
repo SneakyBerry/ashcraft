@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum Gender {
     Male = 0x01,

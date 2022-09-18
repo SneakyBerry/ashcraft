@@ -25,6 +25,7 @@ pub mod transport;
 pub mod tutorial;
 pub mod update_flag;
 pub mod update_mask;
+pub mod objects;
 
 use std::ffi::CString;
 use crate::opcodes::Opcode;
@@ -38,13 +39,24 @@ use wow_srp::wrath_header::ServerEncrypterHalf;
 extern crate paste;
 #[macro_use]
 extern crate derive_builder;
+#[macro_use]
+extern crate thiserror;
+extern crate alloc;
+
+
+#[derive(Debug, Error)]
+pub enum PacketError {
+    #[error("Encode packet error: {}", .0)]
+    EncodingError(#[from] DekuError)
+}
+
 
 pub trait ServerPacket: DekuContainerWrite + DekuUpdate
 where
     Self: Sized,
 {
     fn get_opcode(&self) -> Opcode;
-    fn encode(mut self, encryption: Option<&mut ServerEncrypterHalf>) -> anyhow::Result<Bytes> {
+    fn encode(mut self, encryption: Option<&mut ServerEncrypterHalf>) -> Result<Bytes, PacketError> {
         self.update()?;
         let mut vect = Vec::with_capacity(size_of_val(&self) + 4);
         let body = self.to_bytes()?;
@@ -59,16 +71,7 @@ where
 
         vect.extend(headers);
         vect.extend(body);
-        println!(
-            "{:?}: {}",
-            self.get_opcode(),
-            &vect[4..]
-                .iter()
-                .enumerate()
-                .map(|(i, x)| format!("{i}: {:X}", x))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
+        println!("OP: {:?}:\n {:#?}", self.get_opcode(), &vect[4..]);
         let res = Bytes::from(vect);
         Ok(res)
     }

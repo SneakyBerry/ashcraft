@@ -29,19 +29,20 @@ pub(crate) fn header_set(header: &mut Vec<u32>, bit: u16) {
 }
 
 #[derive(Debug, DekuRead, DekuWrite)]
-pub struct UpdateMask {
+pub struct UpdateFields {
     #[deku(update = "self.mask.len()")]
     amount_of_blocks: u8, // 74
     #[deku(count = "amount_of_blocks")]
     #[deku(endian = "little")]
     mask: Vec<u32>, // 78
+    // BTreeMap to ensure order of values
     #[deku(reader = "header_values_reader(&mask, deku::rest)")]
     #[deku(writer = "header_values_writer(deku::output, &self.values)")]
     values: BTreeMap<u16, u32>,
 }
 
-impl UpdateMask {
-    pub fn new(object: UpdateType) -> UpdateMask {
+impl UpdateFields {
+    pub fn new(object: UpdateType) -> UpdateFields {
         const OBJECT_FIELD_TYPE: u16 = 2;
 
         let mut header = vec![];
@@ -49,7 +50,7 @@ impl UpdateMask {
 
         header_set(&mut header, OBJECT_FIELD_TYPE);
         values.insert(OBJECT_FIELD_TYPE, OBJECT | object as u32);
-        UpdateMask {
+        UpdateFields {
             amount_of_blocks: header.len() as u8,
             mask: header,
             values

@@ -142,8 +142,6 @@ pub struct Stationary {
 pub struct Position {
     #[deku(endian = "little")]
     pub corpse_orientation: f32,
-    #[deku(endian = "little")]
-    pub orientation1: f32,
     pub position1: Vector3d,
     pub transport_guid: PackedGuid,
 }
@@ -155,8 +153,6 @@ pub struct Living {
     #[deku(endian = "little")]
     timestamp: u32, // 25
     living_position: Vector3d,       // 37
-    #[deku(endian = "little")]
-    living_orientation: f32, // 41
 
     #[builder(default)]
     // MOVEMENTFLAG_ONTRANSPORT

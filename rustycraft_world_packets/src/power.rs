@@ -1,3 +1,7 @@
+use deku::prelude::*;
+
+#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[deku(type = "u8")]
 pub enum Power {
     Mana = 0x0,
     Rage = 0x1,

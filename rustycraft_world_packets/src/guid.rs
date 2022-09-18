@@ -1,46 +1,52 @@
 use crate::object::ObjectType;
+use crate::{BitSlice, Msb0};
 use deku::prelude::*;
 use std::ops::{BitAnd, Shr};
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
 pub struct Guid {
-    pub high_guid: HighGuid, // 16
-    #[deku(bytes = "6", endian = "little")]
-    pub guid: u64, // 48
+    #[deku(reader = "read_high_guid(deku::rest)")]
+    high_guid: HighGuid, // 16
+    #[deku(bytes = "6")]
+    #[deku(endian = "little")]
+    guid: u64, // 48
 }
 
-#[derive(Debug, Clone, DekuWrite)]
-pub struct PackedGuid(Vec<u8>);
+#[derive(Debug, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
+pub struct PackedGuid {
+    mask: u8,
+    #[deku(count = "mask.count_ones()")]
+    parts: Vec<u8>,
+}
 
-impl From<Guid> for PackedGuid {
-    fn from(guid: Guid) -> Self {
-        let mut v = vec![];
-        let placeholder_index = v.len();
-        // Placeholder
-        v.push(0);
 
-        let guid = guid.as_u64().to_le_bytes();
-        let mut bit_pattern = 0;
-
-        for (i, &b) in guid.iter().enumerate() {
-            if b != 0 {
-                bit_pattern |= 1 << i;
-                v.push(b);
-            }
-        }
-
-        v[placeholder_index] = bit_pattern;
-        PackedGuid(v)
-    }
+/// Tricky part where we read high_guid from tail
+fn read_high_guid(rest: &BitSlice<Msb0, u8>) -> Result<(&BitSlice<Msb0, u8>, HighGuid), DekuError> {
+    let res = HighGuid::read(&rest[48..], ())?;
+    Ok((rest, res.1))
 }
 
 impl Guid {
-    pub fn guid(&self) -> u64 {
-        self.guid
+    pub fn new(high: HighGuid, guid: u64) -> Guid {
+        Guid {
+            high_guid: high,
+            guid: guid & 0x0000FFFFFFFFFFFF,
+        }
+    }
+
+    pub fn blank() -> Guid {
+        Self {
+            high_guid: HighGuid::Player,
+            guid: 0
+        }
     }
 
     pub fn as_u64(&self) -> u64 {
-        u64::MAX.bitand(self.guid << 16) | self.high_guid as u64
+        self.guid | (self.high_guid as u64) << 48
+    }
+
+    pub fn as_u32(&self) -> [u32; 2] {
+        [(self.guid >> 32) as u32, self.guid as u32]
     }
 
     const fn has_entry(&self) -> bool {
@@ -71,27 +77,54 @@ impl Guid {
             0x00000000FFFFFFFF
         }) as u32
     }
+}
 
-    pub fn pack_guid(&self) -> [u8; 9] {
-        let mut pack_guid = [0; 8 + 1];
-        let mut size = 1;
-        let mut guid = self.guid;
-        let mut i = 0;
-        while guid != 0 {
-            if guid & 0xFF != 0 {
-                pack_guid[0] |= (1 << i) as u8;
-                pack_guid[size] = (guid & 0xFF) as u8;
-                size += 1;
+impl From<Guid> for PackedGuid {
+    fn from(guid: Guid) -> Self {
+        let mut parts = vec![];
+        let mut mask = 0u8;
+        for (idx, val) in guid.as_u64().to_le_bytes().into_iter().enumerate() {
+            if val != 0 {
+                mask |= 1 << idx;
+                parts.push(val);
             }
-
-            guid >>= 8;
-            i += 1
         }
-        pack_guid
+        PackedGuid {
+            mask,
+            parts
+        }
     }
 }
 
-#[derive(Debug, Clone, Copy, DekuWrite, DekuRead)]
+impl TryFrom<&PackedGuid> for Guid {
+    type Error = DekuError;
+
+    fn try_from(value: &PackedGuid) -> Result<Self, Self::Error> {
+        let mask = value.mask;
+
+        // Just to ensure that PackedGuid is consistent
+        // Because of PackedGuid have no external constructors
+        // it should be an issue in parsing of PackedGuid
+        assert_eq!(value.mask.count_ones() as usize, value.parts.len());
+
+        let mut arr_ptr = 0;
+        let mut byte_vec = [0u8; 8];
+
+        for i in 0..8 {
+            if (mask >> i) & 1 == 1 {
+                byte_vec[i] = value.parts[arr_ptr];
+                arr_ptr += 1;
+            }
+        }
+        let guid = u64::from_le_bytes(byte_vec);
+        Ok(Guid::new(
+            HighGuid::from_bytes((&guid.to_le_bytes()[6..], 0))?.1,
+            guid,
+        ))
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u16")]
 #[deku(endian = "little")]
 pub enum HighGuid {
@@ -144,28 +177,24 @@ mod test {
     use crate::guid::{Guid, HighGuid, PackedGuid};
     use deku::DekuContainerWrite;
     use std::io::{Cursor, Read};
-
-    #[test]
-    fn test_as_u64() {
-        let guid = Guid {
-            high_guid: HighGuid::Item,
-            guid: u64::MAX,
-        };
-        assert_eq!(guid.as_u64(), 0xFFFFFFFFFFFF4000);
-        assert_eq!(
-            guid.as_u64().to_le_bytes().to_vec(),
-            guid.to_bytes().unwrap()
-        );
-    }
+    use deku::DekuContainerRead;
 
     #[test]
     fn test_packed() {
-        let guid = Guid {
-            high_guid: HighGuid::Player,
-            guid: 4,
-        };
-        assert_eq!(guid.as_u64(), 0x0000000000040000);
-        println!("{:?}", &guid.pack_guid());
-        // assert_eq!(PackedGuid::from(guid).to_bytes().unwrap(), vec![4, 4, 4, 21, 0, 0, 0, 0]);
+        let hex_guid = 0x0000F00B00BAB0BA;
+
+        let guid = Guid::new(HighGuid::Item, hex_guid);
+        assert_eq!(guid.guid, hex_guid);
+        let packed = PackedGuid::from(guid);
+        assert_eq!(packed.mask, 0b10110111);
+        assert_eq!(packed.parts, vec![0xBA, 0xB0, 0xBA, 0x0B, 0xF0, 0x40]);
+        let guid1 = Guid::try_from(&packed).unwrap();
+        assert_eq!(guid, guid1);
+
+        let packed_guid = vec![0b10110111, 0xBA, 0xB0, 0xBA, 0x0B, 0xF0, 0x40];
+        let (_, packed1) = PackedGuid::from_bytes((&packed_guid, 0)).unwrap();
+        assert_eq!(packed, packed1);
+        let (_, guid2) =  Guid::from_bytes((&0x4000F00B00BAB0BAu64.to_le_bytes(), 0)).unwrap();
+        assert_eq!(guid1, guid2);
     }
 }

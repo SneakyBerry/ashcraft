@@ -22,35 +22,3 @@ define_flags!(
         POSITION = 0x0100,
         ROTATION = 0x0200
 });
-
-#[cfg(test)]
-mod test {
-    use crate::update_flag::UpdateFlag;
-
-    #[test]
-    fn test() {
-        let mut a = UpdateFlag::new(0);
-        a.set_self();
-        a.set_has_attacking_target();
-        a.set_high_guid();
-        a.set_has_position();
-        a.set_vehicle();
-        a.set_rotation();
-        let res = format!("{:?}", &a);
-        let expect = "\
-rustycraft_world_server::update_flag::UpdateFlag {
-	self: true,
-	transport: false,
-	has_attacking_target: true,
-	low_guid: false,
-	high_guid: true,
-	living: false,
-	has_position: true,
-	vehicle: true,
-	position: false,
-	rotation: true,
-}"
-        .to_owned();
-        assert_eq!(res, expect)
-    }
-}

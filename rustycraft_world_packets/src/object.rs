@@ -1,7 +1,7 @@
 use crate::guid::PackedGuid;
 use crate::movement_block::MovementBlock;
 use crate::opcodes::Opcode;
-use crate::update_mask::UpdateMask;
+use crate::update_mask::UpdateFields;
 use crate::ServerPacket;
 use deku::prelude::*;
 
@@ -10,6 +10,12 @@ pub struct SmsgUpdateObject {
     #[deku(endian = "little")]
     amount_of_objects: u32, //+
     pub objects: Vec<Object>,
+}
+
+#[derive(Debug, DekuWrite)]
+pub struct DebugPacket {
+    pub opcode: Opcode,
+    pub data: Vec<u8>,
 }
 
 impl SmsgUpdateObject {
@@ -30,28 +36,28 @@ pub struct Object {
 #[deku(type = "u8")]
 pub enum ObjectUpdateType {
     #[deku(id = "0x0")]
-    Values {
-        guid1: PackedGuid,
-        mask1: UpdateMask,
+    Partial {
+        guid: PackedGuid,
+        update_fields: UpdateFields,
     },
     #[deku(id = "0x1")]
     Movement {
-        guid2: PackedGuid,
-        movement1: MovementBlock,
+        guid: PackedGuid,
+        movement: MovementBlock,
     },
     #[deku(id = "0x2")]
     CreateObject {
-        guid3: PackedGuid,
-        mask2: UpdateMask,
-        movement2: MovementBlock,
+        guid: PackedGuid,
+        update_fields: UpdateFields,
+        movement: MovementBlock,
         object_type: ObjectType,
     },
     #[deku(id = "0x3")]
     CreateObject2 {
-        guid3: PackedGuid,       // SHOULD BE PACKED 12
+        guid: PackedGuid,       // 12
         object_type: ObjectType, // 13
         movement2: MovementBlock,
-        mask2: UpdateMask,
+        update_fields: UpdateFields,
     },
     #[deku(id = "0x4")]
     OutOfRangeObjects {
@@ -84,7 +90,13 @@ impl ServerPacket for SmsgUpdateObject {
     }
 }
 
-#[derive(Debug, DekuWrite)]
+impl ServerPacket for DebugPacket {
+    fn get_opcode(&self) -> Opcode {
+        self.opcode
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 #[deku(type = "u8")]
 pub enum ObjectType {
     Object = 0x0,

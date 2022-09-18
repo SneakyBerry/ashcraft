@@ -20,7 +20,9 @@ use rustycraft_world_packets::movement_block::{
     LivingBuilder, MovementBlockBuilder, MovementBlockLivingVariants,
 };
 use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags};
-use rustycraft_world_packets::object::{Object, ObjectType, ObjectUpdateType, SmsgUpdateObject};
+use rustycraft_world_packets::object::{
+    DebugPacket, Object, ObjectType, ObjectUpdateType, SmsgUpdateObject,
+};
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::power::Power;
@@ -28,7 +30,7 @@ use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::response_code::ResponseCode;
 use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
 use rustycraft_world_packets::tutorial::SmsgTutorialFlags;
-use rustycraft_world_packets::update_mask::{UpdateMask, UpdateType};
+use rustycraft_world_packets::update_mask::{UpdateFields, UpdateType};
 use rustycraft_world_packets::ServerPacket;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -49,10 +51,7 @@ pub struct ClientSession {
 
 fn char_data() -> CharacterEnumServer {
     CharacterEnumServer::new(vec![Character {
-        guid: Guid {
-            high_guid: HighGuid::Player,
-            guid: 0,
-        },
+        guid: Guid::new(HighGuid::Player, 0),
         name: "Abobus".to_string(),
         race: Race::Human,
         class: Class::Warrior,
@@ -69,6 +68,7 @@ fn char_data() -> CharacterEnumServer {
             x: 0.0,
             y: 0.0,
             z: 0.0,
+            rotation: 0.0
         },
         guild_id: 0,
         flags: 0,
@@ -117,7 +117,7 @@ impl ClientSession {
                         self.handle_player_login(CmsgPlayerLogin::from_bytes((&data, 0))?.1)
                             .await?
                     }
-                    opcode => todo!("{:?}: {:?}", opcode, data),
+                    opcode => debug!("{:?}: {:?}", opcode, data),
                 }
             } else {
                 let first = res.unwrap();
@@ -240,8 +240,8 @@ impl ClientSession {
                 x: 200.0,
                 y: 200.0,
                 z: 200.0,
+                rotation: 0.0
             },
-            orientation: 0.0,
         })
         .await
         .unwrap();
@@ -259,11 +259,8 @@ impl ClientSession {
         //     .set_unit_DISPLAYID(50)
         //     .set_unit_NATIVEDISPLAYID(50);
 
-        let mut update_mask = UpdateMask::new(UpdateType::Player);
-        let guid = Guid {
-            high_guid: HighGuid::Player,
-            guid: 4,
-        };
+        let mut update_mask = UpdateFields::new(UpdateType::Player);
+        let guid = Guid::new(HighGuid::Player, 4);
         update_mask
             .set_value(0, guid.as_u64() as u32)
             .set_value(1, (guid.as_u64() >> 32 as u32) as u32)
@@ -294,11 +291,11 @@ impl ClientSession {
                     .flags(MovementFlags::new(0))
                     .flight_speed(0.0)
                     .backwards_flight_speed(0.0)
-                    .living_orientation(0.0)
                     .living_position(Vector3d {
                         x: -8949.95,
                         y: -132.493,
                         z: 83.5312,
+                        rotation: 0.0
                     })
                     .pitch_rate(0.0)
                     .running_speed(7.0)
@@ -314,17 +311,27 @@ impl ClientSession {
             .unwrap();
         let update_object = SmsgUpdateObject::new(vec![Object {
             update_type: ObjectUpdateType::CreateObject2 {
-                guid3: Guid {
-                    high_guid: HighGuid::Player,
-                    guid: 4,
-                }
-                .into(),
+                guid: Guid::new(HighGuid::Player, 4).into(),
                 object_type: ObjectType::Player,
-                mask2: update_mask,
+                update_fields: update_mask,
                 movement2: update_flag,
             },
         }]);
         self.send_packet(update_object).await.unwrap();
+        // self.send_packet(DebugPacket {
+        //     opcode: Opcode::SmsgUpdateObject,
+        //     data: vec![
+        //         1, 0, 0, 0, 3, 1, 4, 4, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 205, 215, 11, 198, 53,
+        //         126, 4, 195, 249, 15, 167, 66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 63, 0, 0, 224,
+        //         64, 0, 0, 144, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 219, 15, 73, 64,
+        //         0, 0, 0, 0, 3, 23, 0, 128, 1, 1, 0, 192, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
+        //         25, 0, 0, 0, 0, 0, 128, 63, 1, 1, 1, 1, 100, 0, 0, 0, 100, 0, 0, 0, 1, 0, 0, 0, 1,
+        //         0, 0, 0, 50, 0, 0, 0, 50, 0, 0, 0,
+        //     ],
+        // })
+        //     .await
+        //     .unwrap();
+
         self.send_packet(SmsgTimeSyncReq { time_sync: 0 })
             .await
             .unwrap();
