@@ -1,4 +1,6 @@
-use crate::packets::{parse_reverse, parse_string, DekuWriteDebug, Opcode, RequestResult, Version};
+use crate::packets::{
+    parse_reverse, parse_string, DekuWriteWithDebug, Opcode, RequestResult, Version,
+};
 use deku::prelude::*;
 use wow_srp::GENERATOR_LENGTH;
 
@@ -55,4 +57,4 @@ pub(crate) struct LogonChallengeResponse {
     // pkt << uint8(1);
 }
 
-impl DekuWriteDebug for LogonChallengeResponse {}
+impl DekuWriteWithDebug for LogonChallengeResponse {}

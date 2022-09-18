@@ -1,4 +1,4 @@
-use crate::packets::{DekuWriteDebug, Opcode, RequestResult};
+use crate::packets::{DekuWriteWithDebug, Opcode, RequestResult};
 use deku::prelude::*;
 
 #[derive(Debug, DekuRead)]
@@ -35,4 +35,4 @@ pub(crate) struct LogonProofResponse {
     pub(crate) login_flags: u16,
 }
 
-impl DekuWriteDebug for LogonProofResponse {}
+impl DekuWriteWithDebug for LogonProofResponse {}

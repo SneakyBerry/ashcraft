@@ -28,48 +28,48 @@ pub(crate) fn header_set(header: &mut Vec<u32>, bit: u16) {
     header[index as usize] |= 1 << offset;
 }
 
-#[derive(Debug, DekuRead, DekuWrite)]
-pub struct UpdateFields {
-    #[deku(update = "self.mask.len()")]
-    amount_of_blocks: u8, // 74
-    #[deku(count = "amount_of_blocks")]
-    #[deku(endian = "little")]
-    mask: Vec<u32>, // 78
-    // BTreeMap to ensure order of values
-    #[deku(reader = "header_values_reader(&mask, deku::rest)")]
-    #[deku(writer = "header_values_writer(deku::output, &self.values)")]
-    values: BTreeMap<u16, u32>,
-}
+// #[derive(Debug, DekuRead, DekuWrite)]
+// pub struct UpdateFields {
+//     #[deku(update = "self.mask.len()")]
+//     amount_of_blocks: u8, // 74
+//     #[deku(count = "amount_of_blocks")]
+//     #[deku(endian = "little")]
+//     mask: Vec<u32>, // 78
+//     // BTreeMap to ensure order of values
+//     #[deku(reader = "header_values_reader(mask, deku::rest)")]
+//     #[deku(writer = "header_values_writer(deku::output, &self.values)")]
+//     values: BTreeMap<u16, u32>,
+// }
 
-impl UpdateFields {
-    pub fn new(object: UpdateType) -> UpdateFields {
-        const OBJECT_FIELD_TYPE: u16 = 2;
-
-        let mut header = vec![];
-        let mut values = BTreeMap::new();
-
-        header_set(&mut header, OBJECT_FIELD_TYPE);
-        values.insert(OBJECT_FIELD_TYPE, OBJECT | object as u32);
-        UpdateFields {
-            amount_of_blocks: header.len() as u8,
-            mask: header,
-            values,
-        }
-    }
-
-    pub fn header_set(&mut self, bit: u16) {
-        header_set(&mut self.mask, bit);
-    }
-
-    pub fn set_value(&mut self, bit: u16, v: u32) -> &mut Self {
-        self.header_set(bit);
-        self.values.insert(bit, v);
-        self
-    }
-}
+// impl UpdateFields {
+//     pub fn new(object: UpdateType) -> UpdateFields {
+//         const OBJECT_FIELD_TYPE: u16 = 2;
+//
+//         let mut header = vec![];
+//         let mut values = BTreeMap::new();
+//
+//         header_set(&mut header, OBJECT_FIELD_TYPE);
+//         values.insert(OBJECT_FIELD_TYPE, OBJECT | object as u32);
+//         UpdateFields {
+//             amount_of_blocks: header.len() as u8,
+//             mask: header,
+//             values,
+//         }
+//     }
+//
+//     pub fn header_set(&mut self, bit: u16) {
+//         header_set(&mut self.mask, bit);
+//     }
+//
+//     pub fn set_value(&mut self, bit: u16, v: u32) -> &mut Self {
+//         self.header_set(bit);
+//         self.values.insert(bit, v);
+//         self
+//     }
+// }
 
 fn header_values_reader<'a, 'b>(
-    headers: &'b Vec<u32>,
+    headers: &'b [u32],
     rest: &'a BitSlice<Msb0, u8>,
 ) -> Result<(&'a BitSlice<Msb0, u8>, BTreeMap<u16, u32>), DekuError> {
     let mut values = BTreeMap::new();

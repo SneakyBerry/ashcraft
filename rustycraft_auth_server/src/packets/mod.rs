@@ -8,7 +8,7 @@ pub mod realm;
 pub mod reconnect_challenge;
 pub mod reconnect_proof;
 
-pub trait DekuWriteDebug: DekuContainerWrite + Debug + Send {}
+pub trait DekuWriteWithDebug: DekuContainerWrite + Debug + Send {}
 
 fn parse_reverse(mut input: Vec<u8>) -> Result<String, DekuError> {
     input.reverse();
@@ -43,32 +43,32 @@ pub(crate) enum Opcode {
 #[derive(Debug, Hash, Eq, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub(crate) enum AuthResult {
-    WowSuccess = 0x00,
-    WowFailBanned = 0x03,
-    WowFailUnknownAccount = 0x04,
-    WowFailIncorrectPassword = 0x05,
-    WowFailAlreadyOnline = 0x06,
-    WowFailNoTime = 0x07,
-    WowFailDbBusy = 0x08,
-    WowFailVersionInvalid = 0x09,
-    WowFailVersionUpdate = 0x0A,
-    WowFailInvalidServer = 0x0B,
-    WowFailSuspended = 0x0C,
-    WowFailFailNoaccess = 0x0D,
-    WowSuccessSurvey = 0x0E,
-    WowFailParentcontrol = 0x0F,
-    WowFailLockedEnforced = 0x10,
-    WowFailTrialEnded = 0x11,
-    WowFailUseBattlenet = 0x12,
-    WowFailAntiIndulgence = 0x13,
-    WowFailExpired = 0x14,
-    WowFailNoGameAccount = 0x15,
-    WowFailChargeback = 0x16,
-    WowFailInternetGameRoomWithoutBnet = 0x17,
-    WowFailGameAccountLocked = 0x18,
-    WowFailUnlockableLock = 0x19,
-    WowFailConversionRequired = 0x20,
-    WowFailDisconnected = 0xFF,
+    Success = 0x00,
+    FailBanned = 0x03,
+    FailUnknownAccount = 0x04,
+    FailIncorrectPassword = 0x05,
+    FailAlreadyOnline = 0x06,
+    FailNoTime = 0x07,
+    FailDbBusy = 0x08,
+    FailVersionInvalid = 0x09,
+    FailVersionUpdate = 0x0A,
+    FailInvalidServer = 0x0B,
+    FailSuspended = 0x0C,
+    FailFailNoaccess = 0x0D,
+    SuccessSurvey = 0x0E,
+    FailParentcontrol = 0x0F,
+    FailLockedEnforced = 0x10,
+    FailTrialEnded = 0x11,
+    FailUseBattlenet = 0x12,
+    FailAntiIndulgence = 0x13,
+    FailExpired = 0x14,
+    FailNoGameAccount = 0x15,
+    FailChargeback = 0x16,
+    FailInternetGameRoomWithoutBnet = 0x17,
+    FailGameAccountLocked = 0x18,
+    FailUnlockableLock = 0x19,
+    FailConversionRequired = 0x20,
+    FailDisconnected = 0xFF,
 }
 
 impl TryFrom<u8> for Opcode {

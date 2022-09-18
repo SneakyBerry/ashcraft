@@ -54,7 +54,7 @@ fn read_compressed_addon_info(
 ) -> Result<(&BitSlice<Msb0, u8>, Vec<u8>), DekuError> {
     let mut rest = rest;
     let mut res = Vec::with_capacity(rest.len() / 8); // Byte size of bit vector
-    while rest.len() > 0 {
+    while !rest.is_empty() {
         let (curr_rest, value) = u8::read(rest, ())?;
         rest = curr_rest;
         res.push(value)

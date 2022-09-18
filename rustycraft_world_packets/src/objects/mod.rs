@@ -1,313 +1,290 @@
+//! Possible object types:
+//!
+//! pub enum ObjectType {
+//!     Object = 0x0,
+//!     Item = 0x1,
+//!     Container = 0x2,
+//!     Unit = 0x3,
+//!     Player = 0x4,
+//!     GameObject = 0x5,
+//!     DynamicObject = 0x6,
+//!     Corpse = 0x7,
+//! }
+
 use crate::guid::Guid;
-use crate::object::ObjectType;
-use deku::bitvec::{BitVec, Lsb0};
+
 use deku::prelude::*;
 use std::collections::BTreeMap;
-use std::marker::PhantomData;
+use std::fmt::Debug;
 
+#[macro_use]
 mod container;
+#[macro_use]
 mod corpse;
+#[macro_use]
 mod dynamic_object;
+#[macro_use]
 mod game_object;
+#[macro_use]
 mod item;
-mod object;
+#[macro_use]
 mod player;
-mod traits;
+#[macro_use]
 mod unit;
 mod utils;
 
-type ObjectInner = BTreeMap<u16, [u8; 4]>;
-
 #[macro_use]
-mod macroses {
-    macro_rules! make_field {
-        ( $global_offset:expr => $struct_name:tt => $start:expr => $name:ident(()) ) => {
-            // Padding
-            paste! {const [<_$global_offset _ $start>]: () = ();}
-        };
-        ( $global_offset:expr => $struct_name:tt => $start:expr => $name:ident([bool; $size:expr]) ) => {
-            impl $struct_name {
-                paste! {const [<_$global_offset _ $start>]: () = ();}
-                paste! {
-                    pub fn [<set_ $name>](&mut self, index: u16) -> &mut Self {
-                        use $crate::objects::traits::ObjectField;
-                        if index >= $size * 32 {
-                            panic!("Index is out of range");
-                        }
-                        else {
-                            let place_index = index / 32;
-                            let byte_index = (index % 4) as usize;
-                            let bit_index = index % 8;
-                            let mut val = self.get_value($global_offset + $start..$global_offset + $start + <[bool; $size]>::SIZE / $size + place_index).unwrap_or(vec![[0u8; 4]])[0];
-                            val[byte_index] |= (1u8 << (7 - bit_index));
-                            self.set_value(&[val], $global_offset + $start + place_index)
-                        }
-                    }
+mod macros;
 
-                    pub fn [<unset_ $name>](&mut self, index: u16) -> &mut Self {
-                        use $crate::objects::traits::ObjectField;
-                        if index >= $size * 32 {
-                            panic!("Index is out of range");
-                        }
-                        else {
-                            let place_index = index / 32;
-                            let byte_index = (index % 4) as usize;
-                            let bit_index = index % 8;
-                            let mut val = self.get_value($global_offset + $start..$global_offset + $start + <[bool; $size]>::SIZE / $size + place_index).unwrap_or(vec![[0u8; 4]])[0];
-                            val[byte_index] &= !(1u8 << (7 - bit_index));
-                            self.set_value(&[val], $global_offset + $start + place_index)
-                        }
-                    }
+use crate::object::ObjectType;
+use crate::position::Vector3d;
 
-                    pub fn [<get_ $name>](&self, index: u16) -> Option<bool> {
-                        use $crate::objects::traits::ObjectField;
-                        if index >= $size * 32 {
-                            panic!("Index is out of range");
-                        }
-                        else {
-                            let place_index = index / 32;
-                            let byte_index = (index % 4) as usize;
-                            let bit_index = index % 8;
-                            let val = self.get_value($global_offset + $start..$global_offset + $start + <[bool; $size]>::SIZE / $size + place_index)?[0][byte_index];
-                            Some(val & (1u8 << (7 - bit_index)) != 0)
-                        }
-                    }
-                }
-            }
-        };
-        ( $global_offset:expr => $struct_name:tt => $start:expr => $name:ident([$ty:ty; $size:expr]) ) => {
-            impl $struct_name {
-                paste! {const [<_$global_offset _ $start>]: () = ();}
-                paste! {
-                    pub fn [<set_ $name>](&mut self, $name: $ty, index: u16) -> &mut Self {
-                        use $crate::objects::traits::Storable;
-                        if index >= $size {
-                            panic!("Index is out of range");
-                        }
-                        let value = Storable::store($name);
-                        self.set_value(value.as_slice(), $global_offset + $start + index)
-                    }
+use game_object::*;
+use item::*;
 
-                    pub fn [<get_ $name>](&self, index: u16) -> Option<$ty> {
-                        use $crate::objects::traits::Storable;
-                        use $crate::objects::traits::ObjectField;
-                        if index >= $size {
-                            panic!("Index is out of range");
-                        }
-                        let vals = self.get_value($global_offset + $start..$global_offset + $start + <[$ty; $size]>::SIZE / $size + index)?;
-                        Some(Storable::load(vals.as_slice().try_into().unwrap()))
-                    }
-                }
-            }
-        };
-        ( $global_offset:expr => $struct_name:tt => $start:expr => $name:ident($ty:ty) ) => {
-            impl $struct_name {
-                paste! {const [<_$global_offset _ $start>]: () = ();}
-                paste! {
-                    pub fn [<set_ $name>](&mut self, $name: $ty) -> &mut Self {
-                        use $crate::objects::traits::Storable;
-                        let value = Storable::store($name);
-                        self.set_value(value.as_slice(), $global_offset + $start)
-                    }
+pub use player::*;
+pub use unit::*;
 
-                    pub fn [<get_ $name>](&self) -> Option<$ty> {
-                        use $crate::objects::traits::Storable;
-                        use $crate::objects::traits::ObjectField;
-                        let vals = self.get_value($global_offset + $start..$global_offset + $start + <$ty>::SIZE)?;
-                        Some(Storable::load(vals.as_slice().try_into().unwrap()))
-                    }
-                }
-            }
-        };
+type ObjectInner = BTreeMap<usize, u32>;
+pub trait UpdateFields:
+    DekuUpdate + DekuContainerRead<'static> + DekuContainerWrite + Debug
+{
+}
+mod private {
+    use crate::guid::{Guid, HighGuid};
+    use crate::object::ObjectType;
+    use crate::objects::ObjectInner;
+    use deku::bitvec::{BitVec, Msb0};
+    use deku::ctx::Endian;
+    use deku::{DekuContainerRead, DekuContainerWrite, DekuRead, DekuWrite};
+    use std::any::type_name;
+
+    pub trait Storage {
+        fn get_inner(&self) -> &ObjectInner;
+        fn get_inner_mut(&mut self) -> &mut ObjectInner;
     }
+    pub trait Object<const OFFSET: usize>: Storage + Default {
+        fn get_value<T>(&self, offset: usize) -> Option<T>
+        where
+            T: for<'a> DekuRead<'a>,
+        {
+            let values = BitVec::from_iter(
+                self.get_inner()
+                    .range(OFFSET + offset..OFFSET + offset + std::mem::size_of::<T>() / 16)
+                    .map(|(_, v)| v.to_le_bytes())
+                    .flatten(),
+            );
+            Some(T::read(&values, ()).expect("Parse value failed").1)
+        }
 
-    macro_rules! impl_base {
-        ( impl Base for $struct_name:ident ) => {
-            impl $struct_name {
-                pub fn new() -> Self {
-                    Self::default()
-                }
-                fn get_value(&self, range: std::ops::Range<u16>) -> Option<Vec<[u8; 4]>> {
-                    if range.is_empty() {
-                        panic!("Incorrect range requested, range: {range:?}");
-                    }
-                    let res = self
-                        .inner
-                        .range(range.clone())
-                        .map(|(k, v)| *v)
-                        .collect::<Vec<_>>();
-                    if res.len() < range.len() {
-                        None
-                    } else {
-                        Some(res)
-                    }
-                }
+        fn set_value<T>(&mut self, value: T, offset: usize) -> &mut Self
+        where
+            T: DekuWrite,
+        {
+            let mut inner = self.get_inner_mut();
+            let mut buffer = BitVec::new();
+            value.write(&mut buffer, ()).expect("Write failed");
+            inner.extend(buffer.as_raw_slice().chunks(4).enumerate().map(|(i, v)| {
+                (
+                    i + offset,
+                    u32::from_le_bytes(v.try_into().expect("Chunk not equal to 4?")),
+                )
+            }));
+            self
+        }
 
-                fn set_value(&mut self, value: &[[u8; 4]], offset: u16) -> &mut Self {
-                    for (value_offset, value) in value.iter().enumerate() {
-                        self.inner.insert(offset + value_offset as u16, *value);
-                    }
-                    self
-                }
-            }
-        };
-    }
+        fn apply_xor(&mut self, offset: usize, mask: u32) -> &mut Self {
+            let mut inner = self.get_inner_mut();
+            let mut current = *inner.get(&(OFFSET + offset)).unwrap_or(&0);
+            inner.insert(OFFSET + offset, current ^ mask);
+            self
+        }
 
-    macro_rules! impl_accessors {
-        (
-            Offset: $offset:expr;
-            Size: $size:expr;
-            impl $struct_name:path {
-                $ ( $start:expr => $name:ident: $type:tt; ) *
-            }
-        ) => {
-            $ (
-                make_field!($offset => $struct_name => $start => $name($type));
-            ) *
+        fn apply_or(&mut self, offset: usize, mask: u32) -> &mut Self {
+            let mut inner = self.get_inner_mut();
+            let mut current = *inner.get(&(OFFSET + offset)).unwrap_or(&0);
+            inner.insert(OFFSET + offset, current | mask);
+            self
+        }
 
-            // Static alignment check
-            const _: () = {
-                use $crate::objects::traits::ObjectField;
-                let starts = [$( $start, )* $size];
-                let i = 1;
-                $(
-                if starts[i] != $start + <$type>::SIZE {
-                   panic!("Bad fields mapping")
-                };
-                let i = i + 1;
-                )*;
-            };
-        };
+        fn apply_and(&mut self, offset: usize, mask: u32) -> &mut Self {
+            let mut inner = self.get_inner_mut();
+            let mut current = *inner.get(&(OFFSET + offset)).unwrap_or(&0);
+            inner.insert(OFFSET + offset, current | mask);
+            self
+        }
+
+        fn set_guid(&mut self, guid: Guid) -> &mut Self {
+            self.set_value(guid.as_u32(), 0x0000)
+        }
+
+        fn set_object_type(&mut self, object_type: ObjectType) -> &mut Self {
+            self.set_value([object_type as u32], 0x0002)
+        }
+
+        fn parse_guid(val: [u32; 2]) -> Guid {
+            let u_val = val[0] as u64 | (val[1] as u64 >> 32);
+            let high = HighGuid::from_bytes((&u_val.to_le_bytes(), 0))
+                .expect(&format!("Guid parse failed: {:X}", u_val))
+                .1;
+            Guid::new(high, u_val)
+        }
     }
 }
+
+pub trait Object: private::Object<0x0000> {
+    fn new(guid: Guid) -> Box<Self> {
+        let mut object = Self::default();
+        object.set_guid(guid).set_object_type(ObjectType::Object);
+        Box::new(object)
+    }
+
+    fn get_guid(&self) -> Option<Guid> {
+        self.get_value(0x0000)
+    }
+    fn get_object_type(&self) -> Option<ObjectType> {
+        self.get_value(0x0002)
+    }
+    fn set_object_entry(&mut self, object_entry: u32) -> &mut Self {
+        self.set_value(object_entry, 0x0003)
+    }
+    fn get_object_entry(&self) -> Option<u32> {
+        self.get_value(0x0003)
+    }
+    fn set_object_scale_x(&mut self, object_scale_x: f32) -> &mut Self {
+        self.set_value(object_scale_x, 0x0004)
+    }
+    fn get_object_scale_x(&self) -> Option<f32> {
+        self.get_value(0x0004)
+    }
+}
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Item {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// item_fields!(impl for Item);
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Container {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// object_fields!(ObjectType::Container => Container);
+// container_fields!(impl for Container);
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Unit {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// object_fields!(ObjectType::Unit => Unit);
+// unit_fields!(impl for Unit);
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Player {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// object_fields!(ObjectType::Player => Player);
+// unit_fields!(impl for Player);
+// player_fields!(impl for Player);
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct GameObject {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// object_fields!(ObjectType::GameObject => GameObject);
+// game_object_fields!(impl for GameObject);
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct DynamicObject {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// object_fields!(ObjectType::DynamicObject => DynamicObject);
+// dynamic_object_fields!(impl for DynamicObject);
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Corpse {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+// object_fields!(ObjectType::Corpse => Corpse);
+// corpse_fields!(impl for Corpse);
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::guid::{Guid, HighGuid};
-    use crate::objects::game_object::GameObjectBytes;
-    use crate::objects::item::ItemEnchantment;
-    use crate::objects::player::*;
-    use crate::objects::unit::*;
-    use crate::objects::*;
-    use crate::position::Vector3d;
-    use crate::{
-        container_fields, corpse_fields, dynamic_object_fields, game_object_fields, item_fields,
-        object_fields, player_fields, unit_fields,
-    };
-    use deku::prelude::*;
-    use std::mem::size_of;
+    use crate::object::ObjectType;
+    use crate::objects::item::Item;
 
     #[test]
     fn test_object_construct() {
-        #[derive(Debug, Clone, Default)]
+        #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
         struct Test {
+            #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+            #[deku(
+                writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)"
+            )]
             inner: ObjectInner,
         }
-
-        impl_base!(impl Base for Test);
-        impl_accessors!(
-        Offset: 0x0;
-        Size: 0x0007;
-        impl Test {
-            0x0000 => guid_1: Guid;
-            0x0002 => f_32_1: f32;
-            0x0003 => u_32_1: u32;
-            0x0004 => i_32_1: i32;
-            0x0005 => u_64_1: u64;
+        impl private::Storage for Test {
+            fn get_inner(&self) -> &ObjectInner {
+                &self.inner
             }
-        );
 
-        impl_accessors!(
-        Offset: 0x0007;
-        Size: 0x0007;
-        impl Test {
-            0x0000 => guid_2: Guid;
-            0x0002 => f_32_2: f32;
-            0x0003 => u_32_2: u32;
-            0x0004 => i_32_2: i32;
-            0x0005 => u_64_2: u64;
+            fn get_inner_mut(&mut self) -> &mut ObjectInner {
+                &mut self.inner
             }
-        );
+        }
+        impl Object for Test {};
+        impl private::Object<0x0000> for Test {}
 
-        let mut test = Test::new();
+        impl Item for Test {};
+        impl private::Object<0x0006> for Test {}
 
-        let guid_1 = Guid::new(HighGuid::Item, 0);
-        let f_32_1 = 1.23456;
-        let u_32_1 = 1010;
-        let u_64_1 = 2020;
-
-        let guid_2 = Guid::new(HighGuid::Corpse, 2);
-        let f_32_2 = 2.23456;
-        let u_32_2 = 2020;
-        let i_32_2 = -2020;
-        let u_64_2 = 3030;
-        test.set_guid_1(guid_1)
-            .set_f_32_1(f_32_1)
-            .set_u_32_1(u_32_1)
-            .set_u_64_1(u_64_1)
-            .set_guid_2(guid_2)
-            .set_f_32_2(f_32_2)
-            .set_u_32_2(u_32_2)
-            .set_i_32_2(i_32_2)
-            .set_u_64_2(u_64_2);
-        assert_eq!(test.get_guid_1(), Some(guid_1));
-        assert_eq!(test.get_f_32_1(), Some(f_32_1));
-        assert_eq!(test.get_u_32_1(), Some(u_32_1));
-        assert_eq!(test.get_i_32_1(), None);
-        assert_eq!(test.get_u_64_1(), Some(u_64_1));
-        assert_eq!(test.get_guid_2(), Some(guid_2));
-        assert_eq!(test.get_f_32_2(), Some(f_32_2));
-        assert_eq!(test.get_u_32_2(), Some(u_32_2));
-        assert_eq!(test.get_i_32_2(), Some(i_32_2));
-        assert_eq!(test.get_u_64_2(), Some(u_64_2));
+        let mut test = <Test as Item>::new(Guid::new(HighGuid::Corpse, 0xFFFF0000000000FF));
+        test.set_flags(0xFF00FF00)
+            .set_enchantment(
+                ItemEnchantment {
+                    id: 0xFFFEFFEF,
+                    duration: u32::MAX,
+                    charges: u32::MAX / 2,
+                },
+                1,
+            )
+            .set_enchantment(
+                ItemEnchantment {
+                    id: 0xFF0000EF,
+                    duration: u32::MAX,
+                    charges: u32::MAX / 2,
+                },
+                0,
+            );
+        debug_print_btree(&test.inner);
+        let inn = test.inner.clone();
+        let prom = test.to_bytes().unwrap();
+        let restored = Test::from_bytes((&prom, 0)).unwrap().1;
+        println!("{:?}", &prom);
+        println!("{:?}", &test);
+        println!("{:?}", &restored);
+        debug_print_btree(&restored.inner);
     }
+}
 
-    #[derive(Default, Debug)]
-    struct Test {
-        inner: ObjectInner,
-    }
-
-    impl_base!(impl Base for Test);
-    impl_accessors!(
-        Offset: 0x0;
-        Size: 0x0004;
-        impl Test {
-            0x0000 => mask: [bool;2];
-            0x0002 => u32_array: [u32;2];
-            }
-    );
-
-    #[test]
-    fn test_bool_set() {
-        let mut test = Test::default();
-
-        assert_eq!(test.get_mask(0), None);
-        test.set_mask(0);
-        assert_eq!(test.get_mask(0), Some(true));
-        assert_eq!(test.get_mask(1), Some(false));
-        test.unset_mask(0);
-        assert_eq!(test.get_mask(0), Some(false));
-        assert_eq!(test.get_mask(31), Some(false));
-        assert_eq!(test.get_mask(63), None);
-    }
-
-    #[test]
-    fn test_get_arr() {
-        let mut test = Test::default();
-        println!("{:?}", &test.get_u32_array(0));
-    }
-
-    #[test]
-    #[should_panic(expected = "Index is out of range")]
-    fn test_get_out_of_range_bool() {
-        let mut test = Test::default();
-        test.get_mask(64);
-    }
-    #[test]
-    #[should_panic(expected = "Index is out of range")]
-    fn test_get_out_of_range_arr() {
-        let mut test = Test::default();
-        test.get_u32_array(2);
+pub(crate) fn debug_print_btree(inner: &ObjectInner) {
+    for (k, v) in inner {
+        println!("{}: {:0>8X}", k, v);
     }
 }

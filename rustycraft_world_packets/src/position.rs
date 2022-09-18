@@ -11,7 +11,7 @@ pub struct Vector3d {
     #[deku(endian = "little")]
     pub z: f32,
     #[deku(endian = "little")]
-    pub rotation: f32,
+    pub rotation: Option<f32>,
 }
 
 impl Vector3d {
@@ -39,13 +39,13 @@ mod test {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         let vec2 = Vector3d {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         assert_eq!(vec1.distance(&vec2), 0.)
     }
@@ -56,13 +56,13 @@ mod test {
             x: 5.,
             y: 0.,
             z: 0.,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         let vec2 = Vector3d {
             x: -5.,
             y: 0.,
             z: 0.,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         assert_eq!(vec1.distance(&vec2), 10.)
     }
@@ -73,13 +73,13 @@ mod test {
             x: 0.,
             y: 5.,
             z: 0.,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         let vec2 = Vector3d {
             x: 0.,
             y: -5.,
             z: 0.,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         assert_eq!(vec1.distance(&vec2), 10.)
     }
@@ -90,13 +90,13 @@ mod test {
             x: 0.,
             y: 0.,
             z: 5.,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         let vec2 = Vector3d {
             x: 0.,
             y: 0.,
             z: -5.,
-            rotation: 0.0,
+            rotation: Some(0.0),
         };
         assert_eq!(vec1.distance(&vec2), 10.)
     }

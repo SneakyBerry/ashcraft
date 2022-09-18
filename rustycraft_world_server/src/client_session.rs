@@ -20,9 +20,8 @@ use rustycraft_world_packets::movement_block::{
     LivingBuilder, MovementBlockBuilder, MovementBlockLivingVariants,
 };
 use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags};
-use rustycraft_world_packets::object::{
-    DebugPacket, Object, ObjectType, ObjectUpdateType, SmsgUpdateObject,
-};
+use rustycraft_world_packets::object::{Object, ObjectType, ObjectUpdateType, SmsgUpdateObject};
+use rustycraft_world_packets::objects::{Player, UnitData};
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::power::Power;
@@ -30,7 +29,7 @@ use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::response_code::ResponseCode;
 use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
 use rustycraft_world_packets::tutorial::SmsgTutorialFlags;
-use rustycraft_world_packets::update_mask::{UpdateFields, UpdateType};
+use rustycraft_world_packets::update_mask::UpdateType;
 use rustycraft_world_packets::ServerPacket;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -51,24 +50,24 @@ pub struct ClientSession {
 
 fn char_data() -> CharacterEnumServer {
     CharacterEnumServer::new(vec![Character {
-        guid: Guid::new(HighGuid::Player, 0),
-        name: "Abobus".to_string(),
+        guid: Guid::new(HighGuid::Player, 4),
+        name: "Warr".to_string(),
         race: Race::Human,
         class: Class::Warrior,
-        gender: Gender::Male,
+        gender: Gender::Female,
         skin: 0,
         face: 0,
         hair_style: 0,
         hair_color: 0,
         facial_hair: 0,
         level: 0,
-        area: Area::DunMorogh,
+        area: Area::NorthshireValley,
         map: Map::EasternKingdoms,
         position: Vector3d {
             x: 0.0,
             y: 0.0,
             z: 0.0,
-            rotation: 0.0,
+            rotation: None,
         },
         guild_id: 0,
         flags: 0,
@@ -240,7 +239,7 @@ impl ClientSession {
                 x: 200.0,
                 y: 200.0,
                 z: 200.0,
-                rotation: 0.0,
+                rotation: Some(0.0),
             },
         })
         .await
@@ -259,30 +258,44 @@ impl ClientSession {
         //     .set_unit_DISPLAYID(50)
         //     .set_unit_NATIVEDISPLAYID(50);
 
-        let mut update_mask = UpdateFields::new(UpdateType::Player);
-        let guid = Guid::new(HighGuid::Player, 4);
-        update_mask
-            .set_value(0, guid.as_u64() as u32)
-            .set_value(1, (guid.as_u64() >> 32 as u32) as u32)
-            .set_value(
-                23,
-                u32::from_le_bytes([
-                    Race::Human as u8,
-                    Class::Warrior as u8,
-                    Gender::Female as u8,
-                    Power::Rage as u8,
-                ]),
-            )
-            .set_value(4, 1)
-            .set_value(24, 100)
-            .set_value(32, 100)
-            .set_value(54, 1)
-            .set_value(55, 1)
-            .set_value(67, 50)
-            .set_value(68, 50);
+        let mut player = Player::new(Guid::new(HighGuid::Player, 4));
+        player
+            .set_unit_unit_data(UnitData {
+                race: Race::Human,
+                class: Class::Warrior,
+                gender: Gender::Female,
+                power: Power::Rage,
+            })
+            .set_object_scale_x(1.0)
+            .set_unit_health(100)
+            .set_unit_max_health(100)
+            .set_unit_level(1)
+            .set_unit_faction_template(1)
+            .set_unit_display_id(50)
+            .set_unit_native_display_id(50);
+
+        // update_mask
+        //     .set_value(0, guid.as_u64() as u32)
+        //     .set_value(1, (guid.as_u64() >> 32_u32) as u32)
+        //     .set_value(
+        //         23,
+        //         u32::from_le_bytes([
+        //             Race::Human as u8,
+        //             Class::Warrior as u8,
+        //             Gender::Female as u8,
+        //             Power::Rage as u8,
+        //         ]),
+        //     )
+        //     .set_value(4, 1)
+        //     .set_value(24, 100)
+        //     .set_value(32, 100)
+        //     .set_value(54, 1)
+        //     .set_value(55, 1)
+        //     .set_value(67, 50)
+        //     .set_value(68, 50);
 
         let update_flag = MovementBlockBuilder::default()
-            .living(MovementBlockLivingVariants::Living(
+            .living(MovementBlockLivingVariants::Living(Box::new(
                 LivingBuilder::default()
                     .backwards_running_speed(4.5)
                     .backwards_swimming_speed(0.0)
@@ -295,7 +308,7 @@ impl ClientSession {
                         x: -8949.95,
                         y: -132.493,
                         z: 83.5312,
-                        rotation: 0.0,
+                        rotation: Some(0.0),
                     })
                     .pitch_rate(0.0)
                     .running_speed(7.0)
@@ -305,7 +318,7 @@ impl ClientSession {
                     .walking_speed(1.0)
                     .build()
                     .unwrap(),
-            ))
+            )))
             .set_self()
             .build()
             .unwrap();
@@ -313,7 +326,7 @@ impl ClientSession {
             update_type: ObjectUpdateType::CreateObject2 {
                 guid: Guid::new(HighGuid::Player, 4).into(),
                 object_type: ObjectType::Player,
-                update_fields: update_mask,
+                update_fields: Box::new(player),
                 movement2: update_flag,
             },
         }]);

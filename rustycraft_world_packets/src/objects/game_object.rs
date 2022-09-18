@@ -1,5 +1,3 @@
-use deku::prelude::*;
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GameObjectBytes {
     pub state: GameObjectState,
@@ -55,26 +53,23 @@ pub enum GameObjectTypes {
     Trapdoor = 35,
 }
 
-pub mod game_object {
-    #[macro_export]
-    macro_rules! game_object_fields {
-        (
-            impl GameObject for $struct_name:ident
-        ) => {
-            impl_accessors!(
-                Offset: 0x0006;
-                Size: 0x000C;
-                impl $struct_name {
-                    0x0000 => game_object_created_by: Guid;
-                    0x0002 => game_object_display_id: u32;
-                    0x0003 => game_object_flags: [bool; 1];
-                    0x0004 => game_object_parent_rotation: Vector3d;
-                    0x0008 => game_object_dynamic: (u16, u16);
-                    0x0009 => game_object_faction: u32;
-                    0x000A => game_object_level: u32;
-                    0x000B => game_object_bytes: GameObjectBytes;
-                }
-            );
-        };
-    }
+macro_rules! game_object_fields {
+    (
+        impl for $struct_name:ident
+    ) => {
+        impl_accessors!(
+            Offset: 0x0006;
+            Size: 0x000C;
+            impl $struct_name {
+                0x0000 => game_object_created_by: Guid;
+                0x0002 => game_object_display_id: u32;
+                0x0003 => game_object_flags: [bool; 1];
+                0x0004 => game_object_parent_rotation: Vector3d;
+                0x0008 => game_object_dynamic: (u16, u16);
+                0x0009 => game_object_faction: u32;
+                0x000A => game_object_level: u32;
+                0x000B => game_object_bytes: GameObjectBytes;
+            }
+        );
+    };
 }

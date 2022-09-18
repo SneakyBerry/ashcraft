@@ -1725,7 +1725,7 @@ pub enum Area {
     TheSunForge = 0xffd,
     SunwellPlateau1 = 0xffe,
     MagistersTerrace = 0xfff,
-    ClaytönsWoweditLand = 0x1000,
+    ClaytonsWoWEditLand = 0x1000,
     WinterfinCaverns = 0x1001,
     GlimmerBay = 0x1002,
     WinterfinRetreat = 0x1003,

@@ -41,8 +41,6 @@ extern crate paste;
 extern crate derive_builder;
 #[macro_use]
 extern crate thiserror;
-#[macro_use]
-extern crate const_format;
 
 #[derive(Debug, Error)]
 pub enum PacketError {

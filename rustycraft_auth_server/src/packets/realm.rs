@@ -1,4 +1,4 @@
-use crate::packets::{c_string_writer, DekuWriteDebug, Opcode};
+use crate::packets::{c_string_writer, DekuWriteWithDebug, Opcode};
 use deku::prelude::*;
 
 #[derive(Debug, DekuWrite)]
@@ -67,4 +67,4 @@ pub(crate) struct RealmListResponse {
     pub(crate) realms: Vec<Realm>,
 }
 
-impl DekuWriteDebug for RealmListResponse {}
+impl DekuWriteWithDebug for RealmListResponse {}

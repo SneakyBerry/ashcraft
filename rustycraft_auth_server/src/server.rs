@@ -3,19 +3,19 @@ use crate::packets::logon_proof::{LogonProofRequest, LogonProofResponse};
 use crate::packets::realm::{
     Population, Realm, RealmCategory, RealmFlag, RealmListResponse, RealmType,
 };
-use crate::packets::{AuthResult, DekuWriteDebug, Opcode, RequestResult, VERSION_CHALLENGE};
+use crate::packets::{AuthResult, DekuWriteWithDebug, Opcode, RequestResult, VERSION_CHALLENGE};
 use bytes::BytesMut;
 use deku::prelude::*;
 use rustycraft_common::Account;
 use rustycraft_database::redis::RedisClient;
 use std::sync::Arc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, Interest};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use wow_srp::normalized_string::NormalizedString;
 use wow_srp::server::{SrpProof, SrpServer, SrpVerifier};
 use wow_srp::{PublicKey, LARGE_SAFE_PRIME_LITTLE_ENDIAN};
 
-pub type OkType = Box<dyn DekuWriteDebug>;
+pub type OkType = Box<dyn DekuWriteWithDebug>;
 
 enum ClientState {
     Connected,
@@ -80,10 +80,10 @@ impl Client {
         data: &BytesMut,
     ) -> Result<OkType, RequestResult> {
         let (_, data) =
-            LogonChallengeRequest::from_bytes((&data, 0)).map_err(|_| RequestResult {
+            LogonChallengeRequest::from_bytes((data, 0)).map_err(|_| RequestResult {
                 cmd: Opcode::AuthLogonChallenge,
                 protocol_version: None,
-                result: AuthResult::WowFailDisconnected,
+                result: AuthResult::FailDisconnected,
             })?;
         trace!(
             "[{:?}] LogonChallengeRequest {:?}",
@@ -93,12 +93,12 @@ impl Client {
         let username = NormalizedString::from(&data.username).map_err(|_| RequestResult {
             cmd: Opcode::AuthLogonChallenge,
             protocol_version: None,
-            result: AuthResult::WowFailDisconnected,
+            result: AuthResult::FailDisconnected,
         })?;
         let password = NormalizedString::from(&data.username).map_err(|_| RequestResult {
             cmd: Opcode::AuthLogonChallenge,
             protocol_version: None,
-            result: AuthResult::WowFailDisconnected,
+            result: AuthResult::FailDisconnected,
         })?;
         self.username = Some(data.username);
         let proof = SrpVerifier::from_username_and_password(username, password).into_proof();
@@ -107,13 +107,13 @@ impl Client {
             result: RequestResult {
                 cmd: Opcode::AuthLogonChallenge,
                 protocol_version: Some(0),
-                result: AuthResult::WowSuccess,
+                result: AuthResult::Success,
             },
             server_public_key: *proof.server_public_key(),
             generator_length: wow_srp::GENERATOR_LENGTH,
             generator: wow_srp::GENERATOR.to_le_bytes(),
             large_safe_prime_length: LARGE_SAFE_PRIME_LITTLE_ENDIAN.len() as u8,
-            large_safe_prime: LARGE_SAFE_PRIME_LITTLE_ENDIAN.into(),
+            large_safe_prime: LARGE_SAFE_PRIME_LITTLE_ENDIAN,
             salt: *proof.salt(),
             crc_salt: VERSION_CHALLENGE,
             security_flags: 0,
@@ -124,10 +124,10 @@ impl Client {
 
     pub async fn handle_logon_proof(&mut self, data: &BytesMut) -> Result<OkType, RequestResult> {
         let (_, client_proof) =
-            LogonProofRequest::from_bytes((&data, 0)).map_err(|_| RequestResult {
+            LogonProofRequest::from_bytes((data, 0)).map_err(|_| RequestResult {
                 cmd: Opcode::AuthLogonProof,
                 protocol_version: None,
-                result: AuthResult::WowFailDisconnected,
+                result: AuthResult::FailDisconnected,
             })?;
         trace!(
             "[{:?}] LogonProofRequest {:?}",
@@ -143,7 +143,7 @@ impl Client {
                         RequestResult {
                             cmd: Opcode::AuthLogonProof,
                             protocol_version: None,
-                            result: AuthResult::WowFailDisconnected,
+                            result: AuthResult::FailDisconnected,
                         }
                     })?,
                     client_proof.client_proof,
@@ -151,7 +151,7 @@ impl Client {
                 .map_err(|_| RequestResult {
                     cmd: Opcode::AuthLogonProof,
                     protocol_version: None,
-                    result: AuthResult::WowFailIncorrectPassword,
+                    result: AuthResult::FailIncorrectPassword,
                 })?;
             self.redis
                 .set(
@@ -164,14 +164,14 @@ impl Client {
                 .map_err(|_| RequestResult {
                     cmd: Opcode::AuthLogonProof,
                     protocol_version: None,
-                    result: AuthResult::WowFailDbBusy,
+                    result: AuthResult::FailDbBusy,
                 })?;
             self.state = ClientState::LoggedIn(Some(server));
             Ok(Box::new(LogonProofResponse {
                 result: RequestResult {
                     cmd: Opcode::AuthLogonProof,
                     protocol_version: None,
-                    result: AuthResult::WowSuccess,
+                    result: AuthResult::Success,
                 },
                 server_proof,
                 account_flags: 0,
@@ -182,7 +182,7 @@ impl Client {
             Err(RequestResult {
                 cmd: Opcode::AuthLogonProof,
                 protocol_version: None,
-                result: AuthResult::WowFailDisconnected,
+                result: AuthResult::FailDisconnected,
             })
         }
     }
@@ -213,7 +213,7 @@ impl Client {
             Err(RequestResult {
                 cmd: Opcode::AuthLogonProof,
                 protocol_version: None,
-                result: AuthResult::WowFailDisconnected,
+                result: AuthResult::FailDisconnected,
             })
         }
     }

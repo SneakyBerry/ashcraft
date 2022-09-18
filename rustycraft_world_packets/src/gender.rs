@@ -3,9 +3,9 @@ use deku::prelude::*;
 #[derive(Debug, Clone, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum Gender {
-    Male = 0x01,
-    Female = 0x02,
+    Male = 0x00,
+    Female = 0x01,
     /// Apparently used by hunter and warlock pets.
     ///
-    None = 0x03,
+    None = 0x02,
 }

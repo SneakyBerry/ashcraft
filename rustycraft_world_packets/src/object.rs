@@ -1,8 +1,7 @@
 use crate::guid::PackedGuid;
 use crate::movement_block::MovementBlock;
 use crate::opcodes::Opcode;
-use crate::update_mask::UpdateFields;
-use crate::ServerPacket;
+use crate::{objects, ServerPacket};
 use deku::prelude::*;
 
 #[derive(Debug, DekuWrite)]
@@ -38,7 +37,7 @@ pub enum ObjectUpdateType {
     #[deku(id = "0x0")]
     Partial {
         guid: PackedGuid,
-        update_fields: UpdateFields,
+        update_fields: Box<dyn objects::UpdateFields>,
     },
     #[deku(id = "0x1")]
     Movement {
@@ -48,7 +47,7 @@ pub enum ObjectUpdateType {
     #[deku(id = "0x2")]
     CreateObject {
         guid: PackedGuid,
-        update_fields: UpdateFields,
+        update_fields: Box<dyn objects::UpdateFields>,
         movement: MovementBlock,
         object_type: ObjectType,
     },
@@ -57,7 +56,7 @@ pub enum ObjectUpdateType {
         guid: PackedGuid,        // 12
         object_type: ObjectType, // 13
         movement2: MovementBlock,
-        update_fields: UpdateFields,
+        update_fields: Box<dyn objects::UpdateFields>,
     },
     #[deku(id = "0x4")]
     OutOfRangeObjects {
@@ -75,8 +74,6 @@ pub enum ObjectUpdateType {
 
 #[cfg(test)]
 mod test {
-    use crate::object::ObjectUpdateType;
-    use deku::prelude::*;
 
     #[test]
     fn test() {

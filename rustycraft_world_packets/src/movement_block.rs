@@ -79,17 +79,17 @@ impl MovementBlockBuilder {
             living: None,
             position: None,
             stationary: None,
-            high_guid: self.high_guid.unwrap_or_default().clone(),
-            low_guid: self.low_guid.unwrap_or_default().clone(),
+            high_guid: self.high_guid.unwrap_or_default(),
+            low_guid: self.low_guid.unwrap_or_default(),
             has_attacking_target: self.has_attacking_target.clone().unwrap_or_default(),
-            transport: self.transport.unwrap_or_default().clone(),
+            transport: self.transport.unwrap_or_default(),
             vehicle: self.vehicle.clone().unwrap_or_default(),
-            rotation: self.rotation.unwrap_or_default().clone(),
+            rotation: self.rotation.unwrap_or_default(),
         };
         match self.living {
             Some(MovementBlockLivingVariants::Living(ref living)) => {
                 res.inner.set_living();
-                res.living = Some(living.clone());
+                res.living = Some(*living.clone());
             }
             Some(MovementBlockLivingVariants::Position(ref position)) => {
                 res.inner.set_position();
@@ -125,7 +125,7 @@ impl MovementBlockBuilder {
 
 #[derive(Debug, Clone)]
 pub enum MovementBlockLivingVariants {
-    Living(Living),
+    Living(Box<Living>),
     Position(Position),
     Stationary(Stationary),
 }

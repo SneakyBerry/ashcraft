@@ -4,23 +4,20 @@ enum DynamicObjectType {
     FarSightFocus = 0x2,
 }
 
-pub mod dynamic_object {
-    #[macro_export]
-    macro_rules! dynamic_object_fields {
-        (
-            impl DynamicObject for $struct_name:ident
-        ) => {
-            impl_accessors!(
-                Offset: 0x0006;
-                Size: 0x0006;
-                impl $struct_name {
-                    0x0000 => dynamic_object_caster: Guid;
-                    0x0002 => dynamic_object_bytes: u32;
-                    0x0003 => dynamic_object_spell_id: u32;
-                    0x0004 => dynamic_object_radius: f32;
-                    0x0005 => dynamic_object_cast_time: u32;
-                }
-            );
-        };
-    }
+macro_rules! dynamic_object_fields {
+    (
+        impl for $struct_name:ident
+    ) => {
+        impl_accessors!(
+            Offset: 0x0006;
+            Size: 0x0006;
+            impl $struct_name {
+                0x0000 => dynamic_object_caster: Guid;
+                0x0002 => dynamic_object_bytes: u32;
+                0x0003 => dynamic_object_spell_id: u32;
+                0x0004 => dynamic_object_radius: f32;
+                0x0005 => dynamic_object_cast_time: u32;
+            }
+        );
+    };
 }
