@@ -1,7 +1,27 @@
-use crate::guid::Guid;
-use crate::objects::private;
-use crate::position::Vector3d;
 use deku::prelude::*;
+
+use crate::guid::Guid;
+use crate::objects::base::{BaseObject, Storage};
+use crate::objects::{InnerState, UpdateMaskObjectType};
+use crate::position::Vector3d;
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct GameObject {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: InnerState,
+}
+impl GameObject {
+    pub fn new(guid: Guid) -> Box<Self> {
+        let mut object = Self::default();
+        <Self as BaseObject<0x0000>>::set_guid(&mut object, guid);
+        <Self as BaseObject<0x0000>>::set_object_type(
+            &mut object,
+            UpdateMaskObjectType::GameObject as u32,
+        );
+        Box::new(object)
+    }
+}
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct GameObjectBytes {
@@ -60,7 +80,7 @@ pub enum GameObjectTypes {
     Trapdoor = 35,
 }
 
-pub trait GameObject: private::Object<0x0006> {
+pub trait GameObjectFields: BaseObject<0x0006> {
     fn set_game_object_created_by(&mut self, game_object_created_by: Guid) -> &mut Self {
         self.set_value(game_object_created_by, 0x0000)
     }
@@ -115,5 +135,16 @@ pub trait GameObject: private::Object<0x0006> {
     }
     fn get_game_object_bytes(&self) -> Option<GameObjectBytes> {
         self.get_value(0x000B)
+    }
+}
+
+impl GameObjectFields for GameObject {}
+impl Storage for GameObject {
+    fn get_inner(&self) -> &InnerState {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut InnerState {
+        &mut self.inner
     }
 }

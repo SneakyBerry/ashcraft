@@ -1,7 +1,29 @@
+use deku::prelude::*;
+
 use crate::guid::Guid;
 use crate::object::ObjectType;
-use crate::objects::{private, Object};
-use deku::prelude::*;
+use crate::objects::base::{BaseObject, Storage};
+use crate::objects::container::ContainerFields;
+use crate::objects::object::ObjectFields;
+use crate::objects::{InnerState, UpdateMaskObjectType};
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Item {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: InnerState,
+}
+impl Item {
+    pub fn new(guid: Guid) -> Box<Self> {
+        let mut object = Self::default();
+        <Self as BaseObject<0x0000>>::set_guid(&mut object, guid);
+        <Self as BaseObject<0x0000>>::set_object_type(
+            &mut object,
+            UpdateMaskObjectType::Item as u32,
+        );
+        Box::new(object)
+    }
+}
 
 #[derive(Debug, Clone, Copy, Default, DekuRead, DekuWrite)]
 pub struct ItemEnchantment {
@@ -26,7 +48,8 @@ pub enum EnchantmentSlot {
     Max = 12,
 }
 
-pub trait Item: private::Object<0x0006> {
+impl<T> ItemFields for T where T: BaseObject<0x0006> + ContainerFields {}
+pub trait ItemFields: BaseObject<0x0006> {
     fn set_owner(&mut self, owner: Guid) -> &mut Self {
         self.set_value(owner, 0x0000)
     }
@@ -122,5 +145,16 @@ pub trait Item: private::Object<0x0006> {
     }
     fn get_create_played_time(&self) -> Option<u32> {
         self.get_value(0x0038)
+    }
+}
+
+impl ItemFields for Item {}
+impl Storage for Item {
+    fn get_inner(&self) -> &InnerState {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut InnerState {
+        &mut self.inner
     }
 }

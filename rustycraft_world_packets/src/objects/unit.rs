@@ -3,9 +3,30 @@ use deku::prelude::*;
 use crate::class::Class;
 use crate::gender::Gender;
 use crate::guid::Guid;
-use crate::objects::private;
+use crate::objects::base::{BaseObject, Storage};
+use crate::objects::player::PlayerFields;
+use crate::objects::{InnerState, UpdateMaskObjectType};
 use crate::power::Power;
 use crate::race::Race;
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Unit {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: InnerState,
+}
+
+impl Unit {
+    pub fn new(guid: Guid) -> Box<Self> {
+        let mut object = Self::default();
+        <Self as BaseObject<0x0000>>::set_guid(&mut object, guid);
+        <Self as BaseObject<0x0000>>::set_object_type(
+            &mut object,
+            UpdateMaskObjectType::Unit as u32,
+        );
+        Box::new(object)
+    }
+}
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct UnitData {
@@ -160,7 +181,8 @@ pub enum NPCFlags {
     Mailbox = 0x04000000,       // TITLE is mailbox
 }
 
-pub trait Unit: private::Object<0x0006> {
+impl<T> UnitFields for T where T: BaseObject<0x0006> + PlayerFields {}
+pub trait UnitFields: BaseObject<0x0006> {
     fn set_unit_charm(&mut self, val: Guid) -> &mut Self {
         self.set_value(val, 0x0000)
     }
@@ -560,3 +582,14 @@ pub trait Unit: private::Object<0x0006> {
         self.get_value(0x008C)
     }
 }
+
+impl Storage for Unit {
+    fn get_inner(&self) -> &InnerState {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut InnerState {
+        &mut self.inner
+    }
+}
+impl UnitFields for Unit {}

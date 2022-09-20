@@ -1,5 +1,26 @@
+use deku::prelude::*;
+
 use crate::guid::Guid;
-use crate::objects::private;
+use crate::objects::base::{BaseObject, Storage};
+use crate::objects::{InnerState, UpdateMaskObjectType};
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Corpse {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: InnerState,
+}
+impl Corpse {
+    pub fn new(guid: Guid) -> Box<Self> {
+        let mut object = Self::default();
+        <Self as BaseObject<0x0000>>::set_guid(&mut object, guid);
+        <Self as BaseObject<0x0000>>::set_object_type(
+            &mut object,
+            UpdateMaskObjectType::Corpse as u32,
+        );
+        Box::new(object)
+    }
+}
 
 enum CorpseFlags {
     CorpseFlagNone = 0x00,
@@ -15,7 +36,7 @@ enum CorpseDynFlags {
     CorpseDynFlagLootable = 0x0001,
 }
 
-pub trait Corpse: private::Object<0x0006> {
+pub trait CorpseFields: BaseObject<0x0006> {
     fn set_corpse_owner(&mut self, corpse_owner: Guid) -> &mut Self {
         self.set_value(corpse_owner, 0x0000)
     }
@@ -82,5 +103,15 @@ pub trait Corpse: private::Object<0x0006> {
     }
     fn get_corpse_dynamic_flags(&mut self) -> Option<u32> {
         self.get_value(0x001C)
+    }
+}
+
+impl CorpseFields for Corpse {}
+impl Storage for Corpse {
+    fn get_inner(&self) -> &InnerState {
+        &self.inner
+    }
+    fn get_inner_mut(&mut self) -> &mut InnerState {
+        &mut self.inner
     }
 }

@@ -1,4 +1,4 @@
-use crate::objects::ObjectInner;
+use crate::objects::InnerState;
 use deku::bitvec::*;
 use deku::error::NeedSize;
 use deku::{DekuError, DekuWrite};
@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 pub(crate) fn read_object_btree_map(
     rest: &BitSlice<Msb0, u8>,
-) -> Result<(&BitSlice<Msb0, u8>, ObjectInner), DekuError> {
+) -> Result<(&BitSlice<Msb0, u8>, InnerState), DekuError> {
     if rest.len() < 8 {
         return Err(DekuError::Incomplete(NeedSize::new(8)));
     }
@@ -72,7 +72,7 @@ fn aliquot(base: usize, x: usize) -> usize {
 
 pub(crate) fn write_object_btree_map(
     output: &mut BitVec<Msb0, u8>,
-    field: &ObjectInner,
+    field: &InnerState,
 ) -> Result<(), DekuError> {
     if field.len() > 0x578 {
         panic!("Max fields count: 1 400, given: {}", field.len());

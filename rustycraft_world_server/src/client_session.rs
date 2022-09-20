@@ -21,12 +21,7 @@ use rustycraft_world_packets::movement_block::{
 };
 use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags};
 use rustycraft_world_packets::object::{Object, ObjectType, ObjectUpdateType, SmsgUpdateObject};
-use rustycraft_world_packets::objects::traits::{
-    Container as _, Corpse as _, DynamicObject as _, GameObject as _, Item as _, Item as _,
-    ObjectTrait as _, Unit as _,
-};
-use rustycraft_world_packets::objects::unit::UnitData;
-use rustycraft_world_packets::objects::*;
+use rustycraft_world_packets::objects::prelude::*;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::power::Power;
@@ -119,7 +114,10 @@ impl ClientSession {
         let mut socket_reader = self.socket_reader.lock().await;
         self.init_connection(&mut socket_reader).await?;
         loop {
-            let (opcode, data) = self.read_socket(&mut socket_reader).await??;
+            let (opcode, data) = self
+                .read_socket(&mut socket_reader)
+                .await?
+                .ok_or_else(|| anyhow!("Socket closed."))?;
             match opcode {
                 Opcode::CmsgReadyForAccountDataTimes => {}
                 Opcode::CmsgCharEnum => self.send_packet(char_data()).await?,
@@ -242,7 +240,7 @@ impl ClientSession {
         })
         .await?;
         self.send_packet(SmsgTutorialFlags::default()).await?;
-        let mut player = Player::new(Guid::new(HighGuid::Player, 4), UpdateMaskObjectType::Player);
+        let mut player = Player::new(Guid::new(HighGuid::Player, 4));
         player
             .set_unit_unit_data(UnitData {
                 race: Race::Human,

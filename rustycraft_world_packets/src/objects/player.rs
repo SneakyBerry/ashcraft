@@ -1,6 +1,28 @@
-use crate::guid::Guid;
-use crate::objects::private;
 use deku::prelude::*;
+
+use crate::guid::Guid;
+use crate::objects::base::{BaseObject, Storage};
+use crate::objects::unit::UnitFields;
+use crate::objects::{InnerState, UpdateMaskObjectType};
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Player {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: InnerState,
+}
+
+impl Player {
+    pub fn new(guid: Guid) -> Box<Self> {
+        let mut object = Self::default();
+        <Self as BaseObject<0x0000>>::set_guid(&mut object, guid);
+        <Self as BaseObject<0x0000>>::set_object_type(
+            &mut object,
+            UpdateMaskObjectType::Player as u32,
+        );
+        Box::new(object)
+    }
+}
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct Bytes1 {
@@ -134,7 +156,7 @@ pub struct Rune {
     pub death: u32,
 }
 
-pub trait Player: private::Object<0x0094> {
+pub trait PlayerFields: BaseObject<0x0094> {
     fn set_player_duel_arbiter(&mut self, val: Guid) -> &mut Self {
         self.set_value(val, 0x0000)
     }
@@ -726,5 +748,16 @@ pub trait Player: private::Object<0x0094> {
     }
     fn get_player_pet_spell_power(&self) -> Option<u32> {
         self.get_value(0x0499)
+    }
+}
+
+impl PlayerFields for Player {}
+impl Storage for Player {
+    fn get_inner(&self) -> &InnerState {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut InnerState {
+        &mut self.inner
     }
 }
