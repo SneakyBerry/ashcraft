@@ -27,12 +27,6 @@ pub enum EnchantmentSlot {
 }
 
 pub trait Item: private::Object<0x0006> {
-    fn new(guid: Guid) -> Box<Self> {
-        let mut object = Self::default();
-        object.set_guid(guid).set_object_type(ObjectType::Item);
-        Box::new(object)
-    }
-
     fn set_owner(&mut self, owner: Guid) -> &mut Self {
         self.set_value(owner, 0x0000)
     }

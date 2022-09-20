@@ -21,7 +21,12 @@ use rustycraft_world_packets::movement_block::{
 };
 use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags};
 use rustycraft_world_packets::object::{Object, ObjectType, ObjectUpdateType, SmsgUpdateObject};
-use rustycraft_world_packets::objects::{Player, UnitData};
+use rustycraft_world_packets::objects::traits::{
+    Container as _, Corpse as _, DynamicObject as _, GameObject as _, Item as _, Item as _,
+    ObjectTrait as _, Unit as _,
+};
+use rustycraft_world_packets::objects::unit::UnitData;
+use rustycraft_world_packets::objects::*;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::power::Power;
@@ -39,6 +44,17 @@ use tokio::net::TcpStream;
 use tokio::sync::{Mutex, MutexGuard, OnceCell};
 use wow_srp::normalized_string::NormalizedString;
 use wow_srp::wrath_header::{ProofSeed, ServerCrypto};
+
+const AUTH_SERVER_RESPONSE_OK: AuthResponseServer = AuthResponseServer {
+    result: ResponseCode::AuthOk,
+    ok: Some(AuthOk {
+        billing_flags: 0,
+        billing_rested: 0,
+        billing_time: 0,
+        expansion: Expansion::WrathOfTheLichLing,
+    }),
+    wait: None,
+};
 
 pub struct ClientSession {
     socket_reader: Mutex<OwnedReadHalf>,
@@ -102,25 +118,17 @@ impl ClientSession {
     pub async fn serve(self: Arc<Self>) -> anyhow::Result<()> {
         let mut socket_reader = self.socket_reader.lock().await;
         self.init_connection(&mut socket_reader).await?;
-
         loop {
-            let res = self.read_socket(&mut socket_reader).await;
-            if let Ok(Some((opcode, data))) = res {
-                match opcode {
-                    Opcode::CmsgReadyForAccountDataTimes => {}
-                    Opcode::CmsgCharEnum => self.send_packet(char_data()).await?,
-                    Opcode::CmsgRealmSplit
-                    | Opcode::CmsgPing
-                    | Opcode::CmsgSetActiveVoiceChannel => {}
-                    Opcode::CmsgPlayerLogin => {
-                        self.handle_player_login(CmsgPlayerLogin::from_bytes((&data, 0))?.1)
-                            .await?
-                    }
-                    opcode => debug!("{:?}: {:?}", opcode, data),
+            let (opcode, data) = self.read_socket(&mut socket_reader).await??;
+            match opcode {
+                Opcode::CmsgReadyForAccountDataTimes => {}
+                Opcode::CmsgCharEnum => self.send_packet(char_data()).await?,
+                Opcode::CmsgRealmSplit | Opcode::CmsgPing | Opcode::CmsgSetActiveVoiceChannel => {}
+                Opcode::CmsgPlayerLogin => {
+                    self.handle_player_login(CmsgPlayerLogin::from_bytes((&data, 0))?.1)
+                        .await?
                 }
-            } else {
-                let first = res.unwrap();
-                first.unwrap();
+                opcode => debug!("{:?}: {:?}", opcode, data),
             }
         }
     }
@@ -189,17 +197,7 @@ impl ClientSession {
                         .map_err(|_| ())
                         .expect("OnceCell already set");
                 }
-                self.send_packet(AuthResponseServer {
-                    result: ResponseCode::AuthOk,
-                    ok: Some(AuthOk {
-                        billing_flags: 0,
-                        billing_rested: 0,
-                        billing_time: 0,
-                        expansion: Expansion::WrathOfTheLichLing,
-                    }),
-                    wait: None,
-                })
-                .await?;
+                self.send_packet(AUTH_SERVER_RESPONSE_OK).await?;
             } else {
                 self.send_packet(AuthResponseServer {
                     result: ResponseCode::AuthSystemError,
@@ -242,23 +240,9 @@ impl ClientSession {
                 rotation: Some(0.0),
             },
         })
-        .await
-        .unwrap();
-        self.send_packet(SmsgTutorialFlags::default())
-            .await
-            .unwrap();
-        // let update_mask = UpdatePlayer::new()
-        //     .set_object_GUID(Guid::new(4))
-        //     .set_unit_BYTES_0(Race::Human, Class::Warrior, Gender::Female, Power::Rage)
-        //     .set_object_SCALE_X(1.0)
-        //     .set_unit_health(100)
-        //     .set_unit_MAXHEALTH(100)
-        //     .set_unit_LEVEL(1)
-        //     .set_unit_FACTIONTEMPLATE(1)
-        //     .set_unit_DISPLAYID(50)
-        //     .set_unit_NATIVEDISPLAYID(50);
-
-        let mut player = Player::new(Guid::new(HighGuid::Player, 4));
+        .await?;
+        self.send_packet(SmsgTutorialFlags::default()).await?;
+        let mut player = Player::new(Guid::new(HighGuid::Player, 4), UpdateMaskObjectType::Player);
         player
             .set_unit_unit_data(UnitData {
                 race: Race::Human,
@@ -273,28 +257,7 @@ impl ClientSession {
             .set_unit_faction_template(1)
             .set_unit_display_id(50)
             .set_unit_native_display_id(50);
-
-        // update_mask
-        //     .set_value(0, guid.as_u64() as u32)
-        //     .set_value(1, (guid.as_u64() >> 32_u32) as u32)
-        //     .set_value(
-        //         23,
-        //         u32::from_le_bytes([
-        //             Race::Human as u8,
-        //             Class::Warrior as u8,
-        //             Gender::Female as u8,
-        //             Power::Rage as u8,
-        //         ]),
-        //     )
-        //     .set_value(4, 1)
-        //     .set_value(24, 100)
-        //     .set_value(32, 100)
-        //     .set_value(54, 1)
-        //     .set_value(55, 1)
-        //     .set_value(67, 50)
-        //     .set_value(68, 50);
-
-        let update_flag = MovementBlockBuilder::default()
+        let movement = MovementBlockBuilder::default()
             .living(MovementBlockLivingVariants::Living(Box::new(
                 LivingBuilder::default()
                     .backwards_running_speed(4.5)
@@ -311,43 +274,28 @@ impl ClientSession {
                         rotation: Some(0.0),
                     })
                     .pitch_rate(0.0)
-                    .running_speed(7.0)
+                    .running_speed(60.0)
                     .swimming_speed(0.0)
                     .timestamp(0)
                     .turn_rate(std::f32::consts::PI)
                     .walking_speed(1.0)
                     .build()
-                    .unwrap(),
+                    .expect("I am sure that this is correct."),
             )))
             .set_self()
             .build()
-            .unwrap();
+            .expect("And this is correct too.");
         let update_object = SmsgUpdateObject::new(vec![Object {
             update_type: ObjectUpdateType::CreateObject2 {
                 guid: Guid::new(HighGuid::Player, 4).into(),
                 object_type: ObjectType::Player,
-                update_fields: Box::new(player),
-                movement2: update_flag,
+                update_fields: player,
+                movement,
             },
         }]);
-        self.send_packet(update_object).await.unwrap();
-        // self.send_packet(DebugPacket {
-        //     opcode: Opcode::SmsgUpdateObject,
-        //     data: vec![
-        //         1, 0, 0, 0, 3, 1, 4, 4, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 205, 215, 11, 198, 53,
-        //         126, 4, 195, 249, 15, 167, 66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 63, 0, 0, 224,
-        //         64, 0, 0, 144, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 219, 15, 73, 64,
-        //         0, 0, 0, 0, 3, 23, 0, 128, 1, 1, 0, 192, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
-        //         25, 0, 0, 0, 0, 0, 128, 63, 1, 1, 1, 1, 100, 0, 0, 0, 100, 0, 0, 0, 1, 0, 0, 0, 1,
-        //         0, 0, 0, 50, 0, 0, 0, 50, 0, 0, 0,
-        //     ],
-        // })
-        //     .await
-        //     .unwrap();
+        self.send_packet(update_object).await?;
 
-        self.send_packet(SmsgTimeSyncReq { time_sync: 0 })
-            .await
-            .unwrap();
+        self.send_packet(SmsgTimeSyncReq { time_sync: 0 }).await?;
         Ok(())
     }
 }

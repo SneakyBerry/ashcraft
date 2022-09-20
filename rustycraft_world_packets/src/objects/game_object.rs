@@ -1,4 +1,9 @@
-#[derive(Debug, Clone, Eq, PartialEq)]
+use crate::guid::Guid;
+use crate::objects::private;
+use crate::position::Vector3d;
+use deku::prelude::*;
+
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct GameObjectBytes {
     pub state: GameObjectState,
     pub r#type: GameObjectTypes,
@@ -6,14 +11,16 @@ pub struct GameObjectBytes {
     pub anim_progress: u8,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[deku(type = "u8")]
 pub enum GameObjectState {
     Active = 0,    // show in world as used and not reset (closed door open)
     Ready = 1,     // show in world as ready (closed door close)
     Destroyed = 2, // show the object in-game as already used and not yet reset (e.g. door opened by a cannon blast)
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[deku(type = "u8")]
 pub enum GameObjectTypes {
     Door = 0,
     Button = 1,
@@ -53,23 +60,60 @@ pub enum GameObjectTypes {
     Trapdoor = 35,
 }
 
-macro_rules! game_object_fields {
-    (
-        impl for $struct_name:ident
-    ) => {
-        impl_accessors!(
-            Offset: 0x0006;
-            Size: 0x000C;
-            impl $struct_name {
-                0x0000 => game_object_created_by: Guid;
-                0x0002 => game_object_display_id: u32;
-                0x0003 => game_object_flags: [bool; 1];
-                0x0004 => game_object_parent_rotation: Vector3d;
-                0x0008 => game_object_dynamic: (u16, u16);
-                0x0009 => game_object_faction: u32;
-                0x000A => game_object_level: u32;
-                0x000B => game_object_bytes: GameObjectBytes;
-            }
-        );
-    };
+pub trait GameObject: private::Object<0x0006> {
+    fn set_game_object_created_by(&mut self, game_object_created_by: Guid) -> &mut Self {
+        self.set_value(game_object_created_by, 0x0000)
+    }
+    fn get_game_object_created_by(&self) -> Option<Guid> {
+        self.get_value(0x0000)
+    }
+
+    fn set_game_object_display_id(&mut self, game_object_display_id: u32) -> &mut Self {
+        self.set_value(game_object_display_id, 0x0002)
+    }
+    fn get_game_object_display_id(&self) -> Option<u32> {
+        self.get_value(0x0002)
+    }
+    fn set_game_object_flags(&mut self, mask: u32) -> &mut Self {
+        self.apply_and(0x0003, mask)
+    }
+    fn unset_game_object_flags(&mut self, mask: u32) -> &mut Self {
+        self.apply_and(0x0003, !(mask))
+    }
+    fn get_game_object_flags(&mut self) -> Option<u32> {
+        self.get_value(0x0003)
+    }
+    fn set_game_object_parent_rotation(
+        &mut self,
+        game_object_parent_rotation: Vector3d,
+    ) -> &mut Self {
+        self.set_value(game_object_parent_rotation, 0x0004)
+    }
+    fn get_game_object_parent_rotation(&self) -> Option<Vector3d> {
+        self.get_value(0x0004)
+    }
+    fn set_game_object_dynamic(&mut self, game_object_dynamic: (u16, u16)) -> &mut Self {
+        self.set_value(game_object_dynamic, 0x0008)
+    }
+    fn get_game_object_dynamic(&self) -> Option<(u16, u16)> {
+        self.get_value(0x0008)
+    }
+    fn set_game_object_faction(&mut self, game_object_faction: u32) -> &mut Self {
+        self.set_value(game_object_faction, 0x0009)
+    }
+    fn get_game_object_faction(&self) -> Option<u32> {
+        self.get_value(0x0009)
+    }
+    fn set_game_object_level(&mut self, game_object_level: u32) -> &mut Self {
+        self.set_value(game_object_level, 0x000A)
+    }
+    fn get_game_object_level(&self) -> Option<u32> {
+        self.get_value(0x000A)
+    }
+    fn set_game_object_bytes(&mut self, game_object_bytes: GameObjectBytes) -> &mut Self {
+        self.set_value(game_object_bytes, 0x000B)
+    }
+    fn get_game_object_bytes(&self) -> Option<GameObjectBytes> {
+        self.get_value(0x000B)
+    }
 }

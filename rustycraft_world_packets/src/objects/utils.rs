@@ -35,17 +35,25 @@ pub(crate) fn read_object_btree_map(
     let mut values = values
         .chunks(32)
         .map(BitSlice::as_raw_slice)
-        .map(|x| x.try_into().unwrap())// It's ok because we have chunks by 32 bits
+        .map(|x| {
+            x.try_into()
+                .expect("It should be 32 bits according to chunk size")
+        })
         .map(u32::from_le_bytes)
         .rev()
         .collect::<Vec<_>>();
 
     let mut res = BTreeMap::new();
     for (idx, mask) in masks.iter().enumerate() {
-        for pos in (0..32).rev() {
+        for pos in 0..32 {
             if mask & (1 << pos) == (1 << pos) {
-                let key = idx * 32 + 31 - pos;
-                res.insert(key, values.pop().unwrap()); // Unwrap is ok, length was checked
+                let key = idx * 32 + pos;
+                res.insert(
+                    key,
+                    values
+                        .pop()
+                        .expect("Length can not be less then needed because of previous check."),
+                );
             }
         }
     }
@@ -76,7 +84,7 @@ pub(crate) fn write_object_btree_map(
         let mask_idx = bit / 32;
         let bit_pos = bit % 32;
         if field.contains_key(&bit) {
-            masks[mask_idx as usize] |= 1_u32.wrapping_shl(31_u32 - bit_pos as u32);
+            masks[mask_idx as usize] |= 1_u32.wrapping_shl(bit_pos as u32);
         }
     }
     (masks.len() as u8).to_le_bytes().write(output, ())?; // write bitmask size
@@ -88,42 +96,3 @@ pub(crate) fn write_object_btree_map(
     field.values().collect::<Vec<_>>().write(output, ())?;
     Ok(())
 }
-
-// #[cfg(test)]
-// mod test {
-//     use crate::objects::utils::{aliquot, read_object_btree_map, write_object_btree_map};
-//     use crate::objects::ObjectInner;
-//     use deku::bitvec::BitVec;
-//
-//     #[test]
-//     fn test_read_write() {
-//         let mut map = ObjectInner::new();
-//         let mut out = BitVec::new();
-//
-//         for idx in 0..0x578 {
-//             map.insert(idx, (idx as u32).to_le_bytes());
-//         }
-//
-//         write_object_btree_map(&mut out, &map).unwrap();
-//
-//         let (_rest, _res) = read_object_btree_map(&out).unwrap();
-//     }
-//
-//     #[test]
-//     #[should_panic]
-//     fn test_read_write_err_len() {
-//         let mut map = ObjectInner::new();
-//         let mut out = BitVec::new();
-//
-//         for idx in 0..0x579 {
-//             map.insert(idx, (idx as u32).to_le_bytes());
-//         }
-//
-//         let _ = write_object_btree_map(&mut out, &map);
-//     }
-//
-//     #[test]
-//     fn test_aliquot() {
-//         assert_eq!(aliquot(8, 16), 16);
-//     }
-// }

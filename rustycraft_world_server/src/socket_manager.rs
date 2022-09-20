@@ -21,7 +21,7 @@ impl SocketManager {
     }
 
     pub async fn run_forever(mut self) -> anyhow::Result<()> {
-        let listener = TcpListener::bind(self.bind_address).await.unwrap();
+        let listener = TcpListener::bind(self.bind_address).await?;
 
         info!(target: "SocketManager", "World server listening on: {}", self.bind_address);
 

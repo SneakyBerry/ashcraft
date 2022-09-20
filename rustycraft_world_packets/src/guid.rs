@@ -17,7 +17,7 @@ pub struct PackedGuid {
 }
 
 impl Guid {
-    pub fn new(high: HighGuid, guid: u64) -> Guid {
+    pub const fn new(high: HighGuid, guid: u64) -> Guid {
         Guid {
             guid: (guid & 0x0000FFFFFFFFFFFF) | (high as u64) << 48,
         }

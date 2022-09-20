@@ -53,9 +53,9 @@ pub enum ObjectUpdateType {
     },
     #[deku(id = "0x3")]
     CreateObject2 {
-        guid: PackedGuid,        // 12
-        object_type: ObjectType, // 13
-        movement2: MovementBlock,
+        guid: PackedGuid,
+        object_type: ObjectType,
+        movement: MovementBlock,
         update_fields: Box<dyn objects::UpdateFields>,
     },
     #[deku(id = "0x4")]
@@ -70,15 +70,6 @@ pub enum ObjectUpdateType {
         count: u32,
         guids: Vec<PackedGuid>,
     },
-}
-
-#[cfg(test)]
-mod test {
-
-    #[test]
-    fn test() {
-        // println!("{:?}", &ObjectUpdateType::None { a: 10, b: 20 }.to_bytes());
-    }
 }
 
 impl ServerPacket for SmsgUpdateObject {

@@ -13,7 +13,7 @@ The main goal is to create modern, distributed, scalable World of Warcraft serve
 - [x] Basic login to the realm
 - [x] Switch client from realm server to world server
 - [ ] Create a character
-- [ ] Log into the world
+- [x] Log into the world
 
 #### Plans to alpha
 - [ ] Think about design (Event sourcing? RPC? Main entities to deal with?)

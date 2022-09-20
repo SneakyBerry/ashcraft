@@ -1,58 +1,60 @@
-//! Possible object types:
-//!
-//! pub enum ObjectType {
-//!     Object = 0x0,
-//!     Item = 0x1,
-//!     Container = 0x2,
-//!     Unit = 0x3,
-//!     Player = 0x4,
-//!     GameObject = 0x5,
-//!     DynamicObject = 0x6,
-//!     Corpse = 0x7,
-//! }
-
 use crate::guid::Guid;
 
 use deku::prelude::*;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-#[macro_use]
-mod container;
-#[macro_use]
-mod corpse;
-#[macro_use]
-mod dynamic_object;
-#[macro_use]
-mod game_object;
-#[macro_use]
-mod item;
-#[macro_use]
-mod player;
-#[macro_use]
-mod unit;
+pub mod container;
+pub mod corpse;
+pub mod dynamic_object;
+pub mod game_object;
+pub mod item;
+pub mod player;
+pub mod unit;
 mod utils;
 
-#[macro_use]
-mod macros;
-
-use crate::object::ObjectType;
 use crate::position::Vector3d;
 
-use game_object::*;
-use item::*;
+pub mod traits {
+    pub use super::container::*;
+    pub use super::corpse::*;
+    pub use super::dynamic_object::*;
+    pub use super::game_object::*;
+    pub use super::item::*;
+    pub use super::player::*;
+    pub use super::unit::*;
+    pub use super::ObjectTrait;
+}
 
-pub use player::*;
-pub use unit::*;
+use crate::objects::private::Storage;
 
 type ObjectInner = BTreeMap<usize, u32>;
 pub trait UpdateFields:
-    DekuUpdate + DekuContainerRead<'static> + DekuContainerWrite + Debug
+    DekuUpdate + DekuContainerRead<'static> + DekuContainerWrite + Debug + Sync + Send
 {
 }
+
+impl UpdateFields for Object {}
+impl UpdateFields for Container {}
+impl UpdateFields for Corpse {}
+impl UpdateFields for GameObject {}
+impl UpdateFields for Item {}
+impl UpdateFields for Player {}
+impl UpdateFields for Unit {}
+
+pub enum UpdateMaskObjectType {
+    Object = 0x0001,
+    Item = 0x0002 | 0x0001,
+    Container = 0x0004 | 0x0002 | 0x0001,
+    Unit = 0x0008 | 0x0001,
+    Player = 0x0010 | 0x0008 | 0x0001,
+    GameObject = 0x0020 | 0x0001,
+    DynamicObject = 0x0040 | 0x0001,
+    Corpse = 0x0080 | 0x0001,
+}
+
 mod private {
     use crate::guid::{Guid, HighGuid};
-    use crate::object::ObjectType;
     use crate::objects::ObjectInner;
     use deku::bitvec::{BitVec, Msb0};
     use deku::ctx::Endian;
@@ -86,7 +88,7 @@ mod private {
             value.write(&mut buffer, ()).expect("Write failed");
             inner.extend(buffer.as_raw_slice().chunks(4).enumerate().map(|(i, v)| {
                 (
-                    i + offset,
+                    i + offset + OFFSET,
                     u32::from_le_bytes(v.try_into().expect("Chunk not equal to 4?")),
                 )
             }));
@@ -115,11 +117,11 @@ mod private {
         }
 
         fn set_guid(&mut self, guid: Guid) -> &mut Self {
-            self.set_value(guid.as_u32(), 0x0000)
+            self.set_value(guid, 0x0000)
         }
 
-        fn set_object_type(&mut self, object_type: ObjectType) -> &mut Self {
-            self.set_value([object_type as u32], 0x0002)
+        fn set_object_type(&mut self, object_type: u32) -> &mut Self {
+            self.set_value(object_type, 0x0002)
         }
 
         fn parse_guid(val: [u32; 2]) -> Guid {
@@ -132,17 +134,17 @@ mod private {
     }
 }
 
-pub trait Object: private::Object<0x0000> {
-    fn new(guid: Guid) -> Box<Self> {
+pub trait ObjectTrait: private::Object<0x0000> {
+    fn new(guid: Guid, object_type: UpdateMaskObjectType) -> Box<Self> {
         let mut object = Self::default();
-        object.set_guid(guid).set_object_type(ObjectType::Object);
+        object.set_guid(guid).set_object_type(object_type as u32);
         Box::new(object)
     }
 
     fn get_guid(&self) -> Option<Guid> {
         self.get_value(0x0000)
     }
-    fn get_object_type(&self) -> Option<ObjectType> {
+    fn get_object_type(&self) -> Option<u32> {
         self.get_value(0x0002)
     }
     fn set_object_entry(&mut self, object_entry: u32) -> &mut Self {
@@ -160,12 +162,42 @@ pub trait Object: private::Object<0x0000> {
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+pub struct Object {
+    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: ObjectInner,
+}
+impl Storage for Object {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for Object {}
+impl ObjectTrait for Object {}
+
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct Item {
     #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// item_fields!(impl for Item);
+impl Storage for Item {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for Item {}
+impl private::Object<0x0006> for Item {}
+impl ObjectTrait for Item {}
+impl item::Item for Item {}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct Container {
@@ -173,8 +205,21 @@ pub struct Container {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// object_fields!(ObjectType::Container => Container);
-// container_fields!(impl for Container);
+impl Storage for Container {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for Container {}
+impl private::Object<0x0006> for Container {}
+impl private::Object<0x0040> for Container {}
+impl ObjectTrait for Container {}
+impl item::Item for Container {}
+impl container::Container for Container {}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct Unit {
@@ -182,8 +227,19 @@ pub struct Unit {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// object_fields!(ObjectType::Unit => Unit);
-// unit_fields!(impl for Unit);
+impl Storage for Unit {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for Unit {}
+impl private::Object<0x0006> for Unit {}
+impl ObjectTrait for Unit {}
+impl unit::Unit for Unit {}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct Player {
@@ -191,9 +247,21 @@ pub struct Player {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// object_fields!(ObjectType::Player => Player);
-// unit_fields!(impl for Player);
-// player_fields!(impl for Player);
+impl Storage for Player {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for Player {}
+impl private::Object<0x0006> for Player {}
+impl private::Object<0x0094> for Player {}
+impl ObjectTrait for Player {}
+impl unit::Unit for Player {}
+impl player::Player for Player {}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct GameObject {
@@ -201,8 +269,19 @@ pub struct GameObject {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// object_fields!(ObjectType::GameObject => GameObject);
-// game_object_fields!(impl for GameObject);
+impl Storage for GameObject {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for GameObject {}
+impl private::Object<0x0006> for GameObject {}
+impl ObjectTrait for GameObject {}
+impl game_object::GameObject for GameObject {}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct DynamicObject {
@@ -210,8 +289,19 @@ pub struct DynamicObject {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// object_fields!(ObjectType::DynamicObject => DynamicObject);
-// dynamic_object_fields!(impl for DynamicObject);
+impl Storage for DynamicObject {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
+    }
+}
+impl private::Object<0x0000> for DynamicObject {}
+impl private::Object<0x0006> for DynamicObject {}
+impl ObjectTrait for DynamicObject {}
+impl dynamic_object::DynamicObject for DynamicObject {}
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct Corpse {
@@ -219,72 +309,58 @@ pub struct Corpse {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: ObjectInner,
 }
-// object_fields!(ObjectType::Corpse => Corpse);
-// corpse_fields!(impl for Corpse);
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::guid::{Guid, HighGuid};
-    use crate::object::ObjectType;
-    use crate::objects::item::Item;
-
-    #[test]
-    fn test_object_construct() {
-        #[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
-        struct Test {
-            #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
-            #[deku(
-                writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)"
-            )]
-            inner: ObjectInner,
-        }
-        impl private::Storage for Test {
-            fn get_inner(&self) -> &ObjectInner {
-                &self.inner
-            }
-
-            fn get_inner_mut(&mut self) -> &mut ObjectInner {
-                &mut self.inner
-            }
-        }
-        impl Object for Test {};
-        impl private::Object<0x0000> for Test {}
-
-        impl Item for Test {};
-        impl private::Object<0x0006> for Test {}
-
-        let mut test = <Test as Item>::new(Guid::new(HighGuid::Corpse, 0xFFFF0000000000FF));
-        test.set_flags(0xFF00FF00)
-            .set_enchantment(
-                ItemEnchantment {
-                    id: 0xFFFEFFEF,
-                    duration: u32::MAX,
-                    charges: u32::MAX / 2,
-                },
-                1,
-            )
-            .set_enchantment(
-                ItemEnchantment {
-                    id: 0xFF0000EF,
-                    duration: u32::MAX,
-                    charges: u32::MAX / 2,
-                },
-                0,
-            );
-        debug_print_btree(&test.inner);
-        let inn = test.inner.clone();
-        let prom = test.to_bytes().unwrap();
-        let restored = Test::from_bytes((&prom, 0)).unwrap().1;
-        println!("{:?}", &prom);
-        println!("{:?}", &test);
-        println!("{:?}", &restored);
-        debug_print_btree(&restored.inner);
+impl Storage for Corpse {
+    fn get_inner(&self) -> &ObjectInner {
+        &self.inner
+    }
+    fn get_inner_mut(&mut self) -> &mut ObjectInner {
+        &mut self.inner
     }
 }
+impl private::Object<0x0000> for Corpse {}
+impl private::Object<0x0006> for Corpse {}
+impl ObjectTrait for Corpse {}
+impl corpse::Corpse for Corpse {}
 
-pub(crate) fn debug_print_btree(inner: &ObjectInner) {
-    for (k, v) in inner {
-        println!("{}: {:0>8X}", k, v);
+#[cfg(test)]
+mod tests {
+    use super::traits::*;
+    use crate::class::Class;
+    use crate::gender::Gender;
+    use crate::guid::{Guid, HighGuid};
+    use crate::objects::UpdateMaskObjectType;
+    use crate::objects::UpdateMaskObjectType::Player;
+    use crate::power::Power;
+    use crate::race::Race;
+    use deku::prelude::*;
+
+    #[test]
+    fn test_basic_player() {
+        let mut player =
+            super::Player::new(Guid::new(HighGuid::Player, 4), UpdateMaskObjectType::Player);
+        player
+            .set_unit_unit_data(UnitData {
+                race: Race::Human,
+                class: Class::Warrior,
+                gender: Gender::Female,
+                power: Power::Rage,
+            })
+            .set_object_scale_x(1.0)
+            .set_unit_health(100)
+            .set_unit_max_health(100)
+            .set_unit_level(1)
+            .set_unit_faction_template(1)
+            .set_unit_display_id(50)
+            .set_unit_native_display_id(50);
+
+        let player_bytes = player.to_bytes().unwrap();
+        let expected = [
+            3, 23, 0, 128, 1, 1, 0, 192, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0,
+            128, 63, 1, 1, 1, 1, 100, 0, 0, 0, 100, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 50, 0, 0, 0,
+            50, 0, 0, 0,
+        ];
+        assert_eq!(player_bytes, expected);
+        let loaded = Box::new(super::Player::from_bytes((&player_bytes, 0)).unwrap().1);
+        assert_eq!(loaded, player)
     }
 }

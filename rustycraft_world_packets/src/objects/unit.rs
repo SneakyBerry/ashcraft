@@ -1,10 +1,13 @@
+use deku::prelude::*;
+
 use crate::class::Class;
 use crate::gender::Gender;
-
+use crate::guid::Guid;
+use crate::objects::private;
 use crate::power::Power;
 use crate::race::Race;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct UnitData {
     pub race: Race,
     pub class: Class,
@@ -12,7 +15,7 @@ pub struct UnitData {
     pub power: Power,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
 pub struct ClassSpecific {
     pub stand_state: u8,
     pub pet_talents: u8,
@@ -20,7 +23,8 @@ pub struct ClassSpecific {
     pub anim_tier: u8,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[deku(endian = "little")]
 pub struct AttackPower {
     pub power: u32,
     pub a: u16,
@@ -156,90 +160,403 @@ pub enum NPCFlags {
     Mailbox = 0x04000000,       // TITLE is mailbox
 }
 
-macro_rules! unit_fields {
-    (
-        impl for $struct_name:ident
-    ) => {
-        impl_accessors!(
-            Offset: 0x0006;
-            Size: 0x008E;
-            impl $struct_name {
-                0x0000 => unit_charm: Guid;
-                0x0002 => unit_summon: Guid;
-                0x0004 => unit_critter: Guid;
-                0x0006 => unit_charmed_by: Guid;
-                0x0008 => unit_summoned_by: Guid;
-                0x000A => unit_created_by: Guid;
-                0x000C => unit_target: Guid;
+pub trait Unit: private::Object<0x0006> {
+    fn set_unit_charm(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x0000)
+    }
+    fn get_unit_charm(&self) -> Option<Guid> {
+        self.get_value(0x0000)
+    }
+    fn set_unit_summon(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x0002)
+    }
+    fn get_unit_summon(&self) -> Option<Guid> {
+        self.get_value(0x0002)
+    }
+    fn set_unit_critter(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x0004)
+    }
+    fn get_unit_critter(&self) -> Option<Guid> {
+        self.get_value(0x0004)
+    }
+    fn set_unit_charmed_by(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x0006)
+    }
+    fn get_unit_charmed_by(&self) -> Option<Guid> {
+        self.get_value(0x0006)
+    }
+    fn set_unit_summoned_by(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x0008)
+    }
+    fn get_unit_summoned_by(&self) -> Option<Guid> {
+        self.get_value(0x0008)
+    }
+    fn set_unit_created_by(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x000A)
+    }
+    fn get_unit_created_by(&self) -> Option<Guid> {
+        self.get_value(0x000A)
+    }
+    fn set_unit_target(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x000C)
+    }
+    fn get_unit_target(&self) -> Option<Guid> {
+        self.get_value(0x000C)
+    }
+    fn set_unit_channel_object(&mut self, val: Guid) -> &mut Self {
+        self.set_value(val, 0x000E)
+    }
+    fn get_unit_channel_object(&self) -> Option<Guid> {
+        self.get_value(0x000E)
+    }
+    fn set_unit_channel_spell(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0010)
+    }
+    fn get_unit_channel_spell(&self) -> Option<u32> {
+        self.get_value(0x0010)
+    }
+    fn set_unit_unit_data(&mut self, val: UnitData) -> &mut Self {
+        self.set_value(val, 0x0011)
+    }
+    fn get_unit_unit_data(&self) -> Option<UnitData> {
+        self.get_value(0x0011)
+    }
+    fn set_unit_health(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0012)
+    }
+    fn get_unit_health(&self) -> Option<u32> {
+        self.get_value(0x0012)
+    }
+    fn set_unit_power(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x0013 + index)
+    }
+    fn get_unit_power(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x0013 + index)
+    }
+    fn set_unit_max_health(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x001A)
+    }
+    fn get_unit_max_health(&self) -> Option<u32> {
+        self.get_value(0x001A)
+    }
+    /// [mana, rage, focus, energy, happiness, runes, runic_power]
+    fn set_unit_max_power(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x001B + index)
+    }
+    /// [mana, rage, focus, energy, happiness, runes, runic_power]
+    fn get_unit_max_power(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x001B + index)
+    }
+    /// [mana, rage, focus, energy, happiness, runes, runic_power]
+    fn set_unit_regen_flat_mod(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x0022 + index)
+    }
+    fn get_unit_regen_flat_mod(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x0022 + index)
+    }
+    /// [mana, rage, focus, energy, happiness, runes, runic_power]
+    fn set_unit_regen_interrupted_flat_mod(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x0029 + index)
+    }
+    fn get_unit_regen_interrupted_flat_mod(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x0029 + index)
+    }
+    fn set_unit_level(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0030)
+    }
+    fn get_unit_level(&self) -> Option<u32> {
+        self.get_value(0x0030)
+    }
+    fn set_unit_faction_template(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0031)
+    }
+    fn get_unit_faction_template(&self) -> Option<u32> {
+        self.get_value(0x0031)
+    }
+    fn set_unit_virtual_item_slot_id(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 3, "Index is out of range");
+        self.set_value(val, 0x0032 + index)
+    }
+    fn get_unit_virtual_item_slot_id(&self, index: usize) -> Option<u32> {
+        assert!(index < 3, "Index is out of range");
+        self.get_value(0x0032 + index)
+    }
+    fn set_unit_flags(&mut self, mask: u32, index: usize) -> &mut Self {
+        assert!(index < 2, "Index is out of range");
+        self.apply_and(0x0035 + index, mask)
+    }
+    fn unset_unit_flags(&mut self, mask: u32, index: usize) -> &mut Self {
+        assert!(index < 2, "Index is out of range");
+        self.apply_and(0x0035 + index, !(mask))
+    }
+    fn get_unit_flags(&mut self, index: usize) -> Option<u32> {
+        assert!(index < 2, "Index is out of range");
+        self.get_value(0x0035 + index)
+    }
 
-                0x000E => unit_channel_object: Guid;
-                0x0010 => unit_channel_spell: u32;
+    fn set_unit_aura_state(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0037)
+    }
+    fn get_unit_aura_state(&self) -> Option<u32> {
+        self.get_value(0x0037)
+    }
+    fn set_unit_base_attack_time_main_off_hand(&mut self, min: f32, max: f32) -> &mut Self {
+        self.set_value((min, max), 0x0038)
+    }
+    fn get_unit_base_attack_time_main_off_hand(&self) -> Option<(f32, f32)> {
+        self.get_value(0x0038)
+    }
+    fn set_unit_ranged_attack_time(&mut self, val: f32) -> &mut Self {
+        self.set_value(val, 0x003A)
+    }
+    fn get_unit_ranged_attack_time(&self) -> Option<f32> {
+        self.get_value(0x003A)
+    }
+    fn set_unit_bounding_radius(&mut self, val: f32) -> &mut Self {
+        self.set_value(val, 0x003B)
+    }
+    fn get_unit_bounding_radius(&self) -> Option<f32> {
+        self.get_value(0x003B)
+    }
+    fn set_unit_combat_reach(&mut self, val: f32) -> &mut Self {
+        self.set_value(val, 0x003C)
+    }
+    fn get_unit_combat_reach(&self) -> Option<f32> {
+        self.get_value(0x003C)
+    }
+    fn set_unit_display_id(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x003D)
+    }
+    fn get_unit_display_id(&self) -> Option<u32> {
+        self.get_value(0x003D)
+    }
+    fn set_unit_native_display_id(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x003E)
+    }
+    fn get_unit_native_display_id(&self) -> Option<u32> {
+        self.get_value(0x003E)
+    }
+    fn set_unit_mount_display_id(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x003F)
+    }
+    fn get_unit_mount_display_id(&self) -> Option<u32> {
+        self.get_value(0x003F)
+    }
+    fn set_unit_min_max_damage(&mut self, min: f32, max: f32) -> &mut Self {
+        self.set_value((min, max), 0x0040)
+    }
+    fn get_unit_min_max_damage(&self) -> Option<(f32, f32)> {
+        self.get_value(0x0040)
+    }
+    fn set_unit_min_max_offhand_damage(&mut self, min: f32, max: f32) -> &mut Self {
+        self.set_value((min, max), 0x0042)
+    }
+    fn get_unit_min_max_offhand_damage(&self) -> Option<(f32, f32)> {
+        self.get_value(0x0042)
+    }
+    fn set_unit_class_specific(&mut self, val: ClassSpecific) -> &mut Self {
+        self.set_value(val, 0x0044)
+    }
+    fn get_unit_class_specific(&self) -> Option<ClassSpecific> {
+        self.get_value(0x0044)
+    }
+    fn set_unit_pet_number(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0045)
+    }
+    fn get_unit_pet_number(&self) -> Option<u32> {
+        self.get_value(0x0045)
+    }
+    fn set_unit_pet_name_timestamp(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0046)
+    }
+    fn get_unit_pet_name_timestamp(&self) -> Option<u32> {
+        self.get_value(0x0046)
+    }
+    fn set_unit_pet_experience(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0047)
+    }
+    fn get_unit_pet_experience(&self) -> Option<u32> {
+        self.get_value(0x0047)
+    }
+    fn set_unit_pet_next_level_exp(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0048)
+    }
+    fn get_unit_pet_next_level_exp(&self) -> Option<u32> {
+        self.get_value(0x0048)
+    }
 
-                0x0011 => unit_unit_data: UnitData;
+    fn set_unit_dynamic_flags(&mut self, mask: u32) -> &mut Self {
+        self.apply_and(0x0049, mask)
+    }
+    fn unset_unit_dynamic_flags(&mut self, mask: u32) -> &mut Self {
+        self.apply_and(0x0049, !mask)
+    }
+    fn get_unit_dynamic_flags(&mut self) -> Option<u32> {
+        self.get_value(0x0049)
+    }
 
-                0x0012 => unit_health: u32;
-                0x0013 => unit_power: [u32; 7];                           // [mana, rage, focus, energy, happiness, runes, runic_power]
-                0x001A => unit_max_health: u32;
-                0x001B => unit_max_power: [u32; 7];                       // [mana, rage, focus, energy, happiness, runes, runic_power]
-                0x0022 => unit_regen_flat_mod: [u32; 7];                  // [mana, rage, focus, energy, happiness, runes, runic_power]
-                0x0029 => unit_regen_interrupted_flat_mod: [u32; 7];      // [mana, rage, focus, energy, happiness, runes, runic_power]
+    fn set_unit_mod_cast_speed(&mut self, val: f32) -> &mut Self {
+        self.set_value(val, 0x004A)
+    }
+    fn get_unit_mod_cast_speed(&self) -> Option<f32> {
+        self.get_value(0x004A)
+    }
+    fn set_unit_created_by_spell(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x004B)
+    }
+    fn get_unit_created_by_spell(&self) -> Option<u32> {
+        self.get_value(0x004B)
+    }
 
-                0x0030 => unit_level: u32;
+    fn set_unit_npc_flags(&mut self, mask: u32) -> &mut Self {
+        self.apply_and(0x004C, mask)
+    }
+    fn unset_unit_npc_flags(&mut self, mask: u32) -> &mut Self {
+        self.apply_and(0x004C, !mask)
+    }
+    fn get_unit_npc_flags(&mut self) -> Option<u32> {
+        self.get_value(0x004C)
+    }
 
-                0x0031 => unit_faction_template: u32;
-                0x0032 => unit_virtual_item_slot_id: [u32; 3];
-                0x0035 => unit_flags: [bool; 2];
-
-                0x0037 => unit_aura_state: u32;
-                0x0038 => unit_base_attack_time_main_off_hand: [f32; 2];
-                0x003A => unit_ranged_attack_time: f32;
-                0x003B => unit_bounding_radius: f32;
-                0x003C => unit_combat_reach: f32;
-
-                0x003D => unit_display_id: u32;
-                0x003E => unit_native_display_id: u32;
-                0x003F => unit_mount_display_id: u32;
-
-                0x0040 => unit_min_max_damage: [f32; 2];
-                0x0042 => unit_min_max_offhand_damage: [f32; 2];
-
-                0x0044 => unit_class_specific: ClassSpecific;
-
-                0x0045 => unit_pet_number: u32;
-                0x0046 => unit_pet_name_timestamp: u32;
-                0x0047 => unit_pet_experience: u32;
-                0x0048 => unit_pet_next_level_exp: u32;
-
-                0x0049 => unit_dynamic_flags: [bool; 1];
-
-                0x004A => unit_mod_cast_speed: f32;
-                0x004B => unit_created_by_spell: u32;
-
-                0x004C => unit_npc_flags: [bool; 1];
-                0x004D => unit_npc_emote_state: u32;
-                //
-                0x004E => unit_stat: [u32; 5];                // [strength, agility, stamina, intellect, spirit]
-                0x0053 => unit_stat_pos_effects:  [u32; 5];   // [strength, agility, stamina, intellect, spirit]
-                0x0058 => unit_stat_neg_effects:  [u32; 5];   // [strength, agility, stamina, intellect, spirit]
-                //
-                0x005D => unit_resistance: [u32; 7];          // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x0064 => unit_resistance_pos: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x006B => unit_resistance_neg: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                //
-                0x0072 => unit_base_mana: u32;
-                0x0073 => unit_base_health: u32;
-                //
-                0x0074 => unit_bytes_2: u32;
-                //
-                0x0075 => unit_attack_power_melee: AttackPower;
-                0x0078 => unit_attack_power_ranged: AttackPower;
-                0x007B => unit_min_max_ranged_damage: [f32; 2];
-                0x007D => unit_power_cost_mod: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x0084 => unit_power_cost_mul: [u32; 7];      // [normal, holy, fire, nature, frost, shadow, arcane]
-                0x008B => unit_max_health_modifier: u32;
-                0x008C => unit_hover_height: u32;
-                0x008D => unit_padding: ();
-            }
-        );
-    };
+    fn set_unit_npc_emote_state(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x004D)
+    }
+    fn get_unit_npc_emote_state(&self) -> Option<u32> {
+        self.get_value(0x004D)
+    }
+    /// [strength, agility, stamina, intellect, spirit]
+    fn set_unit_stat(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 5, "Index is out of range");
+        self.set_value(val, 0x004E + index)
+    }
+    /// [strength, agility, stamina, intellect, spirit]
+    fn get_unit_stat(&self, index: usize) -> Option<u32> {
+        assert!(index < 5, "Index is out of range");
+        self.get_value(0x004E + index)
+    }
+    /// [strength, agility, stamina, intellect, spirit]
+    fn set_unit_stat_pos_effects(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 5, "Index is out of range");
+        self.set_value(val, 0x0053 + index)
+    }
+    fn get_unit_stat_pos_effects(&self, index: usize) -> Option<u32> {
+        assert!(index < 5, "Index is out of range");
+        self.get_value(0x0053 + index)
+    }
+    /// [strength, agility, stamina, intellect, spirit]
+    fn set_unit_stat_neg_effects(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 5, "Index is out of range");
+        self.set_value(val, 0x0058 + index)
+    }
+    /// [strength, agility, stamina, intellect, spirit]
+    fn get_unit_stat_neg_effects(&self, index: usize) -> Option<u32> {
+        assert!(index < 5, "Index is out of range");
+        self.get_value(0x0058 + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn set_unit_resistance(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x005D + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn get_unit_resistance(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x005D + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn set_unit_resistance_pos(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x0064 + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn get_unit_resistance_pos(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x0064 + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn set_unit_resistance_neg(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x006B + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn get_unit_resistance_neg(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x006B + index)
+    }
+    fn set_unit_base_mana(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0072)
+    }
+    fn get_unit_base_mana(&self) -> Option<u32> {
+        self.get_value(0x0072)
+    }
+    fn set_unit_base_health(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x0073)
+    }
+    fn get_unit_base_health(&self) -> Option<u32> {
+        self.get_value(0x0073)
+    }
+    fn set_unit_bytes_2(&mut self, val: [u8; 4]) -> &mut Self {
+        self.set_value(val, 0x0074)
+    }
+    fn get_unit_bytes_2(&self) -> Option<[u8; 4]> {
+        self.get_value(0x0074)
+    }
+    fn set_unit_attack_power_melee(&mut self, val: AttackPower) -> &mut Self {
+        self.set_value(val, 0x0075)
+    }
+    fn get_unit_attack_power_melee(&self) -> Option<AttackPower> {
+        self.get_value(0x0075)
+    }
+    fn set_unit_attack_power_ranged(&mut self, val: AttackPower) -> &mut Self {
+        self.set_value(val, 0x0078)
+    }
+    fn get_unit_attack_power_ranged(&self) -> Option<AttackPower> {
+        self.get_value(0x0078)
+    }
+    fn set_unit_min_max_ranged_damage(&mut self, min: f32, max: f32) -> &mut Self {
+        self.set_value((min, max), 0x007B)
+    }
+    fn get_unit_min_max_ranged_damage(&self) -> Option<(f32, f32)> {
+        self.get_value(0x007B)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn set_unit_power_cost_mod(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x007D + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn get_unit_power_cost_mod(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x007D + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn set_unit_power_cost_mul(&mut self, val: u32, index: usize) -> &mut Self {
+        assert!(index < 7, "Index is out of range");
+        self.set_value(val, 0x0084 + index)
+    }
+    /// [normal, holy, fire, nature, frost, shadow, arcane]
+    fn get_unit_power_cost_mul(&self, index: usize) -> Option<u32> {
+        assert!(index < 7, "Index is out of range");
+        self.get_value(0x0084 + index)
+    }
+    fn set_unit_max_health_modifier(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x008B)
+    }
+    fn get_unit_max_health_modifier(&self) -> Option<u32> {
+        self.get_value(0x008B)
+    }
+    fn set_unit_hover_height(&mut self, val: u32) -> &mut Self {
+        self.set_value(val, 0x008C)
+    }
+    fn get_unit_hover_height(&self) -> Option<u32> {
+        self.get_value(0x008C)
+    }
 }

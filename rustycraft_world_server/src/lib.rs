@@ -1,5 +1,4 @@
 mod client_session;
-mod crypt;
 mod objects;
 mod server;
 mod socket_manager;

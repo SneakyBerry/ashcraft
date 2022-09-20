@@ -52,7 +52,7 @@ pub struct MovementBlock {
     //                 break;
     //         }
     //     }
-    has_attacking_target: Option<PackedGuid>, // packed
+    has_attacking_target: Option<PackedGuid>,
     #[deku(endian = "little")]
     transport: Option<u32>,
     vehicle: Option<MovementBlockVehicle>,
@@ -75,7 +75,7 @@ impl MovementBlockBuilder {
 
     pub fn build(&self) -> Result<MovementBlock, MovementBlockBuilderError> {
         let mut res = MovementBlock {
-            inner: self.inner.as_ref().unwrap().clone(),
+            inner: self.inner.as_ref().expect("Has default.").clone(),
             living: None,
             position: None,
             stationary: None,
@@ -148,11 +148,11 @@ pub struct Position {
 
 #[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct Living {
-    flags: MovementFlags,            // 19
-    extra_flags: ExtraMovementFlags, // 21
+    flags: MovementFlags,
+    extra_flags: ExtraMovementFlags,
     #[deku(endian = "little")]
-    timestamp: u32, // 25
-    living_position: Vector3d,       // 37
+    timestamp: u32,
+    living_position: Vector3d,
 
     #[builder(default)]
     // MOVEMENTFLAG_ONTRANSPORT
@@ -162,7 +162,7 @@ pub struct Living {
     #[deku(endian = "little")]
     swimming_pitch: Option<f32>,
     #[deku(endian = "little")]
-    fall_time: f32, // 41
+    fall_time: f32,
     #[builder(default)]
     // MOVEMENTFLAG_FALLING
     falling: Option<MovementBlockMovementFlagsFalling>,
@@ -172,23 +172,23 @@ pub struct Living {
     spline_elevation: Option<f32>,
 
     #[deku(endian = "little")]
-    walking_speed: f32, // 45
+    walking_speed: f32,
     #[deku(endian = "little")]
-    running_speed: f32, // 49
+    running_speed: f32,
     #[deku(endian = "little")]
     backwards_running_speed: f32,
     #[deku(endian = "little")]
-    swimming_speed: f32, // 53
+    swimming_speed: f32,
     #[deku(endian = "little")]
-    backwards_swimming_speed: f32, // 57
+    backwards_swimming_speed: f32,
     #[deku(endian = "little")]
-    flight_speed: f32, // 61
+    flight_speed: f32,
     #[deku(endian = "little")]
-    backwards_flight_speed: f32, // 65
+    backwards_flight_speed: f32,
     #[deku(endian = "little")]
-    turn_rate: f32, // 69
+    turn_rate: f32,
     #[deku(endian = "little")]
-    pitch_rate: f32, // 73
+    pitch_rate: f32,
 
     #[builder(default)]
     spline_enabled: Option<MovementBlockMovementFlagsSplineEnabled>,

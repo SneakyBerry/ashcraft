@@ -137,7 +137,7 @@ impl Client {
         if let ClientState::OnChallenge(proof) = &mut self.state {
             let (server, server_proof) = proof
                 .take()
-                .unwrap() // always Some
+                .expect("Should be always Some")
                 .into_server(
                     PublicKey::from_le_bytes(&client_proof.client_public_key).map_err(|_| {
                         RequestResult {
@@ -155,7 +155,9 @@ impl Client {
                 })?;
             self.redis
                 .set(
-                    self.username.as_ref().unwrap(),
+                    self.username
+                        .as_ref()
+                        .expect("Can not be None if we come to this step."),
                     &Account {
                         session_key: server.session_key().to_vec(),
                     },
@@ -207,7 +209,9 @@ impl Client {
                 }],
             };
             response.realms_count = response.realms.len() as u16;
-            response.size = (response.to_bytes().unwrap().len() - 3) as u16;
+            // TODO: Do not serialize to bytes just for get a length of body.
+            // Implement it like in world server
+            response.size = (response.to_bytes().expect("It was work, I swear.").len() - 3) as u16;
             Ok(Box::new(response))
         } else {
             Err(RequestResult {

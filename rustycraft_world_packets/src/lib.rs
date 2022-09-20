@@ -71,7 +71,6 @@ where
 
         vect.extend(headers);
         vect.extend(body);
-        println!("OP: {:?}:\n {:#?}", self.get_opcode(), &vect[4..]);
         let res = Bytes::from(vect);
         Ok(res)
     }
