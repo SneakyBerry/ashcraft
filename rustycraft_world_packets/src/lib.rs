@@ -32,6 +32,7 @@ use bytes::Bytes;
 use deku::bitvec::{BitSlice, BitVec, Msb0};
 use deku::prelude::*;
 use std::ffi::CString;
+use std::fmt::Debug;
 use std::mem::size_of_val;
 use wow_srp::wrath_header::ServerEncrypterHalf;
 
@@ -48,13 +49,10 @@ pub enum PacketError {
     EncodingError(#[from] DekuError),
 }
 
-pub trait ServerPacket: DekuContainerWrite + DekuUpdate
-where
-    Self: Sized,
-{
+pub trait ServerPacket: DekuContainerWrite + DekuUpdate + Send + Sync + Debug {
     fn get_opcode(&self) -> Opcode;
     fn encode(
-        mut self,
+        &mut self,
         encryption: Option<&mut ServerEncrypterHalf>,
     ) -> Result<Bytes, PacketError> {
         self.update()?;

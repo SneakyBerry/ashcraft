@@ -12,7 +12,8 @@ rustycraft_common = { path = "../rustycraft_common" }
 rustycraft_world_packets = { path = "../rustycraft_world_packets" }
 
 derive_builder = "0.11.2"
-wow_srp = { version = "0.5.1", features = ["wrath-header"]}
+wow_srp = { version = "0.5.1", features = ["wrath-header"] }
+bevy_ecs = "0.8"
 deku = "0.13.1"
 tokio = { version = "1.17" }
 anyhow = "1.0"

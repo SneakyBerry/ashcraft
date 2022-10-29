@@ -3,12 +3,13 @@ use rustycraft_database::redis::RedisClient;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::sync::mpsc::Sender;
 use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 
 pub struct SocketManager {
     bind_address: &'static str,
     redis: Arc<RedisClient>,
-    connections: HashMap<SocketAddr, Arc<ClientSession>>,
 }
 
 impl SocketManager {
@@ -16,7 +17,6 @@ impl SocketManager {
         SocketManager {
             bind_address: "0.0.0.0:8085",
             redis: Arc::new(RedisClient::new().expect("Redis connection is not alive")),
-            connections: Default::default(),
         }
     }
 
@@ -26,10 +26,10 @@ impl SocketManager {
         info!(target: "SocketManager", "World server listening on: {}", self.bind_address);
 
         loop {
-            if let Ok((stream, addr)) = listener.accept().await {
-                let session = Arc::new(ClientSession::new(stream, self.redis.clone()));
-                tokio::spawn(session.clone().serve());
-                self.connections.insert(addr, session);
+            if let Ok((stream, _)) = listener.accept().await {
+                let (tx, rx) = mpsc::channel(512);
+                let tx = Arc::new(tx);
+                tokio::spawn(ClientSession::new(stream, self.redis.clone(), rx, tx).serve());
             }
         }
     }
