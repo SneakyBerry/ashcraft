@@ -1,9 +1,8 @@
 use crate::object::ObjectType;
-use crate::{BitSlice, Msb0};
 use deku::prelude::*;
 use std::ops::{BitAnd, Shr};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
 pub struct Guid {
     #[deku(endian = "little")]
     guid: u64, // 48
@@ -76,12 +75,6 @@ impl Guid {
         } else {
             0x00000000FFFFFFFF
         }) as u32
-    }
-}
-
-impl Default for Guid {
-    fn default() -> Self {
-        Self { guid: 0 }
     }
 }
 

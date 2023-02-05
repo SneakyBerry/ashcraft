@@ -1,9 +1,6 @@
 use crate::client_session::ClientSession;
 use rustycraft_database::redis::RedisClient;
-use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
@@ -20,7 +17,7 @@ impl SocketManager {
         }
     }
 
-    pub async fn run_forever(mut self) -> anyhow::Result<()> {
+    pub async fn run_forever(self) -> anyhow::Result<()> {
         let listener = TcpListener::bind(self.bind_address).await?;
 
         info!(target: "SocketManager", "World server listening on: {}", self.bind_address);

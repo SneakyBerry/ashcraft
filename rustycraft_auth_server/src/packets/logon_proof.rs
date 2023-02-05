@@ -1,6 +1,8 @@
 use crate::packets::{DekuWriteWithDebug, Opcode, RequestResult};
 use deku::prelude::*;
 
+// We need to keep packet alignment
+#[allow(dead_code)]
 #[derive(Debug, DekuRead)]
 pub(crate) struct LogonProofRequest {
     pub(crate) cmd: Opcode,
@@ -13,6 +15,8 @@ pub(crate) struct LogonProofRequest {
     // pub(crate) security_flags: u8,
 }
 
+// We need to keep packet alignment
+#[allow(dead_code)]
 #[derive(Debug, DekuRead)]
 pub struct TelemetryKey {
     #[deku(endian = "little")]

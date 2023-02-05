@@ -4,6 +4,8 @@ use crate::packets::{
 use deku::prelude::*;
 use wow_srp::GENERATOR_LENGTH;
 
+// We need to keep packet alignment
+#[allow(dead_code)]
 #[derive(Debug, DekuRead)]
 pub(crate) struct LogonChallengeRequest {
     pub(crate) cmd: Opcode,

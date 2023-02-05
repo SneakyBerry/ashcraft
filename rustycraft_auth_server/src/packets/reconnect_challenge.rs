@@ -1,6 +1,8 @@
 use crate::packets::{parse_reverse, parse_string, Opcode, Version};
 use deku::prelude::*;
 
+// We need to keep packet alignment
+#[allow(dead_code)]
 #[derive(Debug, DekuRead)]
 pub(crate) struct ReconnectChallengeRequest {
     pub(crate) command: Opcode,

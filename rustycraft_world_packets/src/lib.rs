@@ -2,7 +2,6 @@ pub mod area;
 pub mod auth;
 pub mod characters;
 pub mod class;
-pub mod corpse;
 pub mod expansion;
 pub mod game_object;
 pub mod gear;
@@ -25,7 +24,6 @@ pub mod time_sync;
 pub mod transport;
 pub mod tutorial;
 pub mod update_flag;
-pub mod update_mask;
 
 use crate::opcodes::Opcode;
 use bytes::Bytes;
@@ -81,12 +79,12 @@ pub struct ServerHeaders {
     opcode: Opcode,
 }
 
-fn read_c_string(rest: &BitSlice<Msb0, u8>) -> Result<(&BitSlice<Msb0, u8>, String), DekuError> {
+fn read_c_string(rest: &BitSlice<u8, Msb0>) -> Result<(&BitSlice<u8, Msb0>, String), DekuError> {
     let (rest, value) = CString::read(rest, ())?;
     Ok((rest, value.into_string().expect("Is it ever happen?")))
 }
 
-pub fn write_c_string(output: &mut BitVec<Msb0, u8>, field: &str) -> Result<(), DekuError> {
+pub fn write_c_string(output: &mut BitVec<u8, Msb0>, field: &str) -> Result<(), DekuError> {
     let mut field = field.to_owned();
     field.push('\0');
     field.as_bytes().write(output, ())
@@ -134,65 +132,4 @@ macro_rules! define_flags {
         }
 
     }
-}
-
-#[macro_export]
-macro_rules! setters {
-    (
-        pub struct $obj_type:expr => $struct_name:ident {
-            $ (
-                $bit:expr => $field_name:ident: $field_type:ty
-            ),*
-        }
-    ) => {
-        #[derive(Debug, Default, Clone, DekuWrite)]
-        pub struct $struct_name {
-            is_set_flags_count: u8,
-            is_set_flags: Vec<u32>,
-            object_type: u32,
-            $(
-            $field_name: Option<$field_type>
-            ),*
-        }
-
-        impl $struct_name  {
-            pub fn new() -> Self {
-                const OBJECT_FIELD_TYPE: u16 = 2;
-
-                let mut is_set_flags = vec![];
-
-                Self::is_set_flags_set(&mut is_set_flags, OBJECT_FIELD_TYPE);
-                Self {
-                    is_set_flags_count: is_set_flags.len() as u8,
-                    is_set_flags,
-                    object_type: 0x0001 | $obj_type as u32,
-                    $ (
-                    $field_name: None
-                    ), *
-                }
-            }
-
-            fn is_set_flags_set(is_set_flags: &mut Vec<u32>, bit: u16) {
-                let index = bit / 32;
-                let offset = bit % 32;
-
-                if index >= is_set_flags.len() as u16 {
-                    let extras = index - is_set_flags.len() as u16;
-                    for _ in 0..=extras {
-                        is_set_flags.push(0);
-                    }
-                }
-
-                is_set_flags[index as usize] |= 1 << offset;
-            }
-
-        $(
-            pub fn $field_name(&mut self, val: $field_type) -> &mut Self {
-                self.$field_name = Some(val);
-                Self::is_set_flags_set(&mut self.is_set_flags, $bit);
-                self
-            }
-        )*
-        }
-    };
 }

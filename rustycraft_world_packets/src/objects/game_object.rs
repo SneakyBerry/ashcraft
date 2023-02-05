@@ -1,26 +1,26 @@
 use deku::prelude::*;
 
 use crate::guid::Guid;
-use crate::objects::base::{BaseObject, Storage};
-use crate::objects::{InnerState, UpdateMaskObjectType};
+use crate::objects::size_helper::FieldSize;
+use crate::objects::object::Object;
+use crate::objects::UpdateFields;
 use crate::position::Vector3d;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+use rustycraft_derive::IntoUpdateFields;
+
+#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[meta(offset = 0x0006, tag = 0x0021)]
 pub struct GameObject {
-    #[deku(reader = "crate::objects::utils::read_object_btree_map(deku::rest)")]
-    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
-    inner: InnerState,
-}
-impl GameObject {
-    pub fn new(guid: Guid) -> Box<Self> {
-        let mut object = Self::default();
-        <Self as BaseObject<0x0000>>::set_guid(&mut object, guid);
-        <Self as BaseObject<0x0000>>::set_object_type(
-            &mut object,
-            UpdateMaskObjectType::GameObject as u32,
-        );
-        Box::new(object)
-    }
+    #[nested]
+    pub object: Object,
+    pub created_by: Option<Guid>,
+    pub display_id: Option<u32>,
+    pub flags: Option<u32>,
+    pub parent_rotation: Option<Vector3d>,
+    pub dynamic: Option<(u16, u16)>,
+    pub faction: Option<u32>,
+    pub level: Option<u32>,
+    pub bytes: Option<GameObjectBytes>,
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
@@ -78,73 +78,4 @@ pub enum GameObjectTypes {
     DestructibleBuilding = 33,
     GuildBank = 34,
     Trapdoor = 35,
-}
-
-pub trait GameObjectFields: BaseObject<0x0006> {
-    fn set_game_object_created_by(&mut self, game_object_created_by: Guid) -> &mut Self {
-        self.set_value(game_object_created_by, 0x0000)
-    }
-    fn get_game_object_created_by(&self) -> Option<Guid> {
-        self.get_value(0x0000)
-    }
-
-    fn set_game_object_display_id(&mut self, game_object_display_id: u32) -> &mut Self {
-        self.set_value(game_object_display_id, 0x0002)
-    }
-    fn get_game_object_display_id(&self) -> Option<u32> {
-        self.get_value(0x0002)
-    }
-    fn set_game_object_flags(&mut self, mask: u32) -> &mut Self {
-        self.apply_and(0x0003, mask)
-    }
-    fn unset_game_object_flags(&mut self, mask: u32) -> &mut Self {
-        self.apply_and(0x0003, !(mask))
-    }
-    fn get_game_object_flags(&mut self) -> Option<u32> {
-        self.get_value(0x0003)
-    }
-    fn set_game_object_parent_rotation(
-        &mut self,
-        game_object_parent_rotation: Vector3d,
-    ) -> &mut Self {
-        self.set_value(game_object_parent_rotation, 0x0004)
-    }
-    fn get_game_object_parent_rotation(&self) -> Option<Vector3d> {
-        self.get_value(0x0004)
-    }
-    fn set_game_object_dynamic(&mut self, game_object_dynamic: (u16, u16)) -> &mut Self {
-        self.set_value(game_object_dynamic, 0x0008)
-    }
-    fn get_game_object_dynamic(&self) -> Option<(u16, u16)> {
-        self.get_value(0x0008)
-    }
-    fn set_game_object_faction(&mut self, game_object_faction: u32) -> &mut Self {
-        self.set_value(game_object_faction, 0x0009)
-    }
-    fn get_game_object_faction(&self) -> Option<u32> {
-        self.get_value(0x0009)
-    }
-    fn set_game_object_level(&mut self, game_object_level: u32) -> &mut Self {
-        self.set_value(game_object_level, 0x000A)
-    }
-    fn get_game_object_level(&self) -> Option<u32> {
-        self.get_value(0x000A)
-    }
-    fn set_game_object_bytes(&mut self, game_object_bytes: GameObjectBytes) -> &mut Self {
-        self.set_value(game_object_bytes, 0x000B)
-    }
-    fn get_game_object_bytes(&self) -> Option<GameObjectBytes> {
-        self.get_value(0x000B)
-    }
-}
-
-impl GameObjectFields for GameObject {}
-impl Storage for GameObject {
-    fn get_inner(&self) -> &InnerState {
-        &self.inner
-    }
-
-    fn get_inner_mut(&mut self) -> &mut InnerState {
-        &mut self.inner
-    }
 }

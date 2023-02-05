@@ -28,7 +28,7 @@ impl SmsgUpdateObject {
 
 #[derive(Debug, DekuWrite)]
 pub struct Object {
-    pub update_type: ObjectUpdateType, //+
+    pub update_type: ObjectUpdateType,
 }
 
 #[derive(Debug, DekuWrite)]
@@ -37,7 +37,7 @@ pub enum ObjectUpdateType {
     #[deku(id = "0x0")]
     Partial {
         guid: PackedGuid,
-        update_fields: Box<dyn objects::UpdateFields>,
+        update_fields: objects::UpdateFields,
     },
     #[deku(id = "0x1")]
     Movement {
@@ -47,7 +47,7 @@ pub enum ObjectUpdateType {
     #[deku(id = "0x2")]
     CreateObject {
         guid: PackedGuid,
-        update_fields: Box<dyn objects::UpdateFields>,
+        update_fields: objects::UpdateFields,
         movement: MovementBlock,
         object_type: ObjectType,
     },
@@ -56,7 +56,7 @@ pub enum ObjectUpdateType {
         guid: PackedGuid,
         object_type: ObjectType,
         movement: MovementBlock,
-        update_fields: Box<dyn objects::UpdateFields>,
+        update_fields: objects::UpdateFields,
     },
     #[deku(id = "0x4")]
     OutOfRangeObjects {

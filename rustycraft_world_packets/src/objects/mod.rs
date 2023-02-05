@@ -1,13 +1,13 @@
-use crate::guid::Guid;
-
-use crate::objects::base::BaseObject;
+use deku::bitvec::BitVec;
 use deku::prelude::*;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-mod base;
+
 mod container;
 mod corpse;
+mod default;
 mod dynamic_object;
+mod size_helper;
 mod game_object;
 mod item;
 mod object;
@@ -26,6 +26,7 @@ pub mod prelude {
     pub use super::unit::*;
     pub use super::UpdateFields;
 }
+#[allow(dead_code)]
 enum UpdateMaskObjectType {
     Object = 0x0001,
     Item = 0x0002 | 0x0001,
@@ -38,19 +39,38 @@ enum UpdateMaskObjectType {
 }
 
 type InnerState = BTreeMap<usize, u32>;
-pub trait UpdateFields:
-    DekuUpdate + DekuContainerRead<'static> + DekuContainerWrite + Debug + Sync + Send
-{
+
+#[derive(Debug, Clone, Eq, PartialEq, DekuWrite)]
+pub struct UpdateFields {
+    #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
+    inner: InnerState,
 }
-impl<T> UpdateFields for T where
-    T: BaseObject<0x0000>
-        + DekuUpdate
-        + DekuContainerRead<'static>
-        + DekuContainerWrite
-        + Debug
-        + Sync
-        + Send
-{
+
+impl UpdateFields {
+    pub(super) fn new() -> Self {
+        Self {
+            inner: InnerState::new(),
+        }
+    }
+    pub(super) fn set_value<T, const BASE_OFFSET: usize>(
+        &mut self,
+        value: T,
+        offset: usize,
+    ) -> &mut Self
+    where
+        T: DekuWrite,
+    {
+        let mut buffer = BitVec::new();
+        value.write(&mut buffer, ()).expect("Write failed");
+        self.inner
+            .extend(buffer.as_raw_slice().chunks(4).enumerate().map(|(i, v)| {
+                (
+                    BASE_OFFSET + i + offset,
+                    u32::from_le_bytes(v.try_into().expect("Chunk not equal to 4?")),
+                )
+            }));
+        self
+    }
 }
 
 #[cfg(test)]
@@ -66,32 +86,35 @@ mod tests {
 
     #[test]
     fn test_basic_player() {
-        let mut object = Object::new(Default::default());
-        object.set_object_entry(100);
-        let mut player = Player::new(Guid::new(HighGuid::Player, 4));
-        player
-            .set_unit_unit_data(UnitData {
-                race: Race::Human,
-                class: Class::Warrior,
-                gender: Gender::Female,
-                power: Power::Rage,
-            })
-            .set_object_scale_x(1.0)
-            .set_unit_health(100)
-            .set_unit_max_health(100)
-            .set_unit_level(1)
-            .set_unit_faction_template(1)
-            .set_unit_display_id(50)
-            .set_unit_native_display_id(50);
-
-        let player_bytes = player.to_bytes().unwrap();
+        let player = Player {
+            unit: Unit {
+                object: Object {
+                    guid: Some(Guid::new(HighGuid::Player, 4)),
+                    scale_x: Some(1.0),
+                    ..Default::default()
+                },
+                data: Some(UnitData {
+                    race: Race::Human,
+                    class: Class::Warrior,
+                    gender: Gender::Female,
+                    power: Power::Rage,
+                }),
+                health: Some(100),
+                max_health: Some(100),
+                level: Some(1),
+                faction_template: Some(1),
+                display_id: Some(50),
+                native_display_id: Some(50),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let player_bytes = UpdateFields::from(player).to_bytes().unwrap();
         let expected = [
             3, 23, 0, 128, 1, 1, 0, 192, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0,
             128, 63, 1, 1, 1, 1, 100, 0, 0, 0, 100, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 50, 0, 0, 0,
             50, 0, 0, 0,
         ];
         assert_eq!(player_bytes, expected);
-        let loaded = Box::new(Player::from_bytes((&player_bytes, 0)).unwrap().1);
-        assert_eq!(loaded, player)
     }
 }

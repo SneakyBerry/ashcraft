@@ -50,8 +50,8 @@ pub struct AuthSessionClient {
 
 /// Read the rest of a packet into compressed_addon_info
 fn read_compressed_addon_info(
-    rest: &BitSlice<Msb0, u8>,
-) -> Result<(&BitSlice<Msb0, u8>, Vec<u8>), DekuError> {
+    rest: &BitSlice<u8, Msb0>,
+) -> Result<(&BitSlice<u8, Msb0>, Vec<u8>), DekuError> {
     let mut rest = rest;
     let mut res = Vec::with_capacity(rest.len() / 8); // Byte size of bit vector
     while !rest.is_empty() {

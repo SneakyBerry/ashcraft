@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use bytes::{Bytes, BytesMut};
-use deku::prelude::*;
+use deku::DekuContainerRead;
 use rustycraft_common::Account;
 use rustycraft_database::redis::RedisClient;
 use rustycraft_world_packets::area::Area;
@@ -20,7 +20,7 @@ use rustycraft_world_packets::movement_block::{
     LivingBuilder, MovementBlockBuilder, MovementBlockLivingVariants,
 };
 use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags};
-use rustycraft_world_packets::object::{Object, ObjectType, ObjectUpdateType, SmsgUpdateObject};
+use rustycraft_world_packets::object::{ObjectType, ObjectUpdateType, SmsgUpdateObject};
 use rustycraft_world_packets::objects::prelude::*;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
@@ -29,15 +29,14 @@ use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::response_code::ResponseCode;
 use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
 use rustycraft_world_packets::tutorial::SmsgTutorialFlags;
-use rustycraft_world_packets::update_mask::UpdateType;
-use rustycraft_world_packets::ServerPacket;
+use rustycraft_world_packets::{object, ServerPacket};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::{mpsc, Mutex, MutexGuard, OnceCell};
+use tokio::sync::{mpsc, Mutex, OnceCell};
 use wow_srp::normalized_string::NormalizedString;
 use wow_srp::wrath_header::{ProofSeed, ServerCrypto};
 
@@ -140,7 +139,7 @@ impl ClientSession {
                     self.handle_player_login(CmsgPlayerLogin::from_bytes((&data, 0))?.1)
                         .await?
                 }
-                opcode => (),
+                _ => (),
             }
         }
     }
@@ -211,37 +210,29 @@ impl ClientSession {
         self.event_tx
             .send(Box::new(SmsgTutorialFlags::default()))
             .await?;
-        let mut player = Player::new(Guid::new(HighGuid::Player, 4));
-        player
-            .set_unit_unit_data(UnitData {
-                race: Race::Human,
-                class: Class::Warrior,
-                gender: Gender::Female,
-                power: Power::Rage,
-            })
-            .set_object_scale_x(1.0)
-            .set_unit_health(100)
-            .set_unit_max_health(100)
-            .set_unit_level(1)
-            .set_unit_faction_template(1)
-            .set_unit_display_id(50)
-            .set_player_visible_items(
-                PlayerEnchantment {
-                    id: 44910,
-                    permanent: 44910,
-                    temporary: 44910,
+        let player = Player {
+            unit: Unit {
+                object: Object {
+                    guid: Some(Guid::new(HighGuid::Player, 4)),
+                    scale_x: Some(1.0),
+                    ..Default::default()
                 },
-                EquipmentSlots::Head as usize,
-            )
-            .set_player_visible_items(
-                PlayerEnchantment {
-                    id: 50442,
-                    permanent: 50442,
-                    temporary: 50442,
-                },
-                EquipmentSlots::Mainhand as usize,
-            )
-            .set_unit_native_display_id(50);
+                data: Some(UnitData {
+                    race: Race::Human,
+                    class: Class::Warrior,
+                    gender: Gender::Female,
+                    power: Power::Rage,
+                }),
+                health: Some(100),
+                max_health: Some(100),
+                level: Some(1),
+                faction_template: Some(1),
+                display_id: Some(50),
+                native_display_id: Some(50),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
         let movement = MovementBlockBuilder::default()
             .living(MovementBlockLivingVariants::Living(Box::new(
                 LivingBuilder::default()
@@ -270,11 +261,11 @@ impl ClientSession {
             .set_self()
             .build()
             .expect("And this is correct too.");
-        let update_object = SmsgUpdateObject::new(vec![Object {
+        let update_object = SmsgUpdateObject::new(vec![object::Object {
             update_type: ObjectUpdateType::CreateObject2 {
                 guid: Guid::new(HighGuid::Player, 4).into(),
                 object_type: ObjectType::Player,
-                update_fields: player,
+                update_fields: player.into(),
                 movement,
             },
         }]);
@@ -290,7 +281,7 @@ impl ClientSession {
 async fn read_socket(
     mut reader: OwnedReadHalf,
     encryption: Arc<Mutex<OnceCell<ServerCrypto>>>,
-    mut tx: Sender<(Opcode, Bytes)>,
+    tx: Sender<(Opcode, Bytes)>,
 ) -> anyhow::Result<()> {
     // TODO: Reuse buffers
     let mut headers = [0; 6];

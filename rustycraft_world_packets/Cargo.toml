@@ -5,11 +5,17 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[features]
+tracing = ["dep:tracing"]
 
+[dependencies]
+rustycraft_derive = { path = "../rustycraft_derive" }
 paste = "1.0.9"
 derive_builder = "0.11.2"
 thiserror = "1.0"
 wow_srp = "0.5.1"
-deku = "0.13.1"
+deku = "0.15.1"
 bytes = "1.2.1"
+
+# feature tracing
+tracing = { version = "0.1", optional = true }
