@@ -79,7 +79,7 @@ mod tests {
     use crate::class::Class;
     use crate::gender::Gender;
     use crate::guid::{Guid, HighGuid};
-    use crate::objects::UpdateMaskObjectType;
+    
     use crate::power::Power;
     use crate::race::Race;
     use deku::prelude::*;

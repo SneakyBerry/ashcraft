@@ -1,0 +1,181 @@
+use crate::session_handler::{Connection, ConnectionState};
+use anyhow::anyhow;
+use deku::DekuContainerRead;
+use rustycraft_common::Account;
+use rustycraft_database::redis::RedisClient;
+use rustycraft_world_packets::area::Area;
+use rustycraft_world_packets::auth::{
+    AuthChallengeServer, AuthOk, AuthResponseServer, AuthSessionClient,
+};
+use rustycraft_world_packets::characters::{Character, CharacterEnumServer};
+use rustycraft_world_packets::class::Class;
+use rustycraft_world_packets::expansion::Expansion;
+use rustycraft_world_packets::gear::CharacterGear;
+use rustycraft_world_packets::gender::Gender;
+use rustycraft_world_packets::guid::{Guid, HighGuid};
+use rustycraft_world_packets::inventory::InventoryType;
+use rustycraft_world_packets::map::Map;
+use rustycraft_world_packets::opcodes::Opcode;
+use rustycraft_world_packets::position::Vector3d;
+use rustycraft_world_packets::race::Race;
+use rustycraft_world_packets::response_code::ResponseCode;
+use rustycraft_world_packets::ClientPacket;
+use std::mem;
+use std::sync::Arc;
+use tokio::sync::mpsc;
+use wow_srp::normalized_string::NormalizedString;
+use wow_srp::wrath_header::ProofSeed;
+
+const AUTH_SERVER_RESPONSE_OK: AuthResponseServer = AuthResponseServer {
+    result: ResponseCode::AuthOk,
+    ok: Some(AuthOk {
+        billing_flags: 0,
+        billing_rested: 0,
+        billing_time: 0,
+        expansion: Expansion::WrathOfTheLichLing,
+    }),
+    wait: None,
+};
+
+fn char_data() -> CharacterEnumServer {
+    CharacterEnumServer::new(vec![Character {
+        guid: Guid::new(HighGuid::Player, 4),
+        name: "Warr".to_string(),
+        race: Race::Human,
+        class: Class::Warrior,
+        gender: Gender::Female,
+        skin: 0,
+        face: 0,
+        hair_style: 0,
+        hair_color: 0,
+        facial_hair: 0,
+        level: 1,
+        area: Area::NorthshireValley,
+        map: Map::EasternKingdoms,
+        position: Vector3d {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            rotation: None,
+        },
+        guild_id: 0,
+        flags: 0,
+        recustomization_flags: 0,
+        first_login: false,
+        pet_display_id: 0,
+        pet_level: 0,
+        pet_family: 0,
+        equipment: [CharacterGear {
+            equipment_display_id: 0,
+            inventory_type: InventoryType::NonEquip,
+            enchantment: 0,
+        }; 23],
+    }])
+}
+
+pub struct RealmHandler {
+    incoming_connections: mpsc::UnboundedReceiver<Connection>,
+    world_server_sender: mpsc::UnboundedSender<(ClientPacket, Connection)>,
+    connections: Vec<Connection>,
+    redis: Arc<RedisClient>,
+}
+
+impl RealmHandler {
+    pub fn new(
+        incoming_connections: mpsc::UnboundedReceiver<Connection>,
+        world_server_sender: mpsc::UnboundedSender<(ClientPacket, Connection)>,
+        redis: Arc<RedisClient>,
+    ) -> Self {
+        Self {
+            incoming_connections,
+            world_server_sender,
+            connections: vec![],
+            redis,
+        }
+    }
+
+    pub async fn run(mut self) {
+        println!("Realm handler started");
+        loop {
+            let mut uninitialized_connections = vec![];
+            while let Ok(mut connection) = self.incoming_connections.try_recv() {
+                uninitialized_connections.push(connection);
+            }
+            for mut connection in uninitialized_connections {
+                if let Ok(_) = self.init_connection(&mut connection).await {
+                    println!("Connection handled");
+                    connection.state = ConnectionState::Auth;
+                    self.connections.push(connection);
+                } else {
+                    println!("Connection failed");
+                }
+            }
+            let conn_len = self.connections.len();
+            let mut connections = mem::replace(&mut self.connections, Vec::with_capacity(conn_len));
+            for mut conn in connections {
+                if let Ok(data) = conn.receiver().try_recv() {
+                    if data.opcode == Opcode::CmsgPlayerLogin {
+                        conn.state = ConnectionState::Game;
+                        self.world_server_sender.send((data, conn)).unwrap();
+                        continue;
+                    }
+                    match data.opcode {
+                        Opcode::CmsgCharEnum => conn.sender().send(Box::new(char_data())).unwrap(),
+                        _ => {}
+                    }
+                }
+                self.connections.push(conn)
+            }
+        }
+    }
+
+    async fn init_connection(&self, connection: &mut Connection) -> anyhow::Result<()> {
+        let seed = ProofSeed::new();
+        let auth_challenge = AuthChallengeServer {
+            server_seed: seed.seed(),
+        };
+        connection.sender().send(Box::new(auth_challenge))?;
+
+        let client_packet = connection
+            .receiver()
+            .recv()
+            .await
+            .ok_or_else(|| anyhow!("Socket closed"))?;
+
+        if let Opcode::CmsgAuthSession = client_packet.opcode {
+            let (_, packet) = AuthSessionClient::from_bytes((&client_packet.data, 0))?;
+            let account = self.redis.get::<Account>(&packet.username).await?;
+            if let Ok(encryption) = seed.into_header_crypto(
+                &NormalizedString::new(&packet.username)?,
+                account
+                    .session_key
+                    .try_into()
+                    .map_err(|vect| anyhow!("Can't convert {vect:?} to [u8; 40]"))?,
+                packet.client_proof,
+                packet.client_seed,
+            ) {
+                {
+                    connection
+                        .encryption()
+                        .lock()
+                        .await
+                        .set(encryption)
+                        .map_err(|_| ())
+                        .expect("OnceCell already set");
+                }
+                connection
+                    .sender()
+                    .send(Box::new(AUTH_SERVER_RESPONSE_OK))?;
+            } else {
+                connection.sender().send(Box::new(AuthResponseServer {
+                    result: ResponseCode::AuthSystemError,
+                    ok: None,
+                    wait: None,
+                }))?;
+            }
+            Ok(())
+        } else {
+            Err(anyhow!("Unexpected packet"))
+        }
+    }
+}

@@ -79,6 +79,12 @@ pub struct ServerHeaders {
     opcode: Opcode,
 }
 
+#[derive(Debug)]
+pub struct ClientPacket {
+    pub opcode: Opcode,
+    pub data: Bytes,
+}
+
 fn read_c_string(rest: &BitSlice<u8, Msb0>) -> Result<(&BitSlice<u8, Msb0>, String), DekuError> {
     let (rest, value) = CString::read(rest, ())?;
     Ok((rest, value.into_string().expect("Is it ever happen?")))

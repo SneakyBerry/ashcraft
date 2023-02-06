@@ -20,12 +20,12 @@ pub(crate) fn write_object_btree_map(
     }
     let keys = field.keys();
     let bit_mask_size = aliquot(32, *keys.max().unwrap_or(&0));
-    let mut masks = vec![0_u32; bit_mask_size as usize / 32];
-    for bit in 0..bit_mask_size as usize * 8 {
+    let mut masks = vec![0_u32; bit_mask_size / 32];
+    for bit in 0..bit_mask_size * 8 {
         let mask_idx = bit / 32;
         let bit_pos = bit % 32;
         if field.contains_key(&bit) {
-            masks[mask_idx as usize] |= 1_u32.wrapping_shl(bit_pos as u32);
+            masks[mask_idx] |= 1_u32.wrapping_shl(bit_pos as u32);
         }
     }
     (masks.len() as u8).to_le_bytes().write(output, ())?; // write bitmask size

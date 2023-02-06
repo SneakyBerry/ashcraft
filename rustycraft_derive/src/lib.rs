@@ -17,9 +17,9 @@ impl Parse for DeriveIntoUpdateFieldsArgs {
         for _ in 0..2 {
             let ident = input.parse::<Ident>()?;
             input.parse::<Token![=]>()?;
-            if &format_ident!("offset") == &ident {
+            if format_ident!("offset") == ident {
                 offset = Some(input.parse()?);
-            } else if &format_ident!("tag") == &ident {
+            } else if format_ident!("tag") == ident {
                 tag = Some(input.parse()?);
             }
             input.parse::<Option<Token![,]>>()?;
