@@ -2,9 +2,8 @@ use crate::opcodes::Opcode;
 use crate::ServerPacket;
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, DekuWrite, Builder)]
 pub struct SmsgTimeSyncReq {
-    #[deku(endian = "little")]
     pub time_sync: u32,
 }
 

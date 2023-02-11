@@ -1,11 +1,8 @@
-pub mod area;
 pub mod auth;
 pub mod characters;
-pub mod class;
-pub mod expansion;
-pub mod game_object;
+mod client_packet_impl_read;
+pub mod common;
 pub mod gear;
-pub mod gender;
 pub mod guid;
 pub mod inventory;
 pub mod login;
@@ -29,6 +26,7 @@ use crate::opcodes::Opcode;
 use bytes::Bytes;
 use deku::bitvec::{BitSlice, BitVec, Msb0};
 use deku::prelude::*;
+use std::any::Any;
 use std::ffi::CString;
 use std::fmt::Debug;
 use std::mem::size_of_val;
@@ -81,8 +79,21 @@ pub struct ServerHeaders {
 
 #[derive(Debug)]
 pub struct ClientPacket {
-    pub opcode: Opcode,
-    pub data: Bytes,
+    opcode: Opcode,
+    data: Box<dyn Any + Send + Sync>,
+}
+
+impl ClientPacket {
+    pub fn get_opcode(&self) -> Opcode {
+        self.opcode
+    }
+
+    pub fn data_as<T>(self) -> T
+    where
+        T: 'static,
+    {
+        *self.data.downcast().expect("Incorrect generic type")
+    }
 }
 
 fn read_c_string(rest: &BitSlice<u8, Msb0>) -> Result<(&BitSlice<u8, Msb0>, String), DekuError> {
@@ -128,14 +139,18 @@ macro_rules! define_flags {
             }
         }) *
         }
+        paste! {
         impl std::fmt::Debug for $struct_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.write_str(&format!("{} {{", std::any::type_name::<Self>()))?;
-                $ ( paste! {f.write_str(&format!(" {}: {},", stringify!([<$const_name:lower>]), self.[<is_ $const_name:lower>]()))?;} ) *
-                f.write_str(" }")?;
+                f.debug_struct(stringify!($struct_name))
+            $ (
+                .field(stringify!([<$const_name:lower>]), &self.[<is_ $const_name:lower>]())
+            ) *
+                .finish()?;
+
                 Ok(())
             }
         }
-
+        }
     }
 }

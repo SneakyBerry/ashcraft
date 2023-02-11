@@ -76,8 +76,8 @@ impl UpdateFields {
 #[cfg(test)]
 mod tests {
     use super::prelude::*;
-    use crate::class::Class;
-    use crate::gender::Gender;
+    use crate::common::class::Class;
+    use crate::common::gender::Gender;
     use crate::guid::{Guid, HighGuid};
     
     use crate::power::Power;

@@ -5,7 +5,7 @@ use crate::objects::UpdateFields;
 
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0006, tag = 0x0041)]
 pub struct DynamicObject {
     #[nested]

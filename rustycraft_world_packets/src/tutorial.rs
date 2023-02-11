@@ -2,8 +2,8 @@ use crate::opcodes::Opcode;
 use crate::ServerPacket;
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite)]
-#[deku(endian = "little")]
+#[derive(Debug, DekuWrite, Builder)]
+
 pub struct SmsgTutorialFlags {
     pub tutorial_data0: u32,
     pub tutorial_data1: u32,

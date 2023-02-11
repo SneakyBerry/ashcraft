@@ -4,17 +4,10 @@ use crate::opcodes::Opcode;
 use crate::{objects, ServerPacket};
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct SmsgUpdateObject {
-    #[deku(endian = "little")]
     amount_of_objects: u32, //+
     pub objects: Vec<Object>,
-}
-
-#[derive(Debug, DekuWrite)]
-pub struct DebugPacket {
-    pub opcode: Opcode,
-    pub data: Vec<u8>,
 }
 
 impl SmsgUpdateObject {
@@ -26,12 +19,12 @@ impl SmsgUpdateObject {
     }
 }
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite)]
 pub struct Object {
     pub update_type: ObjectUpdateType,
 }
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite)]
 #[deku(type = "u8")]
 pub enum ObjectUpdateType {
     #[deku(id = "0x0")]
@@ -60,14 +53,12 @@ pub enum ObjectUpdateType {
     },
     #[deku(id = "0x4")]
     OutOfRangeObjects {
-        #[deku(endian = "little")]
-        count: u32,
+            count: u32,
         guids: Vec<PackedGuid>,
     },
     #[deku(id = "0x5")]
     NearObjects {
-        #[deku(endian = "little")]
-        count: u32,
+            count: u32,
         guids: Vec<PackedGuid>,
     },
 }
@@ -75,12 +66,6 @@ pub enum ObjectUpdateType {
 impl ServerPacket for SmsgUpdateObject {
     fn get_opcode(&self) -> Opcode {
         Opcode::SmsgUpdateObject
-    }
-}
-
-impl ServerPacket for DebugPacket {
-    fn get_opcode(&self) -> Opcode {
-        self.opcode
     }
 }
 

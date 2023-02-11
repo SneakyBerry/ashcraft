@@ -19,9 +19,7 @@ pub(crate) struct LogonProofRequest {
 #[allow(dead_code)]
 #[derive(Debug, DekuRead)]
 pub struct TelemetryKey {
-    #[deku(endian = "little")]
     pub(crate) unknown1: u16,
-    #[deku(endian = "little")]
     pub(crate) unknown2: u32,
     pub(crate) unknown3: [u8; 4],
     pub(crate) unknown4: [u8; 20],
@@ -31,11 +29,8 @@ pub struct TelemetryKey {
 pub(crate) struct LogonProofResponse {
     pub(crate) result: RequestResult,
     pub(crate) server_proof: [u8; 20],
-    #[deku(endian = "little")]
     pub(crate) account_flags: u32,
-    #[deku(endian = "little")]
     pub(crate) hardware_survey_id: u32,
-    #[deku(endian = "little")]
     pub(crate) login_flags: u16,
 }
 

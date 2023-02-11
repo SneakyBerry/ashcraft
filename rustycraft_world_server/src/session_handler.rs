@@ -1,12 +1,10 @@
 use bytes::BytesMut;
 use deku::DekuContainerRead;
-use rustycraft_database::redis::RedisClient;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::{ClientPacket, ServerPacket};
 use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::sync::Weak;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
@@ -54,7 +52,7 @@ impl Connection {
         self.encryption.clone()
     }
 
-    pub fn new(peer_addr: SocketAddr, mut socket: TcpStream) -> Self {
+    pub fn new(peer_addr: SocketAddr, socket: TcpStream) -> Self {
         let encryption = Arc::new(Mutex::new(OnceCell::new()));
         let (reader, writer) = socket.into_split();
         let (client_tx, client_rx) = mpsc::unbounded_channel();
@@ -94,14 +92,16 @@ async fn read_socket(
                 "[{:?}] Packet: {opcode:?} with size: {pkt_size} body: {data:?}",
                 reader.peer_addr().expect("Peer without IP")
             );
-            tx.send(ClientPacket {
-                opcode,
-                data: data.freeze(),
-            })?;
+            if let Ok(packet) = ClientPacket::parse(opcode, data.freeze()) {
+                tx.send(packet)?;
+            } else {
+                warn!("Unknown packet: {:?}", opcode);
+            }
         }
     }
 }
 
+// TODO: Error propagation
 pub(crate) async fn write_socket(
     mut writer: OwnedWriteHalf,
     encryption: Arc<Mutex<OnceCell<ServerCrypto>>>,

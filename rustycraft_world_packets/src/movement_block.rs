@@ -19,9 +19,7 @@ pub struct MovementBlock {
     position: Option<Position>,
     #[builder(setter(skip))]
     stationary: Option<Stationary>,
-    #[deku(endian = "little")]
     high_guid: Option<u32>,
-    #[deku(endian = "little")]
     low_guid: Option<u32>,
     // ^^^^^^^^^^^^^^^^^^^
     //     if (flags & UPDATEFLAG_LOWGUID)
@@ -53,10 +51,8 @@ pub struct MovementBlock {
     //         }
     //     }
     has_attacking_target: Option<PackedGuid>,
-    #[deku(endian = "little")]
     transport: Option<u32>,
     vehicle: Option<MovementBlockVehicle>,
-    #[deku(endian = "little")]
     rotation: Option<i64>,
 }
 
@@ -133,14 +129,12 @@ pub enum MovementBlockLivingVariants {
 #[derive(Debug, Clone, DekuWrite)]
 pub struct Stationary {
     pub position: Vector3d,
-    #[deku(endian = "little")]
     pub orientation: f32,
 }
 
 // TODO: FIX IT
 #[derive(Debug, Clone, DekuWrite)]
 pub struct Position {
-    #[deku(endian = "little")]
     pub corpse_orientation: f32,
     pub position1: Vector3d,
     pub transport_guid: PackedGuid,
@@ -150,7 +144,6 @@ pub struct Position {
 pub struct Living {
     flags: MovementFlags,
     extra_flags: ExtraMovementFlags,
-    #[deku(endian = "little")]
     timestamp: u32,
     living_position: Vector3d,
 
@@ -159,35 +152,23 @@ pub struct Living {
     transport: Option<TransportInfo>,
     #[builder(default)]
     // MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING
-    #[deku(endian = "little")]
     swimming_pitch: Option<f32>,
-    #[deku(endian = "little")]
     fall_time: f32,
     #[builder(default)]
     // MOVEMENTFLAG_FALLING
     falling: Option<MovementBlockMovementFlagsFalling>,
     #[builder(default)]
     // MOVEMENTFLAG_SPLINE_ELEVATION
-    #[deku(endian = "little")]
     spline_elevation: Option<f32>,
 
-    #[deku(endian = "little")]
     walking_speed: f32,
-    #[deku(endian = "little")]
     running_speed: f32,
-    #[deku(endian = "little")]
     backwards_running_speed: f32,
-    #[deku(endian = "little")]
     swimming_speed: f32,
-    #[deku(endian = "little")]
     backwards_swimming_speed: f32,
-    #[deku(endian = "little")]
     flight_speed: f32,
-    #[deku(endian = "little")]
     backwards_flight_speed: f32,
-    #[deku(endian = "little")]
     turn_rate: f32,
-    #[deku(endian = "little")]
     pitch_rate: f32,
 
     #[builder(default)]
@@ -196,35 +177,25 @@ pub struct Living {
 
 #[derive(Debug, Clone, DekuWrite)]
 pub struct MovementBlockVehicle {
-    #[deku(endian = "little")]
     pub vehicle_id: u32,
-    #[deku(endian = "little")]
     pub vehicle_orientation: f32,
 }
 
 #[derive(Debug, Clone, DekuWrite)]
 pub struct MovementBlockMovementFlagsFalling {
-    #[deku(endian = "little")]
     pub z_speed: f32,
-    #[deku(endian = "little")]
     pub sin_angle: f32,
-    #[deku(endian = "little")]
     pub cos_angle: f32,
-    #[deku(endian = "little")]
     pub xy_speed: f32,
 }
 
 #[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct MovementBlockMovementFlagsSplineEnabled {
     spline_flags: MovementBlockSplineFlag,
-    #[deku(endian = "little")]
     time_passed: u32,
-    #[deku(endian = "little")]
     duration: u32,
-    #[deku(endian = "little")]
     id: u32,
     #[deku(update = "self.nodes.len() as u32")]
-    #[deku(endian = "little")]
     amount_of_nodes: u32,
     nodes: Vec<Vector3d>,
     final_node: Vector3d,
@@ -233,11 +204,8 @@ pub struct MovementBlockMovementFlagsSplineEnabled {
 #[derive(Debug, Clone, DekuWrite)]
 pub struct MovementBlockSplineFlag {
     inner: SplineFlag,
-    #[deku(endian = "little")]
     angle: Option<f32>,
-    #[deku(endian = "little")]
     target: Option<f32>,
-    #[deku(endian = "little")]
     point: Option<f32>,
 }
 

@@ -4,7 +4,6 @@ use std::ops::{BitAnd, Shr};
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
 pub struct Guid {
-    #[deku(endian = "little")]
     guid: u64, // 48
 }
 
@@ -122,7 +121,7 @@ impl TryFrom<&PackedGuid> for Guid {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u16")]
-#[deku(endian = "little")]
+
 pub enum HighGuid {
     Item = 0x4000,       // blizz 4000                                   GUID_TRAIT_GLOBAL
     Player = 0x0000,     // blizz 0000                                    GUID_TRAIT_GLOBAL

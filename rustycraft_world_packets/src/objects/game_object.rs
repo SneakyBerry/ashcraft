@@ -8,7 +8,7 @@ use crate::position::Vector3d;
 
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0006, tag = 0x0021)]
 pub struct GameObject {
     #[nested]

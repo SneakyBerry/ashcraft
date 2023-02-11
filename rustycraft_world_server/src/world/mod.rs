@@ -1,10 +1,6 @@
 use crate::session_handler::Connection;
-use deku::DekuContainerRead;
-use rustycraft_world_packets::area::Area;
-use rustycraft_world_packets::characters::{Character, CharacterEnumServer};
-use rustycraft_world_packets::class::Class;
-use rustycraft_world_packets::gear::CharacterGear;
-use rustycraft_world_packets::gender::Gender;
+use rustycraft_world_packets::common::class::Class;
+use rustycraft_world_packets::common::gender::Gender;
 use rustycraft_world_packets::guid::{Guid, HighGuid};
 use rustycraft_world_packets::inventory::InventoryType;
 use rustycraft_world_packets::login::{CmsgPlayerLogin, SmsgLoginVerifyWorld};
@@ -16,7 +12,7 @@ use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags
 use rustycraft_world_packets::object::{ObjectType, ObjectUpdateType, SmsgUpdateObject};
 use rustycraft_world_packets::objects::prelude::*;
 use rustycraft_world_packets::opcodes::Opcode;
-use rustycraft_world_packets::position::Vector3d;
+use rustycraft_world_packets::position::{MovementInfo, Vector3d};
 use rustycraft_world_packets::power::Power;
 use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
@@ -43,14 +39,14 @@ impl WorldHandler {
     }
 
     pub fn run(mut self) {
-        println!("World server started");
+        info!("World server started");
         loop {
             while let Ok((packet, mut connection)) = self.incoming_connections.try_recv() {
-                match packet.opcode {
+                match packet.get_opcode() {
                     Opcode::CmsgPlayerLogin => {
                         Self::handle_player_login(
                             &mut connection,
-                            CmsgPlayerLogin::from_bytes((&packet.data, 0)).unwrap().1,
+                            packet.data_as::<CmsgPlayerLogin>(),
                         )
                         .unwrap();
                     }
@@ -60,13 +56,42 @@ impl WorldHandler {
             }
             for connection in &mut self.connections {
                 while let Ok(packet) = connection.receiver().try_recv() {
-                    match packet.opcode {
+                    match packet.get_opcode() {
                         Opcode::CmsgPlayerLogin => {
                             Self::handle_player_login(
                                 connection,
-                                CmsgPlayerLogin::from_bytes((&packet.data, 0)).unwrap().1,
+                                packet.data_as::<CmsgPlayerLogin>(),
                             )
                             .unwrap();
+                        }
+                        Opcode::MsgMoveStartForward
+                        | Opcode::MsgMoveStartBackward
+                        | Opcode::MsgMoveStop
+                        | Opcode::MsgMoveStartStrafeLeft
+                        | Opcode::MsgMoveStartStrafeRight
+                        | Opcode::MsgMoveStopStrafe
+                        | Opcode::MsgMoveJump
+                        | Opcode::MsgMoveStartTurnLeft
+                        | Opcode::MsgMoveStartTurnRight
+                        | Opcode::MsgMoveStopTurn
+                        | Opcode::MsgMoveStartPitchUp
+                        | Opcode::MsgMoveStartPitchDown
+                        | Opcode::MsgMoveStopPitch
+                        | Opcode::MsgMoveSetRunMode
+                        | Opcode::MsgMoveSetWalkMode
+                        | Opcode::MsgMoveFallLand
+                        | Opcode::MsgMoveStartSwim
+                        | Opcode::MsgMoveStopSwim
+                        | Opcode::MsgMoveSetFacing
+                        | Opcode::MsgMoveSetPitch
+                        | Opcode::MsgMoveHeartbeat
+                        | Opcode::CmsgMoveFallReset
+                        | Opcode::CmsgMoveSetFly
+                        | Opcode::MsgMoveStartAscend
+                        | Opcode::MsgMoveStopAscend
+                        | Opcode::CmsgMoveChngTransport
+                        | Opcode::MsgMoveStartDescend => {
+                            println!("{:#?}", &packet.data_as::<MovementInfo>());
                         }
                         _ => {}
                     }
@@ -79,19 +104,24 @@ impl WorldHandler {
         connection: &mut Connection,
         _player: CmsgPlayerLogin,
     ) -> anyhow::Result<()> {
-        println!("Player login request");
         connection.sender().send(Box::new(SmsgLoginVerifyWorld {
             map: Map::EasternKingdoms,
             position: Vector3d {
-                x: 200.0,
-                y: 200.0,
-                z: 200.0,
-                rotation: Some(0.0),
+                x: -8940.,
+                y: -132.,
+                z: 83.,
+                rotation: Some(180.0),
             },
         }))?;
         connection
             .sender()
             .send(Box::new(SmsgTutorialFlags::default()))?;
+        let mut visible_items: [_; 19] = Default::default();
+        visible_items[EquipmentSlots::MainHand as usize] = Some(EquipedItem {
+            id: 36942,
+            permanent: 36942,
+            temporary: 36942,
+        });
         let player = Player {
             unit: Unit {
                 object: Object {
@@ -113,6 +143,7 @@ impl WorldHandler {
                 native_display_id: Some(50),
                 ..Default::default()
             },
+            visible_items,
             ..Default::default()
         };
         let movement = MovementBlockBuilder::default()
@@ -126,13 +157,13 @@ impl WorldHandler {
                     .flight_speed(0.0)
                     .backwards_flight_speed(0.0)
                     .living_position(Vector3d {
-                        x: -8949.95,
-                        y: -132.493,
-                        z: 83.5312,
-                        rotation: Some(0.0),
+                        x: -8940.34,
+                        y: -132.009,
+                        z: 83.6564,
+                        rotation: Some(180.0),
                     })
                     .pitch_rate(0.0)
-                    .running_speed(60.0)
+                    .running_speed(10.0)
                     .swimming_speed(0.0)
                     .timestamp(0)
                     .turn_rate(std::f32::consts::PI)
@@ -156,7 +187,6 @@ impl WorldHandler {
         connection
             .sender()
             .send(Box::new(SmsgTimeSyncReq { time_sync: 0 }))?;
-        println!("All data was sent");
         Ok(())
     }
 }

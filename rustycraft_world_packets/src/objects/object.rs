@@ -3,7 +3,7 @@ use crate::objects::size_helper::FieldSize;
 use crate::objects::UpdateFields;
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0000, tag = 0x0001)]
 pub struct Object {
     pub guid: Option<Guid>,

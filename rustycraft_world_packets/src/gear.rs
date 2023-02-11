@@ -1,11 +1,9 @@
 use crate::inventory::InventoryType;
 use deku::prelude::*;
 
-#[derive(Debug, Copy, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Copy, Clone, DekuWrite, DekuRead, Builder)]
 pub struct CharacterGear {
-    #[deku(endian = "little")]
     pub equipment_display_id: u32,
     pub inventory_type: InventoryType,
-    #[deku(endian = "little")]
     pub enchantment: u32,
 }

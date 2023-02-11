@@ -1,7 +1,7 @@
 use deku::prelude::*;
 
-use crate::class::Class;
-use crate::gender::Gender;
+use crate::common::class::Class;
+use crate::common::gender::Gender;
 use crate::guid::Guid;
 use crate::objects::size_helper::FieldSize;
 use crate::objects::object::Object;
@@ -11,7 +11,7 @@ use crate::race::Race;
 
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0006, tag = 0x0009)]
 pub struct Unit {
     #[nested]
@@ -94,7 +94,7 @@ pub struct ClassSpecific {
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
-#[deku(endian = "little")]
+
 pub struct AttackPower {
     pub power: u32,
     pub a: u16,

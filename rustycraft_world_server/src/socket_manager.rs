@@ -1,13 +1,10 @@
 use crate::session_handler::Connection;
 use anyhow::anyhow;
-use rustycraft_database::redis::RedisClient;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
 pub struct SocketManager {
     bind_address: &'static str,
-    redis: Arc<RedisClient>,
     realm_manager_sender: mpsc::UnboundedSender<Connection>,
 }
 
@@ -15,7 +12,6 @@ impl SocketManager {
     pub fn new(realm_manager_sender: mpsc::UnboundedSender<Connection>) -> Self {
         SocketManager {
             bind_address: "0.0.0.0:8085",
-            redis: Arc::new(RedisClient::new().expect("Redis connection is not alive")),
             realm_manager_sender,
         }
     }

@@ -1,7 +1,7 @@
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite, DekuRead)]
-#[deku(type = "u32", endian = "little")]
+#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[deku(type = "u32"info)]
 pub enum Area {
     DunMorogh = 0x1,
     Longshore = 0x2,

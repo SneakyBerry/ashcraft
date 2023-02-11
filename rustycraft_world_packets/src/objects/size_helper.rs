@@ -58,7 +58,7 @@ impl_field_size!(unit::UnitData: 1);
 impl_field_size!(unit::ClassSpecific: 1);
 impl_field_size!(player::PlayerFieldBytes2Offsets: 1);
 impl_field_size!(ItemEnchantment: 2);
-impl_field_size!(player::PlayerEnchantment: 2);
+impl_field_size!(player::EquipedItem: 2);
 impl_field_size!(unit::AttackPower: 3);
 impl_field_size!(Vector3d: 4);
 impl_field_size!(player::Rune: 4);

@@ -2,9 +2,8 @@ use deku::prelude::*;
 
 use crate::define_flags;
 
-#[derive(Clone, Default, DekuWrite)]
+#[derive(Clone, Default, DekuWrite, Builder)]
 pub struct UpdateFlag {
-    #[deku(endian = "little")]
     inner: u16,
 }
 

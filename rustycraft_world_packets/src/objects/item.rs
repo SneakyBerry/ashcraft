@@ -6,7 +6,7 @@ use crate::guid::Guid;
 use crate::objects::object::Object;
 use crate::objects::UpdateFields;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0006, tag = 0x0003)]
 pub struct Item {
     #[nested]

@@ -10,5 +10,4 @@ pub enum Power {
     Happiness = 0x4,
     Rune = 0x5,
     RunicPower = 0x6,
-    Health = 0xfe,
 }

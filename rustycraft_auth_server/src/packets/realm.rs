@@ -61,7 +61,6 @@ pub(crate) struct RealmListResponse {
     pub(crate) opcode: Opcode,
     #[deku(endian = "little", pad_bytes_after = "4")]
     pub(crate) size: u16,
-    #[deku(endian = "little")]
     pub(crate) realms_count: u16,
     #[deku(pad_bytes_after = "2")]
     pub(crate) realms: Vec<Realm>,

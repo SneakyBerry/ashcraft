@@ -4,7 +4,7 @@ use crate::objects::UpdateFields;
 use crate::objects::size_helper::FieldSize;
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Clone, IntoUpdateFields)]
+#[derive(Debug, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0040, tag = 0x0007)]
 pub struct Container {
     #[nested]

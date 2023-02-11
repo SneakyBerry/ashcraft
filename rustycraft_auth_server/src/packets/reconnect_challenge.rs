@@ -7,7 +7,6 @@ use deku::prelude::*;
 pub(crate) struct ReconnectChallengeRequest {
     pub(crate) command: Opcode,
     pub(crate) protocol_version: u8,
-    #[deku(endian = "little")]
     pub(crate) size: u16,
     #[deku(count = "4", map = "parse_reverse")]
     pub(crate) game_name: String,
@@ -18,7 +17,6 @@ pub(crate) struct ReconnectChallengeRequest {
     pub(crate) os: String,
     #[deku(count = "4", map = "parse_reverse")]
     pub(crate) country: String,
-    #[deku(endian = "little")]
     pub(crate) utc_timezone_offset: u32,
     pub(crate) ip: [u8; 4],
     pub(crate) username_size: u8,

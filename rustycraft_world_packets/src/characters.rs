@@ -1,7 +1,7 @@
-use crate::area::Area;
-use crate::class::Class;
+use crate::common::area::Area;
+use crate::common::class::Class;
 use crate::gear::CharacterGear;
-use crate::gender::Gender;
+use crate::common::gender::Gender;
 use crate::guid::Guid;
 use crate::map::Map;
 use crate::opcodes::Opcode;
@@ -33,7 +33,7 @@ impl ServerPacket for CharacterEnumServer {
     }
 }
 
-#[derive(Debug, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, DekuWrite, DekuRead, Builder)]
 pub struct Character {
     pub guid: Guid,
     #[deku(
@@ -53,18 +53,12 @@ pub struct Character {
     pub area: Area,
     pub map: Map,
     pub position: Vector3d,
-    #[deku(endian = "little")]
     pub guild_id: u32,
-    #[deku(endian = "little")]
     pub flags: u32,
-    #[deku(endian = "little")]
     pub recustomization_flags: u32,
     pub first_login: bool,
-    #[deku(endian = "little")]
     pub pet_display_id: u32,
-    #[deku(endian = "little")]
     pub pet_level: u32,
-    #[deku(endian = "little")]
     pub pet_family: u32,
     pub equipment: [CharacterGear; 23],
 }

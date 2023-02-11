@@ -4,7 +4,7 @@ use crate::objects::object::Object;
 use crate::objects::UpdateFields;
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields)]
+#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0006, tag = 0x0081)]
 pub struct Corpse {
     #[nested]

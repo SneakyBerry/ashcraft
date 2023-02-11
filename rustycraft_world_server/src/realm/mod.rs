@@ -1,20 +1,20 @@
 use crate::session_handler::{Connection, ConnectionState};
 use anyhow::anyhow;
-use deku::DekuContainerRead;
 use rustycraft_common::Account;
 use rustycraft_database::redis::RedisClient;
-use rustycraft_world_packets::area::Area;
 use rustycraft_world_packets::auth::{
-    AuthChallengeServer, AuthOk, AuthResponseServer, AuthSessionClient,
+    AuthChallengeServer, AuthOk, AuthResponseServer, CMsgAuthSession,
 };
 use rustycraft_world_packets::characters::{Character, CharacterEnumServer};
-use rustycraft_world_packets::class::Class;
-use rustycraft_world_packets::expansion::Expansion;
+use rustycraft_world_packets::common::area::Area;
+use rustycraft_world_packets::common::class::Class;
+use rustycraft_world_packets::common::expansion::Expansion;
+use rustycraft_world_packets::common::gender::Gender;
 use rustycraft_world_packets::gear::CharacterGear;
-use rustycraft_world_packets::gender::Gender;
 use rustycraft_world_packets::guid::{Guid, HighGuid};
 use rustycraft_world_packets::inventory::InventoryType;
 use rustycraft_world_packets::map::Map;
+use rustycraft_world_packets::objects::prelude::EquipmentSlots;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::race::Race;
@@ -38,10 +38,20 @@ const AUTH_SERVER_RESPONSE_OK: AuthResponseServer = AuthResponseServer {
 };
 
 fn char_data() -> CharacterEnumServer {
+    let mut equipment = [CharacterGear {
+        equipment_display_id: 0,
+        inventory_type: InventoryType::NonEquip,
+        enchantment: 0,
+    }; 23];
+    // equipment[EquipmentSlots::MainHand as usize] = CharacterGear {
+    //     equipment_display_id: 2,
+    //     inventory_type: InventoryType::WeaponMainHand,
+    //     enchantment: 0,
+    // };
     CharacterEnumServer::new(vec![Character {
         guid: Guid::new(HighGuid::Player, 4),
         name: "Warr".to_string(),
-        race: Race::Human,
+        race: Race::Draenei,
         class: Class::Warrior,
         gender: Gender::Female,
         skin: 0,
@@ -50,8 +60,8 @@ fn char_data() -> CharacterEnumServer {
         hair_color: 0,
         facial_hair: 0,
         level: 1,
-        area: Area::NorthshireValley,
-        map: Map::EasternKingdoms,
+        area: Area::HowlingFjord,
+        map: Map::Northrend,
         position: Vector3d {
             x: 0.0,
             y: 0.0,
@@ -65,13 +75,11 @@ fn char_data() -> CharacterEnumServer {
         pet_display_id: 0,
         pet_level: 0,
         pet_family: 0,
-        equipment: [CharacterGear {
-            equipment_display_id: 0,
-            inventory_type: InventoryType::NonEquip,
-            enchantment: 0,
-        }; 23],
+        equipment,
     }])
 }
+
+type Handler<T> = fn(&RealmHandler, &mut Connection, T) -> anyhow::Result<()>;
 
 pub struct RealmHandler {
     incoming_connections: mpsc::UnboundedReceiver<Connection>,
@@ -95,32 +103,33 @@ impl RealmHandler {
     }
 
     pub async fn run(mut self) {
-        println!("Realm handler started");
+        info!("Realm handler started");
         loop {
             let mut uninitialized_connections = vec![];
-            while let Ok(mut connection) = self.incoming_connections.try_recv() {
+            while let Ok(connection) = self.incoming_connections.try_recv() {
                 uninitialized_connections.push(connection);
             }
             for mut connection in uninitialized_connections {
                 if let Ok(_) = self.init_connection(&mut connection).await {
-                    println!("Connection handled");
+                    info!("Connection handled");
                     connection.state = ConnectionState::Auth;
                     self.connections.push(connection);
                 } else {
-                    println!("Connection failed");
+                    info!("Connection failed");
                 }
             }
             let conn_len = self.connections.len();
-            let mut connections = mem::replace(&mut self.connections, Vec::with_capacity(conn_len));
+            let connections = mem::replace(&mut self.connections, Vec::with_capacity(conn_len));
             for mut conn in connections {
                 if let Ok(data) = conn.receiver().try_recv() {
-                    if data.opcode == Opcode::CmsgPlayerLogin {
-                        conn.state = ConnectionState::Game;
-                        self.world_server_sender.send((data, conn)).unwrap();
-                        continue;
-                    }
-                    match data.opcode {
+                    match data.get_opcode() {
                         Opcode::CmsgCharEnum => conn.sender().send(Box::new(char_data())).unwrap(),
+                        Opcode::CmsgCharCreate => todo!(),
+                        Opcode::CmsgPlayerLogin => {
+                            conn.state = ConnectionState::Game;
+                            self.world_server_sender.send((data, conn)).unwrap();
+                            continue;
+                        }
                         _ => {}
                     }
                 }
@@ -142,8 +151,8 @@ impl RealmHandler {
             .await
             .ok_or_else(|| anyhow!("Socket closed"))?;
 
-        if let Opcode::CmsgAuthSession = client_packet.opcode {
-            let (_, packet) = AuthSessionClient::from_bytes((&client_packet.data, 0))?;
+        if let Opcode::CmsgAuthSession = client_packet.get_opcode() {
+            let packet = client_packet.data_as::<CMsgAuthSession>();
             let account = self.redis.get::<Account>(&packet.username).await?;
             if let Ok(encryption) = seed.into_header_crypto(
                 &NormalizedString::new(&packet.username)?,

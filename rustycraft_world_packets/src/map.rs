@@ -1,7 +1,7 @@
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite, DekuRead)]
-#[deku(type = "u32", endian = "little")]
+#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[deku(type = "u32"info)]
 pub enum Map {
     EasternKingdoms = 0x0,
     Kalimdor = 0x1,

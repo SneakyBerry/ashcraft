@@ -1,4 +1,4 @@
-use crate::expansion::Expansion;
+use crate::common::expansion::Expansion;
 use crate::opcodes::Opcode;
 use crate::read_c_string;
 use crate::response_code::ResponseCode;
@@ -18,31 +18,22 @@ impl ServerPacket for AuthChallengeServer {
     }
 }
 
-#[derive(Debug, DekuRead)]
-pub struct AuthSessionClient {
-    #[deku(endian = "little")]
+#[derive(Debug, Clone, DekuRead, Builder)]
+pub struct CMsgAuthSession {
     pub client_build: u32,
-    #[deku(endian = "little")]
     pub login_server_id: u32,
     #[deku(reader = "read_c_string(deku::rest)")]
     pub username: String,
-    #[deku(endian = "little")]
     pub login_server_type: u32,
-    #[deku(endian = "little")]
     pub client_seed: u32,
-    #[deku(endian = "little")]
     pub region_id: u32,
-    #[deku(endian = "little")]
     pub battleground_id: u32,
-    #[deku(endian = "little")]
     pub realm_id: u32,
     /// Purpose and exact meaning of name unknown.
     /// TrinityCore has this name but never uses the variable afterwards.
     ///
-    #[deku(endian = "little")]
     pub dos_response: u64,
     pub client_proof: [u8; 20],
-    #[deku(endian = "little")]
     pub decompressed_addon_info_size: u32,
     #[deku(reader = "read_compressed_addon_info(deku::rest)")]
     pub compressed_addon_info: Vec<u8>,
@@ -62,24 +53,21 @@ fn read_compressed_addon_info(
     Ok((rest, res))
 }
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct AuthOk {
-    #[deku(endian = "little")]
     pub billing_time: u32,
     pub billing_flags: u8,
-    #[deku(endian = "little")]
     pub billing_rested: u32,
     pub expansion: Expansion,
 }
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct AuthWaitQueue {
-    #[deku(endian = "little")]
     pub queue_position: u32,
     pub realm_has_free_character_migration: bool,
 }
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct AuthResponseServer {
     pub result: ResponseCode,
     pub ok: Option<AuthOk>,

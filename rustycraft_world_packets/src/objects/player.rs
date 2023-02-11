@@ -6,7 +6,7 @@ use crate::objects::unit::Unit;
 use crate::objects::UpdateFields;
 use rustycraft_derive::IntoUpdateFields;
 
-#[derive(Debug, Clone, IntoUpdateFields)]
+#[derive(Debug, Clone, IntoUpdateFields, Builder)]
 #[meta(offset = 0x0094, tag = 0x0019)]
 pub struct Player {
     #[nested]
@@ -21,7 +21,7 @@ pub struct Player {
     pub duel_team: Option<u32>,
     pub guild_timestamp: Option<u32>,
     pub player_quests: [Option<QuestLogItem>; 25],
-    pub visible_items: [Option<PlayerEnchantment>; 19],
+    pub visible_items: [Option<EquipedItem>; 19],
     pub chosen_title: Option<u32>,
     pub fake_inebriation: Option<i32>,
     pub unknown_af: Option<i32>,
@@ -114,7 +114,7 @@ pub struct Bytes3 {
 }
 
 #[derive(Debug, Clone, Copy, DekuRead, DekuWrite)]
-#[deku(endian = "little")]
+
 pub struct QuestLogItem {
     pub id: u32,
     pub state: u32,
@@ -126,8 +126,8 @@ pub struct QuestLogItem {
 }
 
 #[derive(Debug, Clone, Copy, DekuRead, DekuWrite)]
-#[deku(endian = "little")]
-pub struct PlayerEnchantment {
+
+pub struct EquipedItem {
     pub id: u32,
     pub permanent: u16,
     pub temporary: u16,
@@ -142,7 +142,7 @@ pub struct Bytes4 {
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
-#[deku(endian = "little")]
+
 pub struct PlayerFieldBytes2Offsets {
     pub override_spells_id: u16,
     pub ignore_power_regen_prediction_mask: u8,
@@ -205,7 +205,7 @@ pub enum EquipmentSlots
     Trinket1 = 12,
     Trinket2 = 13,
     Back = 14,
-    Mainhand = 15,
+    MainHand = 15,
     Offhand = 16,
     Ranged = 17,
     Tabard = 18,
@@ -213,7 +213,7 @@ pub enum EquipmentSlots
 }
 
 #[derive(Debug, Clone, DekuRead, DekuWrite)]
-#[deku(endian = "little")]
+
 pub struct Rune {
     pub blood: u32,
     pub unholy: u32,
