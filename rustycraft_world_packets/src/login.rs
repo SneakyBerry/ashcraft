@@ -5,12 +5,12 @@ use crate::position::Vector3d;
 use crate::ServerPacket;
 use deku::prelude::*;
 
-#[derive(Debug, DekuRead)]
+#[derive(Debug, DekuRead, Valuable)]
 pub struct CmsgPlayerLogin {
     pub guid: Guid,
 }
 
-#[derive(Debug, DekuWrite, DekuRead)]
+#[derive(Debug, DekuWrite, DekuRead, Valuable)]
 pub struct SmsgLoginVerifyWorld {
     pub map: Map,
     pub position: Vector3d,

@@ -40,7 +40,7 @@ enum UpdateMaskObjectType {
 
 type InnerState = BTreeMap<usize, u32>;
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuWrite)]
+#[derive(Debug, Clone, Eq, PartialEq, DekuWrite, Valuable)]
 pub struct UpdateFields {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: InnerState,

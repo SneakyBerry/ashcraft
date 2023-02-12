@@ -56,15 +56,15 @@ impl Client {
             // Write response to client socket
             match res {
                 Ok(result) => {
-                    trace!("[{:?}] Response: {:?}", self.stream.peer_addr(), result);
+                    trace!(addr = ?self.stream.peer_addr(), response = result.as_value());
                     let b = result.to_bytes()?;
                     self.stream.write_all(&b).await?;
                 }
                 Err(err) => {
-                    info!(
-                        "[{:?}] Packet handling error: {:#?}",
-                        self.stream.peer_addr(),
-                        err
+                    error!(
+                        message = "Packet handling error",
+                        addr = ?self.stream.peer_addr(),
+                        err = ?err
                     );
                     self.stream.write_all(&err.to_bytes()?).await?;
                     break;
@@ -85,11 +85,6 @@ impl Client {
                 protocol_version: None,
                 result: AuthResult::FailDisconnected,
             })?;
-        trace!(
-            "[{:?}] LogonChallengeRequest {:?}",
-            self.stream.peer_addr(),
-            &data
-        );
         let username = NormalizedString::from(&data.username).map_err(|_| RequestResult {
             cmd: Opcode::AuthLogonChallenge,
             protocol_version: None,
@@ -129,11 +124,6 @@ impl Client {
                 protocol_version: None,
                 result: AuthResult::FailDisconnected,
             })?;
-        trace!(
-            "[{:?}] LogonProofRequest {:?}",
-            self.stream.peer_addr(),
-            &client_proof
-        );
         if let ClientState::OnChallenge(proof) = &mut self.state {
             let (server, server_proof) = proof
                 .take()
@@ -191,7 +181,6 @@ impl Client {
 
     pub async fn handle_realm_list(&mut self) -> Result<OkType, RequestResult> {
         if let ClientState::LoggedIn(_) = &self.state {
-            trace!("[{:?}] Got RealmList request", self.stream.peer_addr());
             let mut response = RealmListResponse {
                 opcode: Opcode::RealmList,
                 size: 0,

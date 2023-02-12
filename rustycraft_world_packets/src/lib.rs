@@ -38,6 +38,8 @@ extern crate paste;
 extern crate derive_builder;
 #[macro_use]
 extern crate thiserror;
+#[macro_use]
+extern crate valuable;
 
 #[derive(Debug, Error)]
 pub enum PacketError {
@@ -70,7 +72,7 @@ pub trait ServerPacket: DekuContainerWrite + DekuUpdate + Send + Sync + Debug {
     }
 }
 
-#[derive(Debug, Copy, Clone, DekuWrite)]
+#[derive(Debug, Copy, Clone, DekuWrite, Valuable)]
 pub struct ServerHeaders {
     #[deku(endian = "big")]
     size: u16,
@@ -113,44 +115,71 @@ macro_rules! define_flags {
         InnerType: $inner_type: ident {
         $( $const_name:ident = $const_value: expr),*
     } ) => {
-
-
-        impl $struct_name {
-            pub const fn new(inner: $inner_type) -> Self { Self { inner } }
-            $(
-            pub const $const_name: $inner_type = $const_value;
         paste! {
-            pub const fn [<is_ $const_name:lower>](&self) -> bool {
-                (self.inner & Self::$const_name) != 0
+            impl $struct_name {
+                pub const fn new(inner: $inner_type) -> Self { Self { inner } }
+                $(
+                    pub const $const_name: $inner_type = $const_value;
+                    pub const fn [<is_ $const_name:lower>](&self) -> bool {
+                        (self.inner & Self::$const_name) != 0
+                    }
+
+                    pub const fn [<new_ $const_name:lower>]() -> Self {
+                        Self { inner: Self::$const_name }
+                    }
+
+                    pub fn [<set_ $const_name:lower>](&mut self) -> &mut Self {
+                        self.inner |= Self::$const_name;
+                        self
+                    }
+
+                    pub fn [<clear_ $const_name:lower>](&mut self) -> &mut Self {
+                        self.inner &= !Self::$const_name;
+                        self
+                    }
+                ) *
+                }
+            impl ::std::fmt::Debug for $struct_name {
+                fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                    f.debug_struct(stringify!($struct_name))
+                $ (
+                    .field(stringify!([<$const_name:lower>]), &self.[<is_ $const_name:lower>]())
+                ) *
+                    .finish()?;
+
+                    Ok(())
+                }
             }
 
-            pub const fn [<new_ $const_name:lower>]() -> Self {
-                Self { inner: Self::$const_name }
+            static [<$struct_name _FIELDS>]: &[::valuable::NamedField<'static>] =
+                &[
+                    $(
+                    ::valuable::NamedField::new(stringify!([<$const_name:lower>]))
+                    ),*
+                ];
+            impl ::valuable::Structable for $struct_name {
+                fn definition(&self) -> ::valuable::StructDef<'_> {
+                    ::valuable::StructDef::new_static(
+                        stringify!($struct_name),
+                        ::valuable::Fields::Named([<$struct_name _FIELDS>]),
+                    )
+                }
             }
-
-            pub fn [<set_ $const_name:lower>](&mut self) -> &mut Self {
-                self.inner |= Self::$const_name;
-                self
+            impl ::valuable::Valuable for $struct_name {
+                fn as_value(&self) -> ::valuable::Value<'_> {
+                    ::valuable::Value::Structable(self)
+                }
+                fn visit(&self, visitor: &mut dyn ::valuable::Visit) {
+                    visitor.visit_named_fields(&::valuable::NamedValues::new(
+                        [<$struct_name _FIELDS>],
+                        &[
+                            $(
+                            ::valuable::Valuable::as_value(&self.[<is_ $const_name:lower>]())
+                            ),*
+                        ],
+                    ));
+                }
             }
-
-            pub fn [<clear_ $const_name:lower>](&mut self) -> &mut Self {
-                self.inner &= Self::$const_name.reverse_bits();
-                self
-            }
-        }) *
-        }
-        paste! {
-        impl std::fmt::Debug for $struct_name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_struct(stringify!($struct_name))
-            $ (
-                .field(stringify!([<$const_name:lower>]), &self.[<is_ $const_name:lower>]())
-            ) *
-                .finish()?;
-
-                Ok(())
-            }
-        }
         }
     }
 }

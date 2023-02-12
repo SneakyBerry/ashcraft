@@ -89,7 +89,7 @@ pub struct Player {
     pub pet_spell_power: Option<u32>,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct Bytes1 {
     pub skin: u8,
     pub face: u8,
@@ -97,7 +97,7 @@ pub struct Bytes1 {
     pub hair_color: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct Bytes2 {
     pub facial: u8,
     pub party: u8,
@@ -105,7 +105,7 @@ pub struct Bytes2 {
     pub rest_state: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct Bytes3 {
     pub gender: u8,
     pub inebriation: u8,
@@ -113,7 +113,7 @@ pub struct Bytes3 {
     pub arena_faction: u8,
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, Valuable)]
 
 pub struct QuestLogItem {
     pub id: u32,
@@ -125,7 +125,7 @@ pub struct QuestLogItem {
     pub time: u32,
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, Copy, DekuRead, DekuWrite, Valuable)]
 
 pub struct EquipedItem {
     pub id: u32,
@@ -133,7 +133,7 @@ pub struct EquipedItem {
     pub temporary: u16,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct Bytes4 {
     pub flags: u8,
     pub raf_grantable_level: u8,
@@ -141,7 +141,7 @@ pub struct Bytes4 {
     pub lifetime_max_pvp_rank: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 
 pub struct PlayerFieldBytes2Offsets {
     pub override_spells_id: u16,
@@ -212,7 +212,7 @@ pub enum EquipmentSlots
     End = 19,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 
 pub struct Rune {
     pub blood: u32,

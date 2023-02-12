@@ -1,4 +1,5 @@
 use crate::session_handler::Connection;
+use rustycraft_logging::Valuable;
 use rustycraft_world_packets::common::class::Class;
 use rustycraft_world_packets::common::gender::Gender;
 use rustycraft_world_packets::guid::{Guid, HighGuid};
@@ -12,10 +13,11 @@ use rustycraft_world_packets::movement_flags::{ExtraMovementFlags, MovementFlags
 use rustycraft_world_packets::object::{ObjectType, ObjectUpdateType, SmsgUpdateObject};
 use rustycraft_world_packets::objects::prelude::*;
 use rustycraft_world_packets::opcodes::Opcode;
-use rustycraft_world_packets::position::{MovementInfo, Vector3d};
+use rustycraft_world_packets::position::{CMovementData, MovementInfo, Vector3d};
 use rustycraft_world_packets::power::Power;
 use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
+use rustycraft_world_packets::transport::TransportInfo;
 use rustycraft_world_packets::tutorial::SmsgTutorialFlags;
 use rustycraft_world_packets::{object, ClientPacket};
 use tokio::sync::mpsc;
@@ -42,15 +44,12 @@ impl WorldHandler {
         info!("World server started");
         loop {
             while let Ok((packet, mut connection)) = self.incoming_connections.try_recv() {
-                match packet.get_opcode() {
-                    Opcode::CmsgPlayerLogin => {
-                        Self::handle_player_login(
-                            &mut connection,
-                            packet.data_as::<CmsgPlayerLogin>(),
-                        )
-                        .unwrap();
-                    }
-                    _ => {}
+                if packet.get_opcode() == Opcode::CmsgPlayerLogin {
+                    Self::handle_player_login(
+                        &mut connection,
+                        packet.data_as::<CmsgPlayerLogin>(),
+                    )
+                    .unwrap();
                 }
                 self.connections.push(connection);
             }
@@ -91,7 +90,10 @@ impl WorldHandler {
                         | Opcode::MsgMoveStopAscend
                         | Opcode::CmsgMoveChngTransport
                         | Opcode::MsgMoveStartDescend => {
-                            println!("{:#?}", &packet.data_as::<MovementInfo>());
+                            trace!(
+                                message = "Movement info",
+                                packet = packet.data_as::<CMovementData>().as_value()
+                            );
                         }
                         _ => {}
                     }
@@ -146,26 +148,46 @@ impl WorldHandler {
             visible_items,
             ..Default::default()
         };
+        let mut mf = MovementFlags::default();
+        mf.set_can_fly().set_on_transport();
+        let mut mfe = ExtraMovementFlags::default();
         let movement = MovementBlockBuilder::default()
             .living(MovementBlockLivingVariants::Living(Box::new(
                 LivingBuilder::default()
                     .backwards_running_speed(4.5)
                     .backwards_swimming_speed(0.0)
-                    .extra_flags(ExtraMovementFlags::new(0))
-                    .fall_time(0.0)
-                    .flags(MovementFlags::new(0))
-                    .flight_speed(0.0)
-                    .backwards_flight_speed(0.0)
-                    .living_position(Vector3d {
-                        x: -8940.34,
-                        y: -132.009,
-                        z: 83.6564,
-                        rotation: Some(180.0),
+                    .movement_data(MovementInfo {
+                        flags: mf,
+                        flags_extra: mfe,
+                        time: 0,
+                        pos: Vector3d {
+                            x: -8940.34,
+                            y: -132.009,
+                            z: 83.6564,
+                            rotation: Some(180.0),
+                        },
+                        transport_info: Some(TransportInfo {
+                            guid: Guid::default().into(),
+                            position: Vector3d {
+                                x: -8940.34,
+                                y: -132.009,
+                                z: 83.6564,
+                                rotation: Some(180.0),
+                            },
+                            timestamp: 0,
+                            seat: 0,
+                            time_2: None,
+                        }),
+                        pitch: None,
+                        fall_time: 0,
+                        falling: None,
+                        spline_elevation: None,
                     })
-                    .pitch_rate(0.0)
-                    .running_speed(10.0)
-                    .swimming_speed(0.0)
-                    .timestamp(0)
+                    .flight_speed(90.0)
+                    .backwards_flight_speed(90.0)
+                    .pitch_rate(90.0)
+                    .running_speed(90.0)
+                    .swimming_speed(90.0)
                     .turn_rate(std::f32::consts::PI)
                     .walking_speed(1.0)
                     .build()

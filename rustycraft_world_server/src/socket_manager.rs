@@ -19,7 +19,7 @@ impl SocketManager {
     pub async fn run_forever(self) -> anyhow::Result<()> {
         let listener = TcpListener::bind(self.bind_address).await?;
 
-        info!(target: "SocketManager", "World server listening on: {}", self.bind_address);
+        info!(message = "World server listening", addr = self.bind_address);
 
         loop {
             if let Ok((stream, _)) = listener.accept().await {

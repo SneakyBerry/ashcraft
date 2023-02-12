@@ -1,7 +1,7 @@
 use deku::prelude::*;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
-#[deku(type = "u16"info)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, DekuWrite, DekuRead, Valuable)]
+#[deku(type = "u16")]
 pub enum Opcode {
     CmsgBootMe = 0x001,
     CmsgDbLookup = 0x002,

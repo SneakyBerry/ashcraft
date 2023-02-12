@@ -1,5 +1,6 @@
 use deku::bitvec::{BitVec, Msb0};
 use deku::prelude::*;
+use rustycraft_logging::Valuable;
 use std::fmt::Debug;
 
 pub mod logon_challenge;
@@ -8,7 +9,7 @@ pub mod realm;
 pub mod reconnect_challenge;
 pub mod reconnect_proof;
 
-pub trait DekuWriteWithDebug: DekuContainerWrite + Debug + Send {}
+pub trait DekuWriteWithDebug: DekuContainerWrite + Debug + Send + Valuable {}
 
 fn parse_reverse(mut input: Vec<u8>) -> Result<String, DekuError> {
     input.reverse();
@@ -25,7 +26,7 @@ pub fn c_string_writer(output: &mut BitVec<u8, Msb0>, field: &str) -> Result<(),
     field.as_bytes().write(output, ())
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Hash, Eq, PartialEq, DekuWrite, DekuRead, Valuable)]
 #[deku(type = "u8")]
 pub(crate) enum Opcode {
     AuthLogonChallenge = 0x00,
@@ -40,7 +41,7 @@ pub(crate) enum Opcode {
     XferCancel = 0x34,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Hash, Eq, PartialEq, DekuWrite, DekuRead, Valuable)]
 #[deku(type = "u8")]
 pub(crate) enum AuthResult {
     Success = 0x00,
@@ -91,7 +92,7 @@ impl TryFrom<u8> for Opcode {
     }
 }
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, DekuWrite, Valuable)]
 pub struct RequestResult {
     pub(crate) cmd: Opcode,
     pub(crate) protocol_version: Option<u8>,

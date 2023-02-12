@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, DekuWrite, DekuRead, Valuable)]
 #[deku(type = "u32"info)]
 pub enum Area {
     DunMorogh = 0x1,

@@ -1,12 +1,12 @@
 use crate::guid::PackedGuid;
 use crate::movement_flags::{ExtraMovementFlags, MovementFlags};
-use crate::position::Vector3d;
+use crate::position::{MovementInfo, Vector3d};
 use crate::spline::SplineFlag;
 use crate::transport::TransportInfo;
 use crate::update_flag::UpdateFlag;
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, Builder)]
+#[derive(Debug, Clone, DekuWrite, Valuable, Builder)]
 #[builder(derive(Debug))]
 #[builder(build_fn(skip))]
 pub struct MovementBlock {
@@ -126,41 +126,23 @@ pub enum MovementBlockLivingVariants {
     Stationary(Stationary),
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 pub struct Stationary {
     pub position: Vector3d,
     pub orientation: f32,
 }
 
 // TODO: FIX IT
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 pub struct Position {
     pub corpse_orientation: f32,
     pub position1: Vector3d,
     pub transport_guid: PackedGuid,
 }
 
-#[derive(Debug, Clone, DekuWrite, Builder)]
+#[derive(Debug, Clone, DekuWrite, Builder, Valuable)]
 pub struct Living {
-    flags: MovementFlags,
-    extra_flags: ExtraMovementFlags,
-    timestamp: u32,
-    living_position: Vector3d,
-
-    #[builder(default)]
-    // MOVEMENTFLAG_ONTRANSPORT
-    transport: Option<TransportInfo>,
-    #[builder(default)]
-    // MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING
-    swimming_pitch: Option<f32>,
-    fall_time: f32,
-    #[builder(default)]
-    // MOVEMENTFLAG_FALLING
-    falling: Option<MovementBlockMovementFlagsFalling>,
-    #[builder(default)]
-    // MOVEMENTFLAG_SPLINE_ELEVATION
-    spline_elevation: Option<f32>,
-
+    movement_data: MovementInfo,
     walking_speed: f32,
     running_speed: f32,
     backwards_running_speed: f32,
@@ -175,13 +157,13 @@ pub struct Living {
     spline_enabled: Option<MovementBlockMovementFlagsSplineEnabled>,
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 pub struct MovementBlockVehicle {
     pub vehicle_id: u32,
     pub vehicle_orientation: f32,
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 pub struct MovementBlockMovementFlagsFalling {
     pub z_speed: f32,
     pub sin_angle: f32,
@@ -189,7 +171,7 @@ pub struct MovementBlockMovementFlagsFalling {
     pub xy_speed: f32,
 }
 
-#[derive(Debug, Clone, DekuWrite, Builder)]
+#[derive(Debug, Clone, DekuWrite, Valuable, Builder)]
 pub struct MovementBlockMovementFlagsSplineEnabled {
     spline_flags: MovementBlockSplineFlag,
     time_passed: u32,
@@ -201,7 +183,7 @@ pub struct MovementBlockMovementFlagsSplineEnabled {
     final_node: Vector3d,
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 pub struct MovementBlockSplineFlag {
     inner: SplineFlag,
     angle: Option<f32>,

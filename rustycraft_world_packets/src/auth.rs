@@ -6,7 +6,7 @@ use crate::ServerPacket;
 use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, DekuWrite, Valuable)]
 pub struct AuthChallengeServer {
     #[deku(pad_bytes_before = "4", pad_bytes_after = "32")]
     pub server_seed: u32,
@@ -18,7 +18,7 @@ impl ServerPacket for AuthChallengeServer {
     }
 }
 
-#[derive(Debug, Clone, DekuRead, Builder)]
+#[derive(Debug, Clone, DekuRead, Valuable, Builder)]
 pub struct CMsgAuthSession {
     pub client_build: u32,
     pub login_server_id: u32,

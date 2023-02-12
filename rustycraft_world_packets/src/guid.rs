@@ -2,12 +2,12 @@ use crate::object::ObjectType;
 use deku::prelude::*;
 use std::ops::{BitAnd, Shr};
 
-#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead, Valuable)]
 pub struct Guid {
     guid: u64, // 48
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, Eq, PartialEq, DekuWrite, DekuRead, Valuable)]
 pub struct PackedGuid {
     mask: u8,
     #[deku(count = "mask.count_ones()")]
@@ -119,7 +119,7 @@ impl TryFrom<&PackedGuid> for Guid {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead, Valuable)]
 #[deku(type = "u16")]
 
 pub enum HighGuid {

@@ -77,7 +77,7 @@ pub struct Unit {
     pub hover_height: Option<u32>,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct UnitData {
     pub race: Race,
     pub class: Class,
@@ -85,7 +85,7 @@ pub struct UnitData {
     pub power: Power,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct ClassSpecific {
     pub stand_state: u8,
     pub pet_talents: u8,
@@ -93,7 +93,7 @@ pub struct ClassSpecific {
     pub anim_tier: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 
 pub struct AttackPower {
     pub power: u32,

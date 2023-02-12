@@ -4,4 +4,4 @@ mod server;
 pub mod socket_manager;
 
 #[macro_use]
-extern crate log;
+extern crate tracing;

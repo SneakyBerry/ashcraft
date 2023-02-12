@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Clone, DekuWrite, DekuRead, Valuable)]
 #[deku(type = "u8")]
 pub enum Expansion {
     Vanilla = 0x0,

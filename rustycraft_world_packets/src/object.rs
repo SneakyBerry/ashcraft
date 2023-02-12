@@ -19,12 +19,12 @@ impl SmsgUpdateObject {
     }
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 pub struct Object {
     pub update_type: ObjectUpdateType,
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 #[deku(type = "u8")]
 pub enum ObjectUpdateType {
     #[deku(id = "0x0")]
@@ -69,7 +69,7 @@ impl ServerPacket for SmsgUpdateObject {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite, Valuable)]
 #[deku(type = "u8")]
 pub enum ObjectType {
     Object = 0x0,

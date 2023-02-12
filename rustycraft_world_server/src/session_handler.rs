@@ -1,5 +1,6 @@
 use bytes::BytesMut;
 use deku::DekuContainerRead;
+use rustycraft_logging::Valuable;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::{ClientPacket, ServerPacket};
 use std::fmt::Debug;
@@ -89,13 +90,15 @@ async fn read_socket(
             let mut data = BytesMut::zeroed(pkt_size as usize);
             reader.read_exact(&mut data).await?;
             trace!(
-                "[{:?}] Packet: {opcode:?} with size: {pkt_size} body: {data:?}",
-                reader.peer_addr().expect("Peer without IP")
+                addr = %reader.peer_addr().expect("Peer without IP"),
+                opcode = ?opcode,
+                size = %pkt_size,
+                body = ?data
             );
             if let Ok(packet) = ClientPacket::parse(opcode, data.freeze()) {
                 tx.send(packet)?;
             } else {
-                warn!("Unknown packet: {:?}", opcode);
+                warn!(message = "Unknown packet", opcode = ?opcode);
             }
         }
     }

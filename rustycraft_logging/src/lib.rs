@@ -1,29 +1,20 @@
-use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
+use tracing::Level;
+pub use valuable::Valuable;
 
-struct SimpleLogger;
-
-static LOGGER: SimpleLogger = SimpleLogger;
-
-impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= Level::Trace
-    }
-
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            println!(
-                "[ {} ]\t[ {} ]\t{}:\t{}",
-                record.target(),
-                chrono::Local::now().to_rfc3339(),
-                record.level(),
-                record.args()
-            );
-        }
-    }
-
-    fn flush(&self) {}
-}
-
-pub fn init_logging() -> Result<(), SetLoggerError> {
-    log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Trace))
+// Init logging
+pub fn init_logging() {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .with_thread_names(true)
+        .with_target(true)
+        .init();
+    // tracing_subscriber::fmt()
+    //     .json()
+    //     .with_max_level(Level::TRACE)
+    //     .with_current_span(true)
+    //     .with_thread_names(true)
+    //     .with_line_number(true)
+    //     .with_target(true)
+    //     .pretty()
+    //     .init();
 }

@@ -23,7 +23,7 @@ pub struct GameObject {
     pub bytes: Option<GameObjectBytes>,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 pub struct GameObjectBytes {
     pub state: GameObjectState,
     pub r#type: GameObjectTypes,
@@ -31,7 +31,7 @@ pub struct GameObjectBytes {
     pub anim_progress: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 #[deku(type = "u8")]
 pub enum GameObjectState {
     Active = 0,    // show in world as used and not reset (closed door open)
@@ -39,7 +39,7 @@ pub enum GameObjectState {
     Destroyed = 2, // show the object in-game as already used and not yet reset (e.g. door opened by a cannon blast)
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Clone, DekuRead, DekuWrite, Valuable)]
 #[deku(type = "u8")]
 pub enum GameObjectTypes {
     Door = 0,

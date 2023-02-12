@@ -4,6 +4,7 @@ use rustycraft_world_server::session_handler::Connection;
 use rustycraft_world_server::world::WorldHandler;
 use rustycraft_world_server::SocketManager;
 use std::sync::Arc;
+use std::thread;
 use tokio::sync::mpsc::UnboundedSender;
 
 fn socket_manager(conn_receiver: UnboundedSender<Connection>) -> anyhow::Result<()> {
@@ -23,12 +24,24 @@ fn main() -> anyhow::Result<()> {
     let world_manager = WorldHandler::new(world_rx, incoming_tx.clone());
 
     let mut join_handles = vec![];
-    join_handles.push(std::thread::spawn(|| socket_manager(incoming_tx).unwrap()));
-    join_handles.push(std::thread::spawn(move || world_manager.run()));
-    join_handles.push(std::thread::spawn(move || {
-        let tokio_rt = tokio::runtime::Runtime::new().unwrap();
-        tokio_rt.block_on(realm_manager.run());
-    }));
+    join_handles.push(
+        thread::Builder::new()
+            .name("Socket manager".into())
+            .spawn(|| socket_manager(incoming_tx).unwrap())?,
+    );
+    join_handles.push(
+        thread::Builder::new()
+            .name("World manager".into())
+            .spawn(move || world_manager.run())?,
+    );
+    join_handles.push(
+        thread::Builder::new()
+            .name("Realm manager".into())
+            .spawn(move || {
+                let tokio_rt = tokio::runtime::Runtime::new().unwrap();
+                tokio_rt.block_on(realm_manager.run());
+            })?,
+    );
 
     for h in join_handles {
         h.join().unwrap()

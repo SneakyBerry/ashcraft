@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, Valuable)]
 #[deku(type = "u8")]
 pub enum ResponseCode {
     ResponseSuccess = 0,
