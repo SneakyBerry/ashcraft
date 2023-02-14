@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, DekuRead, Valuable)]
+#[derive(Debug, Clone, Hash, DekuWrite, DekuRead)]
 #[deku(type = "u32"info)]
 pub enum Map {
     EasternKingdoms = 0x0,

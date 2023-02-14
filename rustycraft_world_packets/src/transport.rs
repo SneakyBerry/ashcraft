@@ -2,7 +2,7 @@ use crate::guid::PackedGuid;
 use crate::position::Vector3d;
 use deku::prelude::*;
 
-#[derive(Debug, Clone, PartialEq, DekuWrite, DekuRead, Valuable)]
+#[derive(Debug, Clone, PartialEq, DekuWrite, DekuRead)]
 pub struct TransportInfo {
     pub guid: PackedGuid,
     pub position: Vector3d,

@@ -21,6 +21,8 @@ pub mod time_sync;
 pub mod transport;
 pub mod tutorial;
 pub mod update_flag;
+pub mod query;
+pub mod templates;
 
 use crate::opcodes::Opcode;
 use bytes::Bytes;
@@ -38,8 +40,6 @@ extern crate paste;
 extern crate derive_builder;
 #[macro_use]
 extern crate thiserror;
-#[macro_use]
-extern crate valuable;
 
 #[derive(Debug, Error)]
 pub enum PacketError {
@@ -72,7 +72,7 @@ pub trait ServerPacket: DekuContainerWrite + DekuUpdate + Send + Sync + Debug {
     }
 }
 
-#[derive(Debug, Copy, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Copy, Clone, DekuWrite)]
 pub struct ServerHeaders {
     #[deku(endian = "big")]
     size: u16,
@@ -115,6 +115,15 @@ macro_rules! define_flags {
         InnerType: $inner_type: ident {
         $( $const_name:ident = $const_value: expr),*
     } ) => {
+        #[derive(Clone, PartialEq, Default, DekuWrite, DekuRead)]
+        pub struct $struct_name {
+            inner: $inner_type,
+        }
+
+        impl $crate::objects::size_helper::FieldSize for $struct_name {
+            const SIZE: usize = 1;
+        }
+
         paste! {
             impl $struct_name {
                 pub const fn new(inner: $inner_type) -> Self { Self { inner } }
@@ -148,36 +157,6 @@ macro_rules! define_flags {
                     .finish()?;
 
                     Ok(())
-                }
-            }
-
-            static [<$struct_name _FIELDS>]: &[::valuable::NamedField<'static>] =
-                &[
-                    $(
-                    ::valuable::NamedField::new(stringify!([<$const_name:lower>]))
-                    ),*
-                ];
-            impl ::valuable::Structable for $struct_name {
-                fn definition(&self) -> ::valuable::StructDef<'_> {
-                    ::valuable::StructDef::new_static(
-                        stringify!($struct_name),
-                        ::valuable::Fields::Named([<$struct_name _FIELDS>]),
-                    )
-                }
-            }
-            impl ::valuable::Valuable for $struct_name {
-                fn as_value(&self) -> ::valuable::Value<'_> {
-                    ::valuable::Value::Structable(self)
-                }
-                fn visit(&self, visitor: &mut dyn ::valuable::Visit) {
-                    visitor.visit_named_fields(&::valuable::NamedValues::new(
-                        [<$struct_name _FIELDS>],
-                        &[
-                            $(
-                            ::valuable::Valuable::as_value(&self.[<is_ $const_name:lower>]())
-                            ),*
-                        ],
-                    ));
                 }
             }
         }

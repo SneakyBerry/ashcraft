@@ -1,12 +1,6 @@
 use deku::prelude::*;
-use valuable::{Valuable, Value, Visit};
 
 use crate::define_flags;
-
-#[derive(Clone, Default, DekuWrite, Builder)]
-pub struct UpdateFlag {
-    inner: u16,
-}
 
 define_flags!(
     StructName: UpdateFlag

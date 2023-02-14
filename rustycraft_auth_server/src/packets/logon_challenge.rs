@@ -3,7 +3,6 @@ use crate::packets::{
 };
 use deku::prelude::*;
 use wow_srp::GENERATOR_LENGTH;
-use rustycraft_logging::Valuable;
 
 // We need to keep packet alignment
 #[allow(dead_code)]
@@ -28,7 +27,7 @@ pub(crate) struct LogonChallengeRequest {
     pub(crate) username: String,
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 pub(crate) struct LogonChallengeResponse {
     pub(crate) result: RequestResult,
     pub(crate) server_public_key: [u8; 32],

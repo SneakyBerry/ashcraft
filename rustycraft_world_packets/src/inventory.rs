@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-#[derive(Debug, Copy, Clone, DekuWrite, DekuRead, Valuable)]
+#[derive(Debug, Copy, Clone, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum InventoryType {
     NonEquip = 0x0,

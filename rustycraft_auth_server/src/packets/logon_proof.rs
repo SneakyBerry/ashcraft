@@ -1,6 +1,5 @@
 use crate::packets::{DekuWriteWithDebug, Opcode, RequestResult};
 use deku::prelude::*;
-use rustycraft_logging::Valuable;
 
 // We need to keep packet alignment
 #[allow(dead_code)]
@@ -26,7 +25,7 @@ pub struct TelemetryKey {
     pub(crate) unknown4: [u8; 20],
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 pub(crate) struct LogonProofResponse {
     pub(crate) result: RequestResult,
     pub(crate) server_proof: [u8; 20],

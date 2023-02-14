@@ -1,12 +1,12 @@
 use crate::guid::PackedGuid;
-use crate::movement_flags::{ExtraMovementFlags, MovementFlags};
+
 use crate::position::{MovementInfo, Vector3d};
 use crate::spline::SplineFlag;
-use crate::transport::TransportInfo;
+
 use crate::update_flag::UpdateFlag;
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, Valuable, Builder)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 #[builder(derive(Debug))]
 #[builder(build_fn(skip))]
 pub struct MovementBlock {
@@ -18,7 +18,7 @@ pub struct MovementBlock {
     #[builder(setter(skip))]
     position: Option<Position>,
     #[builder(setter(skip))]
-    stationary: Option<Stationary>,
+    stationary: Option<Vector3d>,
     high_guid: Option<u32>,
     low_guid: Option<u32>,
     // ^^^^^^^^^^^^^^^^^^^
@@ -71,7 +71,11 @@ impl MovementBlockBuilder {
 
     pub fn build(&self) -> Result<MovementBlock, MovementBlockBuilderError> {
         let mut res = MovementBlock {
-            inner: self.inner.as_ref().expect("Has default.").clone(),
+            inner: self
+                .inner
+                .as_ref()
+                .unwrap_or(&UpdateFlag::default())
+                .clone(),
             living: None,
             position: None,
             stationary: None,
@@ -123,24 +127,18 @@ impl MovementBlockBuilder {
 pub enum MovementBlockLivingVariants {
     Living(Box<Living>),
     Position(Position),
-    Stationary(Stationary),
-}
-
-#[derive(Debug, Clone, DekuWrite, Valuable)]
-pub struct Stationary {
-    pub position: Vector3d,
-    pub orientation: f32,
+    Stationary(Vector3d),
 }
 
 // TODO: FIX IT
-#[derive(Debug, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Clone, DekuWrite)]
 pub struct Position {
     pub corpse_orientation: f32,
     pub position1: Vector3d,
     pub transport_guid: PackedGuid,
 }
 
-#[derive(Debug, Clone, DekuWrite, Builder, Valuable)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct Living {
     movement_data: MovementInfo,
     walking_speed: f32,
@@ -157,13 +155,13 @@ pub struct Living {
     spline_enabled: Option<MovementBlockMovementFlagsSplineEnabled>,
 }
 
-#[derive(Debug, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Clone, DekuWrite)]
 pub struct MovementBlockVehicle {
     pub vehicle_id: u32,
     pub vehicle_orientation: f32,
 }
 
-#[derive(Debug, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Clone, DekuWrite)]
 pub struct MovementBlockMovementFlagsFalling {
     pub z_speed: f32,
     pub sin_angle: f32,
@@ -171,7 +169,7 @@ pub struct MovementBlockMovementFlagsFalling {
     pub xy_speed: f32,
 }
 
-#[derive(Debug, Clone, DekuWrite, Valuable, Builder)]
+#[derive(Debug, Clone, DekuWrite, Builder)]
 pub struct MovementBlockMovementFlagsSplineEnabled {
     spline_flags: MovementBlockSplineFlag,
     time_passed: u32,
@@ -183,7 +181,7 @@ pub struct MovementBlockMovementFlagsSplineEnabled {
     final_node: Vector3d,
 }
 
-#[derive(Debug, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Clone, DekuWrite)]
 pub struct MovementBlockSplineFlag {
     inner: SplineFlag,
     angle: Option<f32>,

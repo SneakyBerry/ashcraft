@@ -11,7 +11,7 @@ use crate::ServerPacket;
 use crate::{read_c_string, write_c_string};
 use deku::prelude::*;
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 pub struct CharacterEnumServer {
     #[deku(update = "self.characters.len() as u8")]
     characters_count: u8,
@@ -33,7 +33,7 @@ impl ServerPacket for CharacterEnumServer {
     }
 }
 
-#[derive(Debug, Clone, DekuWrite, DekuRead, Valuable, Builder)]
+#[derive(Debug, Clone, DekuWrite, DekuRead, Builder)]
 pub struct Character {
     pub guid: Guid,
     #[deku(

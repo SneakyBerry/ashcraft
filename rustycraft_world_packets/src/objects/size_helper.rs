@@ -1,3 +1,4 @@
+use crate::common::emotes::Emote;
 use crate::guid::Guid;
 use crate::objects::game_object::GameObjectBytes;
 use crate::objects::item::ItemEnchantment;
@@ -5,7 +6,7 @@ use crate::objects::{player, unit};
 use crate::position::Vector3d;
 use std::mem::size_of;
 
-pub(super) trait FieldSize {
+pub(crate) trait FieldSize {
     const SIZE: usize;
 }
 
@@ -55,6 +56,7 @@ impl_field_size!(player::Bytes2: 1);
 impl_field_size!(player::Bytes3: 1);
 impl_field_size!(player::Bytes4: 1);
 impl_field_size!(unit::UnitData: 1);
+impl_field_size!(Emote: 1);
 impl_field_size!(unit::ClassSpecific: 1);
 impl_field_size!(player::PlayerFieldBytes2Offsets: 1);
 impl_field_size!(ItemEnchantment: 2);

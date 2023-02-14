@@ -1,8 +1,7 @@
 use crate::packets::{c_string_writer, DekuWriteWithDebug, Opcode};
 use deku::prelude::*;
-use rustycraft_logging::Valuable;
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 #[deku(type = "u32", endian = "little")]
 pub(crate) enum Population {
     GreenRecommended = 0x43480000,
@@ -10,7 +9,7 @@ pub(crate) enum Population {
     BlueRecommended = 0x44160000,
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 #[deku(type = "u8")]
 pub(crate) enum RealmFlag {
     None = 0x00,
@@ -21,7 +20,7 @@ pub(crate) enum RealmFlag {
     ForceRedFull = 0x80,
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 #[deku(type = "u8")]
 pub(crate) enum RealmType {
     PvE = 0x0,
@@ -30,7 +29,7 @@ pub(crate) enum RealmType {
     RPPvP = 0x8,
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 #[deku(type = "u8")]
 pub(crate) enum RealmCategory {
     Default = 0x0,
@@ -40,7 +39,7 @@ pub(crate) enum RealmCategory {
     Five = 0x5,
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 pub struct Realm {
     /// vmangos: this is the second column in Cfg_Configs.dbc
     ///
@@ -57,7 +56,7 @@ pub struct Realm {
     pub(crate) realm_id: u8,
 }
 
-#[derive(Debug, DekuWrite, Valuable)]
+#[derive(Debug, DekuWrite)]
 pub(crate) struct RealmListResponse {
     pub(crate) opcode: Opcode,
     #[deku(endian = "little", pad_bytes_after = "4")]

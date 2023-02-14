@@ -7,4 +7,5 @@ members = [
     "./rustycraft_world_server",
     "./rustycraft_world_packets",
     "./rustycraft_derive",
+    "rustycraft_ecs"
 ]

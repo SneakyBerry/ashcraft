@@ -2,11 +2,11 @@ use crate::auth::CMsgAuthSession;
 use crate::login::CmsgPlayerLogin;
 use crate::opcodes::Opcode;
 use crate::position::CMovementData;
+use crate::query::{CmsgItemQuerySingle, CmsgNameQuery};
 use crate::ClientPacket;
 use bytes::Bytes;
 use deku::DekuContainerRead;
 use std::any::Any;
-use valuable::Valuable;
 
 macro_rules! impl_parse {
     ($($opcode:pat => $to_struct:ident),*) => {
@@ -19,7 +19,7 @@ macro_rules! impl_parse {
                             tracing::error!(
                                 message = "Incomplete read",
                                 opcode = ?opcode,
-                                packet = res.as_value(),
+                                packet = ?res,
                                 rest = ?rest.0
                             );
                         }
@@ -37,6 +37,8 @@ impl ClientPacket {
     impl_parse!(
         Opcode::CmsgAuthSession => CMsgAuthSession,
         Opcode::CmsgPlayerLogin => CmsgPlayerLogin,
+        Opcode::CmsgNameQuery => CmsgNameQuery,
+        Opcode::CmsgItemQuerySingle => CmsgItemQuerySingle,
         Opcode::MsgMoveStartForward
         | Opcode::MsgMoveStartBackward
         | Opcode::MsgMoveStop

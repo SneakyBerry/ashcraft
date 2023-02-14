@@ -1,5 +1,4 @@
 use tracing::Level;
-pub use valuable::Valuable;
 
 // Init logging
 pub fn init_logging() {

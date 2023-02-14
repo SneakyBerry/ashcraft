@@ -22,10 +22,12 @@ use rustycraft_world_packets::response_code::ResponseCode;
 use rustycraft_world_packets::ClientPacket;
 use std::mem;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 use wow_srp::normalized_string::NormalizedString;
 use wow_srp::wrath_header::ProofSeed;
 
+const TICK_TIME: Duration = Duration::from_millis(1000 / 60);
 const AUTH_SERVER_RESPONSE_OK: AuthResponseServer = AuthResponseServer {
     result: ResponseCode::AuthOk,
     ok: Some(AuthOk {
@@ -104,7 +106,10 @@ impl RealmHandler {
 
     pub async fn run(mut self) {
         info!("Realm handler started");
+        let mut sleep_time = Duration::default();
         loop {
+            tokio::time::sleep(sleep_time).await;
+            let t = Instant::now();
             let mut uninitialized_connections = vec![];
             while let Ok(connection) = self.incoming_connections.try_recv() {
                 uninitialized_connections.push(connection);
@@ -135,6 +140,7 @@ impl RealmHandler {
                 }
                 self.connections.push(conn)
             }
+            sleep_time = TICK_TIME.saturating_sub(t.elapsed());
         }
     }
 

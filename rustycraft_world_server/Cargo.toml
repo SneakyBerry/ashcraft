@@ -9,7 +9,7 @@ edition = "2021"
 rustycraft_logging = { path = "../rustycraft_logging" }
 rustycraft_database = { path = "../rustycraft_database" }
 rustycraft_common = { path = "../rustycraft_common" }
-rustycraft_world_packets = { path = "../rustycraft_world_packets", features = ["tracing"] }
+rustycraft_world_packets = { path = "../rustycraft_world_packets" }
 
 derive_builder = "0.12.0"
 wow_srp = { version = "0.5.1", features = ["wrath-header"] }

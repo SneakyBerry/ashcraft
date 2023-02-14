@@ -1,6 +1,5 @@
 use bytes::BytesMut;
 use deku::DekuContainerRead;
-use rustycraft_logging::Valuable;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::{ClientPacket, ServerPacket};
 use std::fmt::Debug;

@@ -27,7 +27,7 @@ pub struct Item {
     pub create_played_time: Option<u32>,
 }
 
-#[derive(Debug, Clone, Copy, Default, DekuRead, DekuWrite, Valuable)]
+#[derive(Debug, Clone, Copy, Default, DekuRead, DekuWrite)]
 pub struct ItemEnchantment {
     pub id: u32,
     pub duration: u32,

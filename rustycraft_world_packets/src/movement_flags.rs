@@ -1,11 +1,5 @@
 use crate::define_flags;
 use deku::prelude::*;
-use valuable::{Valuable, Value, Visit};
-
-#[derive(Clone, PartialEq, Default, DekuWrite, DekuRead)]
-pub struct ExtraMovementFlags {
-    inner: u16,
-}
 
 define_flags!(
     StructName: ExtraMovementFlags
@@ -27,11 +21,6 @@ define_flags!(
         UNK15 = 0x4000,
         UNK16 = 0x8000
 });
-
-#[derive(Clone, PartialEq, Default, DekuWrite, DekuRead)]
-pub struct MovementFlags {
-    inner: u32,
-}
 
 define_flags!(
     StructName: MovementFlags

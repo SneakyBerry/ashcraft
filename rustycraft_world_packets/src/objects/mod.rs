@@ -7,11 +7,11 @@ mod container;
 mod corpse;
 mod default;
 mod dynamic_object;
-mod size_helper;
 mod game_object;
 mod item;
 mod object;
 mod player;
+pub(crate) mod size_helper;
 mod unit;
 mod utils;
 
@@ -40,7 +40,7 @@ enum UpdateMaskObjectType {
 
 type InnerState = BTreeMap<usize, u32>;
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuWrite, Valuable)]
+#[derive(Debug, Clone, Eq, PartialEq, DekuWrite)]
 pub struct UpdateFields {
     #[deku(writer = "crate::objects::utils::write_object_btree_map(deku::output, &self.inner)")]
     inner: InnerState,

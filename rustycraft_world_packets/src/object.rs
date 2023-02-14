@@ -19,12 +19,12 @@ impl SmsgUpdateObject {
     }
 }
 
-#[derive(Debug, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Clone, DekuWrite)]
 pub struct Object {
     pub update_type: ObjectUpdateType,
 }
 
-#[derive(Debug, Clone, DekuWrite, Valuable)]
+#[derive(Debug, Clone, DekuWrite)]
 #[deku(type = "u8")]
 pub enum ObjectUpdateType {
     #[deku(id = "0x0")]
@@ -52,15 +52,9 @@ pub enum ObjectUpdateType {
         update_fields: objects::UpdateFields,
     },
     #[deku(id = "0x4")]
-    OutOfRangeObjects {
-            count: u32,
-        guids: Vec<PackedGuid>,
-    },
+    OutOfRangeObjects { count: u32, guids: Vec<PackedGuid> },
     #[deku(id = "0x5")]
-    NearObjects {
-            count: u32,
-        guids: Vec<PackedGuid>,
-    },
+    NearObjects { count: u32, guids: Vec<PackedGuid> },
 }
 
 impl ServerPacket for SmsgUpdateObject {
@@ -69,7 +63,7 @@ impl ServerPacket for SmsgUpdateObject {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite, Valuable)]
+#[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 #[deku(type = "u8")]
 pub enum ObjectType {
     Object = 0x0,

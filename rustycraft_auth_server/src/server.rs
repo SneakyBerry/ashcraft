@@ -56,7 +56,7 @@ impl Client {
             // Write response to client socket
             match res {
                 Ok(result) => {
-                    trace!(addr = ?self.stream.peer_addr(), response = result.as_value());
+                    trace!(addr = ?self.stream.peer_addr(), response = ?result);
                     let b = result.to_bytes()?;
                     self.stream.write_all(&b).await?;
                 }
