@@ -1,10 +1,313 @@
 use crate::object::ObjectType;
+use deku::bitvec::{AsBits, BitSlice, BitVec, BitView, Msb0};
+use deku::ctx::{ByteSize, Endian};
 use deku::prelude::*;
 use std::ops::{BitAnd, Shr};
 
-#[derive(Debug, Default, Clone, Hash, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
-pub struct Guid {
-    guid: u64, // 48
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+// 4 bits
+#[repr(u8)]
+pub enum MapSpecific {
+    DynamicObject {
+        // 28 bits
+        unk: u32,
+        // 24 bits
+        counter: u32,
+    } = 0x0,
+    // #[deku(id = "0x01")]
+    // Corpse {
+    //     #[deku(bits = "28")]
+    //     unk: u32,
+    //     #[deku(bits = "24")]
+    //     counter: u32,
+    // },
+    GameObject {
+        // 28 bits
+        object_id: u32,
+        // 24 bits
+        counter: u32,
+    } = 0x1,
+    Transport {
+        // 28 bits
+        unk: u32,
+        // 24 bits
+        counter: u32,
+    } = 0x2,
+    Unit {
+        // 12 bits
+        unk: u16,
+        // 16 bits
+        npc_id: u16,
+        // 24 bits
+        counter: u32,
+    } = 0x3,
+    Pet {
+        // 28 bits
+        pet_id: u32,
+        // 24 bits
+        counter: u32,
+    } = 0x4,
+    Vehicle {
+        // 28 bits
+        entry: u32,
+        // 24 bits
+        counter: u32,
+    } = 0x5,
+}
+
+impl MapSpecific {
+    fn parse(input: u64) -> Result<MapSpecific, DekuError> {
+        let id = (input & 0x00F0000000000000) >> 52;
+        match id {
+            0x0 => Ok(MapSpecific::DynamicObject {
+                unk: ((input & 0x000FFFFFFF000000) >> 24) as u32,
+                counter: (input & 0x0000000000FFFFFF) as u32,
+            }),
+            0x1 => Ok(MapSpecific::GameObject {
+                object_id: ((input & 0x000FFFFFFF000000) >> 24) as u32,
+                counter: (input & 0x0000000000FFFFFF) as u32,
+            }),
+            0x2 => Ok(MapSpecific::Transport {
+                unk: ((input & 0x000FFFFFFF000000) >> 24) as u32,
+                counter: (input & 0x0000000000FFFFFF) as u32,
+            }),
+            0x3 => Ok(MapSpecific::Unit {
+                unk: ((input & 0x000FFF0000000000) >> 40) as u16,
+                npc_id: ((input & 0x000000FFFF000000) >> 24) as u16,
+                counter: (input & 0x0000000000FFFFFF) as u32,
+            }),
+            0x4 => Ok(MapSpecific::Pet {
+                pet_id: ((input & 0x000FFFFFFF000000) >> 24) as u32,
+                counter: (input & 0x0000000000FFFFFF) as u32,
+            }),
+            0x5 => Ok(MapSpecific::Vehicle {
+                entry: ((input & 0x000FFFFFFF000000) >> 24) as u32,
+                counter: (input & 0x0000000000FFFFFF) as u32,
+            }),
+            _ => Err(DekuError::Parse(format!("Invalid MapSpecific id: {}", id))),
+        }
+    }
+
+    fn to_int(&self) -> u64 {
+        match self {
+            MapSpecific::DynamicObject { unk, counter } => {
+                0x0000000000000000
+                    | (*unk as u64 & 0x000FFFFFFF) << 24
+                    | *counter as u64 & 0x0000000000FFFFFF
+            }
+            MapSpecific::GameObject { object_id, counter } => {
+                0x0010000000000000
+                    | (*object_id as u64 & 0x000FFFFFFF) << 24
+                    | *counter as u64 & 0x0000000000FFFFFF
+            }
+            MapSpecific::Transport { unk, counter } => {
+                0x0020000000000000
+                    | (*unk as u64 & 0x000FFFFFFF) << 24
+                    | *counter as u64 & 0x0000000000FFFFFF
+            }
+            MapSpecific::Unit {
+                unk,
+                npc_id,
+                counter,
+            } => {
+                0x0030000000000000
+                    | (*unk as u64 & 0x000FFF) << 40
+                    | (*npc_id as u64 & 0x000FFFF) << 24
+                    | *counter as u64 & 0x0000000000FFFFFF
+            }
+            MapSpecific::Pet { pet_id, counter } => {
+                0x0040000000000000
+                    | (*pet_id as u64 & 0x000FFFFFFF) << 24
+                    | *counter as u64 & 0x0000000000FFFFFF
+            }
+            MapSpecific::Vehicle { entry, counter } => {
+                0x0050000000000000
+                    | (*entry as u64 & 0x000FFFFFFF) << 24
+                    | *counter as u64 & 0x0000000000FFFFFF
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+// 4 bits
+#[repr(u8)]
+pub enum Global {
+    MoTransport {
+        // 52 bits
+        unk: u64,
+    } = 0xC,
+    Instance {
+        // 52 bits
+        unk: u64,
+    } = 0x4,
+    Group {
+        // 52 bits
+        unk: u64,
+    } = 0x5,
+}
+
+impl Global {
+    fn parse(input: u64) -> Result<Global, DekuError> {
+        let id = (input & 0x00F0000000000000) >> 52;
+        match id {
+            0xC => Ok(Global::MoTransport {
+                unk: input & 0x000FFFFFFFFFFFFF,
+            }),
+            0x4 => Ok(Global::Instance {
+                unk: input & 0x000FFFFFFFFFFFFF,
+            }),
+            0x5 => Ok(Global::Group {
+                unk: input & 0x000FFFFFFFFFFFFF,
+            }),
+            _ => Err(DekuError::Parse(format!("Invalid Global id: {}", id))),
+        }
+    }
+
+    fn to_int(&self) -> u64 {
+        match self {
+            Global::MoTransport { unk } => 0x00C0000000000000 | unk & 0x000FFFFFFFFFFFFF,
+            Global::Instance { unk } => 0x0040000000000000 | unk & 0x000FFFFFFFFFFFFF,
+            Global::Group { unk } => 0x0050000000000000 | unk & 0x000FFFFFFFFFFFFF,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Player {
+    // 4 bits
+    unk: u8,
+    // 28 bits
+    entry: u32,
+    // 24 bits
+    counter: u32,
+}
+
+impl Player {
+    pub fn new(entry: u32, counter: u32) -> Player {
+        Player {
+            unk: 0x0,
+            entry,
+            counter,
+        }
+    }
+    fn parse(input: u64) -> Result<Player, DekuError> {
+        Ok(Player {
+            unk: ((input & 0x00F0000000000000) >> 52) as u8,
+            entry: ((input & 0x000FFFFFFF000000) >> 24) as u32,
+            counter: (input & 0x0000000000FFFFFF) as u32,
+        })
+    }
+    fn to_int(&self) -> u64 {
+        0x0000000000000000
+            | (self.unk as u64) << 52
+            | (self.entry as u64) << 24
+            | self.counter as u64
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Item {
+    // 56 bits
+    unk: u64,
+}
+
+impl Item {
+    fn parse(input: u64) -> Result<Item, DekuError> {
+        Ok(Item {
+            unk: input & 0x00FFFFFFFFFFFFFF,
+        })
+    }
+
+    fn to_int(&self) -> u64 {
+        self.unk & 0x00FFFFFFFFFFFFFF
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(u8)]
+pub enum Guid {
+    Player(Player) = 0x00,
+    MapSpecific(MapSpecific) = 0xF1,
+    Item(Item) = 0x40,
+    Global(Global) = 0x1F,
+}
+
+impl TryFrom<u64> for Guid {
+    type Error = DekuError;
+
+    fn try_from(guid: u64) -> Result<Self, Self::Error> {
+        match guid >> 56 {
+            0x00 => Ok(Guid::Player(Player::parse(guid)?)),
+            0xF1 => Ok(Guid::MapSpecific(MapSpecific::parse(guid)?)),
+            0x40 => Ok(Guid::Item(Item::parse(guid)?)),
+            0x1F => Ok(Guid::Global(Global::parse(guid)?)),
+            _ => Err(DekuError::Parse(format!(
+                "Invalid guid type: {}",
+                guid >> 56
+            ))),
+        }
+    }
+}
+
+impl From<Guid> for u64 {
+    fn from(value: Guid) -> Self {
+        match value {
+            Guid::Player(player) => 0x0000000000000000 | player.to_int(),
+            Guid::MapSpecific(map_specific) => 0xF100000000000000 | map_specific.to_int(),
+            Guid::Item(item) => 0x4000000000000000 | item.to_int(),
+            Guid::Global(global) => 0x1F00000000000000 | global.to_int(),
+        }
+    }
+}
+
+impl<'a> DekuRead<'a> for Guid {
+    fn read(
+        input: &'a BitSlice<u8, Msb0>,
+        _: (),
+    ) -> Result<(&'a BitSlice<u8, Msb0>, Self), DekuError>
+    where
+        Self: Sized,
+    {
+        let (rest, guid) = u64::read(input, ())?;
+        let res = Guid::try_from(guid)?;
+        Ok((rest, res))
+    }
+}
+
+impl<'a> DekuContainerRead<'a> for Guid {
+    fn from_bytes(
+        (input, offset): (&'a [u8], usize),
+    ) -> Result<((&'a [u8], usize), Self), DekuError>
+    where
+        Self: Sized,
+    {
+        let (_, guid) = u64::read(&input.as_bits()[offset..], ())?;
+        let res = Guid::try_from(guid)?;
+        Ok(((&input[4..], offset), res))
+    }
+}
+
+impl DekuWrite for Guid {
+    fn write(&self, output: &mut BitVec<u8, Msb0>, _: ()) -> Result<(), DekuError> {
+        let guid = u64::from(*self);
+        guid.write(output, ())?;
+        Ok(())
+    }
+}
+
+impl DekuContainerWrite for Guid {
+    fn to_bytes(&self) -> Result<Vec<u8>, DekuError> {
+        let guid = u64::from(*self);
+        Ok(guid.to_le_bytes().to_vec())
+    }
+
+    fn to_bits(&self) -> Result<BitVec<u8, Msb0>, DekuError> {
+        let guid = u64::from(*self);
+        let mut res = BitVec::new();
+        guid.write(&mut res, ())?;
+        Ok(res)
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
@@ -14,74 +317,11 @@ pub struct PackedGuid {
     parts: Vec<u8>,
 }
 
-impl Guid {
-    pub const fn new(high: HighGuid, guid: u64) -> Guid {
-        Guid {
-            guid: (guid & 0x0000FFFFFFFFFFFF) | (high as u64) << 48,
-        }
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        self.guid
-    }
-
-    pub fn as_u32(&self) -> [u32; 2] {
-        [(self.guid >> 32) as u32, self.guid as u32]
-    }
-
-    pub const fn get_high(&self) -> HighGuid {
-        match self.guid >> 48 {
-            0x0000 => HighGuid::Player,
-            0x4000 => HighGuid::Item,
-            0xF110 => HighGuid::GameObject,
-            0xF120 => HighGuid::Transport,
-            0xF130 => HighGuid::Unit,
-            0xF140 => HighGuid::Pet,
-            0xF150 => HighGuid::Vehicle,
-            0xF100 => HighGuid::DynamicObject,
-            0xF101 => HighGuid::Corpse,
-            0x1FC0 => HighGuid::MoTransport,
-            0x1F40 => HighGuid::Instance,
-            0x1F50 => HighGuid::Group,
-            _ => panic!("Inexpected value"),
-        }
-    }
-
-    const fn has_entry(&self) -> bool {
-        matches!(
-            self.get_high(),
-            HighGuid::Item
-                | HighGuid::Player
-                | HighGuid::DynamicObject
-                | HighGuid::Corpse
-                | HighGuid::MoTransport
-                | HighGuid::Instance
-                | HighGuid::Group
-        )
-    }
-
-    pub fn get_entry(&self) -> Option<u32> {
-        if self.has_entry() {
-            Some(self.guid.shr(24u64).bitand(0x0000000000FFFFFF) as u32)
-        } else {
-            None
-        }
-    }
-
-    pub fn get_counter(&self) -> u32 {
-        self.guid.bitand(if self.has_entry() {
-            0x0000000000FFFFFF
-        } else {
-            0x00000000FFFFFFFF
-        }) as u32
-    }
-}
-
 impl From<Guid> for PackedGuid {
     fn from(guid: Guid) -> Self {
         let mut parts = vec![];
         let mut mask = 0u8;
-        for (idx, val) in guid.as_u64().to_le_bytes().into_iter().enumerate() {
+        for (idx, val) in u64::from(guid).to_le_bytes().into_iter().enumerate() {
             if val != 0 {
                 mask |= 1 << idx;
                 parts.push(val);
@@ -112,44 +352,7 @@ impl TryFrom<&PackedGuid> for Guid {
             }
         }
         let guid = u64::from_le_bytes(byte_vec);
-        Ok(Guid::new(
-            HighGuid::from_bytes((&guid.to_le_bytes()[6..], 0))?.1,
-            guid,
-        ))
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, DekuWrite, DekuRead)]
-#[deku(type = "u16")]
-
-pub enum HighGuid {
-    Item = 0x4000,       // blizz 4000                                   GUID_TRAIT_GLOBAL
-    Player = 0x0000,     // blizz 0000                                    GUID_TRAIT_GLOBAL
-    GameObject = 0xF110, // blizz F110                                    GUID_TRAIT_MAP_SPECIFIC
-    Transport = 0xF120,  // blizz F120 (for GAMEOBJECT_TYPE_TRANSPORT)    GUID_TRAIT_MAP_SPECIFIC
-    Unit = 0xF130,       // blizz F130                                    GUID_TRAIT_MAP_SPECIFIC
-    Pet = 0xF140,        // blizz F140                                    GUID_TRAIT_MAP_SPECIFIC
-    Vehicle = 0xF150,    // blizz F550                                    GUID_TRAIT_MAP_SPECIFIC
-    DynamicObject = 0xF100, // blizz F100                                    GUID_TRAIT_MAP_SPECIFIC
-    Corpse = 0xF101,     // blizz F100                                    GUID_TRAIT_MAP_SPECIFIC
-    MoTransport = 0x1FC0, // blizz 1FC0 (for GAMEOBJECT_TYPE_MO_TRANSPORT) GUID_TRAIT_GLOBAL
-    Instance = 0x1F40,   // blizz 1F40                                    GUID_TRAIT_GLOBAL
-    Group = 0x1F50,      //                                               GUID_TRAIT_GLOBAL
-}
-
-impl From<HighGuid> for ObjectType {
-    fn from(guid: HighGuid) -> Self {
-        match guid {
-            HighGuid::Item => Self::Item,
-            HighGuid::Player => Self::Player,
-            HighGuid::GameObject | HighGuid::MoTransport => Self::GameObject,
-            HighGuid::Unit | HighGuid::Pet | HighGuid::Vehicle => Self::Unit,
-            HighGuid::DynamicObject => Self::DynamicObject,
-            HighGuid::Corpse => Self::Corpse,
-            HighGuid::Instance => todo!(),
-            HighGuid::Group => todo!(),
-            HighGuid::Transport => Self::Object,
-        }
+        Ok(Guid::try_from(guid)?)
     }
 }
 
@@ -169,14 +372,14 @@ pub enum TypeMask {
 
 #[cfg(test)]
 mod test {
-    use crate::guid::{Guid, HighGuid, PackedGuid};
+    use crate::guid::{Guid, Item, PackedGuid};
     use deku::DekuContainerRead;
 
     #[test]
     fn test_packed() {
         let hex_guid = 0x0000F00B00BAB0BA;
 
-        let guid = Guid::new(HighGuid::Item, hex_guid);
+        let guid = Guid::Item(Item { unk: hex_guid });
         let packed = PackedGuid::from(guid);
         assert_eq!(packed.mask, 0b10110111);
         assert_eq!(packed.parts, vec![0xBA, 0xB0, 0xBA, 0x0B, 0xF0, 0x40]);
@@ -188,5 +391,13 @@ mod test {
         assert_eq!(packed, packed1);
         let (_, guid2) = Guid::from_bytes((&0x4000F00B00BAB0BAu64.to_le_bytes(), 0)).unwrap();
         assert_eq!(guid1, guid2);
+    }
+
+    #[test]
+    fn test_guid_enum() {
+        let mut input1 = 0xF13DEADBEEFB00B2u64;
+        let res = input1.to_le_bytes();
+        let guid = Guid::from_bytes((&res, 0)).unwrap().1;
+        assert_eq!(u64::from(guid), input1);
     }
 }

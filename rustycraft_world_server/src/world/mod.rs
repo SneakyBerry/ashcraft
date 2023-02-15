@@ -5,7 +5,7 @@ use rustycraft_world_packets::common::class::Class;
 use rustycraft_world_packets::common::emotes::Emote;
 use rustycraft_world_packets::common::gender::Gender;
 use rustycraft_world_packets::common::school::DamageSchool;
-use rustycraft_world_packets::guid::{Guid, HighGuid};
+use rustycraft_world_packets::guid::Guid;
 use rustycraft_world_packets::login::{CmsgPlayerLogin, SmsgLoginVerifyWorld};
 use rustycraft_world_packets::map::Map;
 use rustycraft_world_packets::movement_block::{
@@ -27,7 +27,7 @@ use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::time_sync::SmsgTimeSyncReq;
 use rustycraft_world_packets::transport::TransportInfo;
 use rustycraft_world_packets::tutorial::SmsgTutorialFlags;
-use rustycraft_world_packets::{object, ClientPacket};
+use rustycraft_world_packets::{guid, object, ClientPacket};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
@@ -293,7 +293,7 @@ impl WorldHandler {
         let mut player = Player {
             unit: Unit {
                 object: Object {
-                    guid: Some(Guid::new(HighGuid::Player, 4)),
+                    guid: Some(Guid::Player(guid::Player::new(0, 4))),
                     scale_x: Some(1.0),
                     ..Default::default()
                 },
@@ -356,7 +356,11 @@ impl WorldHandler {
         npc_flags.set_repair();
         let unit = Unit {
             object: Object {
-                guid: Some(Guid::new(HighGuid::Unit, 2)),
+                guid: Some(Guid::MapSpecific(guid::MapSpecific::Unit {
+                    unk: 0,
+                    npc_id: 0,
+                    counter: 2,
+                })),
                 scale_x: Some(1.0),
                 ..Default::default()
             },
@@ -391,7 +395,12 @@ impl WorldHandler {
             .send(Box::new(SmsgUpdateObject::new(vec![
                 object::Object {
                     update_type: ObjectUpdateType::CreateObject2 {
-                        guid: Guid::new(HighGuid::Unit, 2).into(),
+                        guid: Guid::MapSpecific(guid::MapSpecific::Unit {
+                            unk: 0,
+                            npc_id: 0,
+                            counter: 2,
+                        })
+                        .into(),
                         object_type: ObjectType::Unit,
                         update_fields: unit.into(),
                         movement: unit_movement,
@@ -399,7 +408,7 @@ impl WorldHandler {
                 },
                 object::Object {
                     update_type: ObjectUpdateType::CreateObject2 {
-                        guid: Guid::new(HighGuid::Player, 4).into(),
+                        guid: Guid::Player(guid::Player::new(0, 4)).into(),
                         object_type: ObjectType::Player,
                         update_fields: player.clone().into(),
                         movement: movement.clone(),

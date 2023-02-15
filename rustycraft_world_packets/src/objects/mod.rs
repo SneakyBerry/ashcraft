@@ -78,8 +78,9 @@ mod tests {
     use super::prelude::*;
     use crate::common::class::Class;
     use crate::common::gender::Gender;
-    use crate::guid::{Guid, HighGuid};
-    
+    use crate::guid::Guid;
+
+    use crate::guid;
     use crate::power::Power;
     use crate::race::Race;
     use deku::prelude::*;
@@ -89,7 +90,7 @@ mod tests {
         let player = Player {
             unit: Unit {
                 object: Object {
-                    guid: Some(Guid::new(HighGuid::Player, 4)),
+                    guid: Some(Guid::Player(guid::Player::new(0, 4))),
                     scale_x: Some(1.0),
                     ..Default::default()
                 },

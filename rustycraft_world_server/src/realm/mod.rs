@@ -11,7 +11,7 @@ use rustycraft_world_packets::common::class::Class;
 use rustycraft_world_packets::common::expansion::Expansion;
 use rustycraft_world_packets::common::gender::Gender;
 use rustycraft_world_packets::gear::CharacterGear;
-use rustycraft_world_packets::guid::{Guid, HighGuid};
+use rustycraft_world_packets::guid::Guid;
 use rustycraft_world_packets::inventory::InventoryType;
 use rustycraft_world_packets::map::Map;
 use rustycraft_world_packets::objects::prelude::EquipmentSlots;
@@ -19,7 +19,7 @@ use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::response_code::ResponseCode;
-use rustycraft_world_packets::ClientPacket;
+use rustycraft_world_packets::{guid, ClientPacket};
 use std::mem;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -51,7 +51,7 @@ fn char_data() -> CharacterEnumServer {
     //     enchantment: 0,
     // };
     CharacterEnumServer::new(vec![Character {
-        guid: Guid::new(HighGuid::Player, 4),
+        guid: Guid::Player(guid::Player::new(0, 4)),
         name: "Warr".to_string(),
         race: Race::Draenei,
         class: Class::Warrior,
