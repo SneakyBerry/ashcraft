@@ -1,8 +1,10 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum Race {
+    #[default]
+    Default = 0x00,
     Human = 0x01,
     Orc = 0x02,
     Dwarf = 0x03,

@@ -6,8 +6,9 @@ use crate::objects::{player, unit};
 use crate::position::Vector3d;
 use std::mem::size_of;
 
-pub(crate) trait FieldSize {
+pub trait FieldSize {
     const SIZE: usize;
+    const EL_SIZE: usize = Self::SIZE;
 }
 
 macro_rules! impl_field_size {
@@ -51,15 +52,15 @@ impl FieldSize for (u16, u8, u8) {
     const SIZE: usize = 1;
 }
 impl_field_size!(GameObjectBytes: 1);
-impl_field_size!(player::Bytes1: 1);
-impl_field_size!(player::Bytes2: 1);
+impl_field_size!(player::CharacterStyle1: 1);
+impl_field_size!(player::CharacterStyle2: 1);
 impl_field_size!(player::Bytes3: 1);
 impl_field_size!(player::Bytes4: 1);
 impl_field_size!(unit::UnitData: 1);
 impl_field_size!(Emote: 1);
 impl_field_size!(unit::ClassSpecific: 1);
 impl_field_size!(player::PlayerFieldBytes2Offsets: 1);
-impl_field_size!(ItemEnchantment: 2);
+impl_field_size!(ItemEnchantment: 3);
 impl_field_size!(Guid: 2);
 impl_field_size!(player::EquipedItem: 2);
 impl_field_size!(unit::AttackPower: 3);
@@ -83,4 +84,5 @@ where
     T: FieldSize,
 {
     const SIZE: usize = T::SIZE * N;
+    const EL_SIZE: usize = T::EL_SIZE;
 }

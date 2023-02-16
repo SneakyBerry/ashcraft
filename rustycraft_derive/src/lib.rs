@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseStream};
-use syn::{parse_macro_input, Expr, Ident, ItemStruct, Token, Type};
+use syn::{parse_macro_input, Expr, Ident, ItemStruct, Token};
 
 struct DeriveIntoUpdateFieldsArgs {
     offset: Expr,
@@ -31,12 +31,11 @@ impl Parse for DeriveIntoUpdateFieldsArgs {
     }
 }
 
-#[proc_macro_derive(IntoUpdateFields, attributes(nested, meta))]
-pub fn derive_into_update_fields(item: TokenStream) -> TokenStream {
+#[proc_macro_derive(CalcUpdate, attributes(nested, meta))]
+pub fn derive_calc_update(item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemStruct);
     let name = item.ident;
-    let mut from_body = vec![];
-    let mut nested = quote! {let mut item = UpdateFields::new();};
+    let mut body = vec![];
     let mut args = None;
     for attr in item.attrs {
         match attr.parse_args::<DeriveIntoUpdateFieldsArgs>() {
@@ -47,52 +46,43 @@ pub fn derive_into_update_fields(item: TokenStream) -> TokenStream {
         }
     }
     let DeriveIntoUpdateFieldsArgs { offset, tag } = args.unwrap();
+    let mut field_offsets = vec![];
     'o: for field in item.fields {
         let field_name = field.ident.expect("Tuple struct not supported.");
         let field_ty = field.ty;
         for attr in field.attrs {
             if let Ok(meta) = attr.parse_meta() {
                 if meta.path().is_ident(&format_ident!("nested")) {
-                    nested = quote! {
-                        let mut item = UpdateFields::from(from_value.#field_name);
-                    };
+                    body.push(quote! {
+                        item.update(self.#field_name.get_diff(old.map(|o| &o.#field_name)));
+                    });
                     continue 'o;
                 }
             }
         }
-        if let Type::Array(ref arr) = field_ty {
-            let inner_ty = &arr.elem;
-            from_body.push(quote! {
-                for (i, maybe_value) in from_value.#field_name.into_iter().enumerate() {
-                    if let Some(value) = maybe_value {
-                        item.set_value::<_, #offset>(value, local_offset + <#inner_ty>::SIZE * i);
-                    }
-                }
-                #[cfg(test)]
-                { println!("{}: {} offset: 0x{:0>4X}", stringify!(#name), stringify!(#field_name), local_offset); }
-                local_offset += <#field_ty>::SIZE;
-            })
-        } else {
-            from_body.push(quote! {
-                if let Some(value) = from_value.#field_name {
-                    item.set_value::<_, #offset>(value, local_offset);
-                }
-                #[cfg(test)]
-                { println!("{}: {} offset: 0x{:0>4X}", stringify!(#name), stringify!(#field_name), local_offset); }
-                local_offset += <#field_ty>::SIZE;
-            })
-        }
+        body.push(quote! {
+            #[cfg(test)]
+            { println!("{}: {} offset: 0x{:0>4X}", stringify!(#name), stringify!(#field_name), #offset # (+ #field_offsets) * ); }
+            item.update(
+                <#field_ty as crate::objects::calc_update::CalcUpdate<{#offset # (+ #field_offsets) *}>>::get_diff(&self.#field_name, old.map(|o| &o.#field_name))
+            );
+        });
+        field_offsets.push(quote! {<#field_ty>::SIZE});
     }
     let res = quote! {
         #[automatically_derived]
-        impl From<#name> for UpdateFields {
-            fn from(from_value: #name) -> Self {
-                #nested
-                let mut local_offset = 0;
-                #(
-                    #from_body;
-                )*
-                item.set_value::<_, 0x0000>(#tag, 0x0002);
+        impl crate::objects::calc_update::CalcUpdate<#offset> for #name {
+            fn get_diff(&self, old: Option<&Self>) -> crate::objects::UpdateFields {
+                use crate::objects::size_helper::FieldSize;
+                use deku::DekuWrite;
+
+                let mut item = crate::objects::UpdateFields::new();
+                # (
+                    #body;
+                ) *
+                let mut tag_buf = deku::bitvec::BitVec::new();
+                (#tag as u32).write(&mut tag_buf, ()).expect("Write failed");
+                item.set_value::<0x0000>(tag_buf.as_raw_slice(), 0x0002);
                 item
             }
         }

@@ -1,86 +1,85 @@
 use deku::prelude::*;
+use rustycraft_derive::CalcUpdate;
 
 use crate::common::class::Class;
 use crate::common::gender::Gender;
 use crate::guid::Guid;
-use crate::objects::object::Object;
-use crate::objects::size_helper::FieldSize;
-use crate::objects::UpdateFields;
+use crate::objects::object::ObjectUpdate;
 use crate::power::Power;
 use crate::race::Race;
 
 use crate::common::emotes::Emote;
 use crate::define_flags;
-use rustycraft_derive::IntoUpdateFields;
+use crate::objects::helpers::ArrayWrapped;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
+#[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0009)]
-pub struct Unit {
+pub struct UnitUpdate {
     #[nested]
-    pub object: Object,
-    pub charm: Option<Guid>,
-    pub summon: Option<Guid>,
-    pub critter: Option<Guid>,
-    pub charmed_by: Option<Guid>,
-    pub summoned_by: Option<Guid>,
-    pub created_by: Option<Guid>,
-    pub target: Option<Guid>,
-    pub channel_object: Option<Guid>,
-    pub channel_spell: Option<u32>,
-    pub data: Option<UnitData>,
-    pub health: Option<u32>,
-    pub power: [Option<u32>; 7],
-    pub max_health: Option<u32>,
-    pub max_power: [Option<u32>; 7],
-    pub power_regen_flat_modifier: [Option<u32>; 7],
-    pub power_regen_interrupted_flat_modifier: [Option<u32>; 7],
-    pub level: Option<u32>,
-    pub faction_template: Option<u32>,
-    pub virtual_item_slot_id: [Option<u32>; 3],
-    pub flags_1: Option<UnitFlags>,
-    pub flags_2: Option<UnitFlags2>,
-    pub aura_state: Option<u32>,
-    pub attack_round_base_time: [Option<u32>; 2],
-    pub ranged_attack_time: Option<f32>,
-    pub bounding_radius: Option<f32>,
-    pub combat_reach: Option<f32>,
-    pub display_id: Option<u32>,
-    pub native_display_id: Option<u32>,
-    pub mount_display_id: Option<u32>,
-    pub min_damage: Option<f32>,
-    pub max_damage: Option<f32>,
-    pub min_offhand_damage: Option<f32>,
-    pub max_offhand_damage: Option<f32>,
-    pub class_specific: Option<ClassSpecific>,
-    pub pet_number: Option<u32>,
-    pub pet_name_timestamp: Option<u32>,
-    pub pet_experience: Option<u32>,
-    pub pet_next_level_exp: Option<u32>,
-    pub dynamic_flags: Option<UnitDynFlags>,
-    pub mod_cast_speed: Option<f32>,
-    pub created_by_spell: Option<u32>,
-    pub npc_flags: Option<NPCFlags>,
-    pub npc_emote_state: Option<Emote>,
-    pub stat: [Option<u32>; 5],
-    pub stat_pos_effects: [Option<u32>; 5],
-    pub stat_neg_effects: [Option<u32>; 5],
-    pub resistance: [Option<u32>; 7],
-    pub resistance_pos: [Option<u32>; 7],
-    pub resistance_neg: [Option<u32>; 7],
-    pub base_mana: Option<u32>,
-    pub base_health: Option<u32>,
-    pub bytes_2: Option<[u8; 4]>,
-    pub attack_power_melee: Option<AttackPower>,
-    pub attack_power_ranged: Option<AttackPower>,
-    pub min_ranged_damage: Option<f32>,
-    pub max_ranged_damage: Option<f32>,
-    pub power_cost_modifier: [Option<u32>; 7],
-    pub power_cost_multiplier: [Option<u32>; 7],
-    pub max_health_modifier: Option<u32>,
-    pub hover_height: Option<u32>,
+    pub object: ObjectUpdate,
+    pub charm: Guid,
+    pub summon: Guid,
+    pub critter: Guid,
+    pub charmed_by: Guid,
+    pub summoned_by: Guid,
+    pub created_by: Guid,
+    pub target: Guid,
+    pub channel_object: Guid,
+    pub channel_spell: u32,
+    pub data: UnitData,
+    pub health: u32,
+    pub power: ArrayWrapped<u32, 7>,
+    pub max_health: u32,
+    pub max_power: ArrayWrapped<u32, 7>,
+    pub power_regen_flat_modifier: ArrayWrapped<u32, 7>,
+    pub power_regen_interrupted_flat_modifier: ArrayWrapped<u32, 7>,
+    pub level: u32,
+    pub faction_template: u32,
+    pub virtual_item_slot_id: ArrayWrapped<u32, 3>,
+    pub flags_1: UnitFlags,
+    pub flags_2: UnitFlags2,
+    pub aura_state: u32,
+    pub attack_round_base_time: ArrayWrapped<u32, 2>,
+    pub ranged_attack_time: f32,
+    pub bounding_radius: f32,
+    pub combat_reach: f32,
+    pub display_id: u32,
+    pub native_display_id: u32,
+    pub mount_display_id: u32,
+    pub min_damage: f32,
+    pub max_damage: f32,
+    pub min_offhand_damage: f32,
+    pub max_offhand_damage: f32,
+    pub class_specific: ClassSpecific,
+    pub pet_number: u32,
+    pub pet_name_timestamp: u32,
+    pub pet_experience: u32,
+    pub pet_next_level_exp: u32,
+    pub dynamic_flags: UnitDynFlags,
+    pub mod_cast_speed: f32,
+    pub created_by_spell: u32,
+    pub npc_flags: NPCFlags,
+    pub emote_state: Emote,
+    pub stat: ArrayWrapped<u32, 5>,
+    pub stat_pos_effects: ArrayWrapped<u32, 5>,
+    pub stat_neg_effects: ArrayWrapped<u32, 5>,
+    pub resistance: ArrayWrapped<u32, 7>,
+    pub resistance_pos: ArrayWrapped<u32, 7>,
+    pub resistance_neg: ArrayWrapped<u32, 7>,
+    pub base_mana: u32,
+    pub base_health: u32,
+    pub bytes_2: [u8; 4],
+    pub attack_power_melee: AttackPower,
+    pub attack_power_ranged: AttackPower,
+    pub min_ranged_damage: f32,
+    pub max_ranged_damage: f32,
+    pub power_cost_modifier: ArrayWrapped<u32, 7>,
+    pub power_cost_multiplier: ArrayWrapped<u32, 7>,
+    pub max_health_modifier: u32,
+    pub hover_height: u32,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct UnitData {
     pub race: Race,
     pub class: Class,
@@ -88,7 +87,7 @@ pub struct UnitData {
     pub power: Power,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuRead, DekuWrite)]
 pub struct ClassSpecific {
     pub stand_state: u8,
     pub pet_talents: u8,
@@ -96,7 +95,7 @@ pub struct ClassSpecific {
     pub anim_tier: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, PartialEq, DekuRead, DekuWrite)]
 pub struct AttackPower {
     pub power: u32,
     pub a: u16,
@@ -256,7 +255,7 @@ pub enum AuraType {
     RetainComboPoints = 148,
     ReducePushback = 149, //    Reduce Pushback
     ModShieldBlockvaluePct = 150,
-    TrackStealthed = 151,     //    Track Stealthed
+    TrackStealthed = 151,    //    Track Stealthed
     ModDetectedRange = 152,  //    Mod Detected Range
     SplitDamageFlat = 153,   //    Split Damage Flat
     ModStealthLevel = 154,   //    Stealth Level Modifier
@@ -278,7 +277,7 @@ pub enum AuraType {
     DetectAmore = 170,
     ModSpeedNotStack = 171,
     ModMountedSpeedNotStack = 172,
-    State173 = 173, // old SPELL_AURA_ALLOW_CHAMPION_SPELLS
+    State173 = 173,                    // old SPELL_AURA_ALLOW_CHAMPION_SPELLS
     ModSpellDamageOfStatPercent = 174, // by defeult intelect, dependent from ModSpellHealingOfStatPercent
     ModSpellHealingOfStatPercent = 175,
     SpiritOfRedemption = 176,

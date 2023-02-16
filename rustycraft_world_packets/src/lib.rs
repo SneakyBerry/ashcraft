@@ -115,7 +115,7 @@ macro_rules! define_flags {
         InnerType: $inner_type: ident {
         $( $const_name:ident = $const_value: expr),*
     } ) => {
-        #[derive(Clone, PartialEq, Default, DekuWrite, DekuRead)]
+        #[derive(Clone, Eq, PartialEq, Default, DekuWrite, DekuRead)]
         pub struct $struct_name {
             inner: $inner_type,
         }

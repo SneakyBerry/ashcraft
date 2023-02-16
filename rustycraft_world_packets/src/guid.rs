@@ -1,8 +1,5 @@
-use crate::object::ObjectType;
-use deku::bitvec::{AsBits, BitSlice, BitVec, BitView, Msb0};
-use deku::ctx::{ByteSize, Endian};
+use deku::bitvec::{AsBits, BitSlice, BitVec, Msb0};
 use deku::prelude::*;
-use std::ops::{BitAnd, Shr};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 // 4 bits
@@ -209,7 +206,7 @@ impl Player {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Item {
     // 56 bits
-    unk: u64,
+    pub unk: u64,
 }
 
 impl Item {
@@ -224,28 +221,34 @@ impl Item {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Guid {
-    Player(Player) = 0x00,
-    MapSpecific(MapSpecific) = 0xF1,
-    Item(Item) = 0x40,
-    Global(Global) = 0x1F,
+    #[default]
+    Empty,
+    Player(Player),
+    MapSpecific(MapSpecific),
+    Item(Item),
+    Global(Global),
 }
 
 impl TryFrom<u64> for Guid {
     type Error = DekuError;
 
     fn try_from(guid: u64) -> Result<Self, Self::Error> {
-        match guid >> 56 {
-            0x00 => Ok(Guid::Player(Player::parse(guid)?)),
-            0xF1 => Ok(Guid::MapSpecific(MapSpecific::parse(guid)?)),
-            0x40 => Ok(Guid::Item(Item::parse(guid)?)),
-            0x1F => Ok(Guid::Global(Global::parse(guid)?)),
-            _ => Err(DekuError::Parse(format!(
-                "Invalid guid type: {}",
-                guid >> 56
-            ))),
+        if guid == 0 {
+            Ok(Self::Empty)
+        } else {
+            match guid >> 56 {
+                0x00 => Ok(Guid::Player(Player::parse(guid)?)),
+                0xF1 => Ok(Guid::MapSpecific(MapSpecific::parse(guid)?)),
+                0x40 => Ok(Guid::Item(Item::parse(guid)?)),
+                0x1F => Ok(Guid::Global(Global::parse(guid)?)),
+                _ => Err(DekuError::Parse(format!(
+                    "Invalid guid type: {}",
+                    guid >> 56
+                ))),
+            }
         }
     }
 }
@@ -257,6 +260,7 @@ impl From<Guid> for u64 {
             Guid::MapSpecific(map_specific) => 0xF100000000000000 | map_specific.to_int(),
             Guid::Item(item) => 0x4000000000000000 | item.to_int(),
             Guid::Global(global) => 0x1F00000000000000 | global.to_int(),
+            Guid::Empty => 0x0000000000000000,
         }
     }
 }
@@ -395,7 +399,7 @@ mod test {
 
     #[test]
     fn test_guid_enum() {
-        let mut input1 = 0xF13DEADBEEFB00B2u64;
+        let input1 = 0xF13DEADBEEFB00B2u64;
         let res = input1.to_le_bytes();
         let guid = Guid::from_bytes((&res, 0)).unwrap().1;
         assert_eq!(u64::from(guid), input1);

@@ -208,7 +208,7 @@ impl WorldHandler {
                                         start_quest: 0,
                                         lock_id: 0,
                                         material: 1,
-                                        sheath: Sheath::OffHand,
+                                        sheath: Sheath::MainHand,
                                         random_property: 0,
                                         random_suffix: 0,
                                         block: 0,
@@ -285,33 +285,33 @@ impl WorldHandler {
             .sender()
             .send(Box::new(SmsgTutorialFlags::default()))?;
         let mut visible_items: [_; 19] = Default::default();
-        visible_items[EquipmentSlots::OffHand as usize] = Some(EquipedItem {
+        visible_items[EquipmentSlots::MainHand as usize] = EquipedItem {
             id: 13262,
-            permanent: 13262,
-            temporary: 13262,
-        });
-        let mut player = Player {
-            unit: Unit {
-                object: Object {
-                    guid: Some(Guid::Player(guid::Player::new(0, 4))),
-                    scale_x: Some(1.0),
+            permanent: 0,
+            temporary: 0,
+        };
+        let mut player = PlayerUpdate {
+            unit: UnitUpdate {
+                object: ObjectUpdate {
+                    guid: Guid::Player(guid::Player::new(0, 4)),
+                    scale: 1.0,
                     ..Default::default()
                 },
-                data: Some(UnitData {
+                data: UnitData {
                     race: Race::Human,
                     class: Class::Warrior,
                     gender: Gender::Female,
                     power: Power::Rage,
-                }),
-                health: Some(100),
-                max_health: Some(100),
-                level: Some(1),
-                faction_template: Some(1),
-                display_id: Some(50),
-                native_display_id: Some(50),
+                },
+                health: 100,
+                max_health: 100,
+                level: 1,
+                faction_template: 1,
+                display_id: 50,
+                native_display_id: 50,
                 ..Default::default()
             },
-            visible_items,
+            visible_items: visible_items.into(),
             ..Default::default()
         };
         let mut mf = MovementFlags::default();
@@ -354,30 +354,30 @@ impl WorldHandler {
 
         let mut npc_flags = NPCFlags::default();
         npc_flags.set_repair();
-        let unit = Unit {
-            object: Object {
-                guid: Some(Guid::MapSpecific(guid::MapSpecific::Unit {
+        let unit = UnitUpdate {
+            object: ObjectUpdate {
+                guid: Guid::MapSpecific(guid::MapSpecific::Unit {
                     unk: 0,
                     npc_id: 0,
                     counter: 2,
-                })),
-                scale_x: Some(1.0),
+                }),
+                scale: 1.0,
                 ..Default::default()
             },
-            data: Some(UnitData {
+            data: UnitData {
                 race: Race::Human,
                 class: Class::Warrior,
                 gender: Gender::Female,
                 power: Power::Rage,
-            }),
-            health: Some(100),
-            max_health: Some(100),
-            level: Some(1),
-            faction_template: Some(1),
-            display_id: Some(25337),
-            native_display_id: Some(50),
-            npc_flags: Some(npc_flags),
-            npc_emote_state: Some(Emote::StateTalk),
+            },
+            health: 100,
+            max_health: 100,
+            level: 1,
+            faction_template: 1,
+            display_id: 25337,
+            native_display_id: 50,
+            npc_flags,
+            emote_state: Emote::StateTalk,
             ..Default::default()
         };
         let unit_movement = MovementBlockBuilder::default()
@@ -402,7 +402,7 @@ impl WorldHandler {
                         })
                         .into(),
                         object_type: ObjectType::Unit,
-                        update_fields: unit.into(),
+                        update_fields: unit.get_diff(None),
                         movement: unit_movement,
                     },
                 },
@@ -410,7 +410,7 @@ impl WorldHandler {
                     update_type: ObjectUpdateType::CreateObject2 {
                         guid: Guid::Player(guid::Player::new(0, 4)).into(),
                         object_type: ObjectType::Player,
-                        update_fields: player.clone().into(),
+                        update_fields: player.get_diff(None),
                         movement: movement.clone(),
                     },
                 },

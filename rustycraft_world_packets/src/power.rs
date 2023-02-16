@@ -1,8 +1,9 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum Power {
+    #[default]
     Mana = 0x0,
     Rage = 0x1,
     Focus = 0x2,

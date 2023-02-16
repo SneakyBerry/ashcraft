@@ -1,20 +1,17 @@
+use rustycraft_derive::CalcUpdate;
 use crate::guid::Guid;
-use crate::objects::size_helper::FieldSize;
-use crate::objects::object::Object;
-use crate::objects::UpdateFields;
+use crate::objects::object::ObjectUpdate;
 
-use rustycraft_derive::IntoUpdateFields;
-
-#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
+#[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0041)]
-pub struct DynamicObject {
+pub struct DynamicObjectUpdate {
     #[nested]
-    pub object: Object,
-    pub caster: Option<Guid>,
-    pub bytes: Option<[u8; 4]>,
-    pub spell_id: Option<u32>,
-    pub radius: Option<f32>,
-    pub cast_time: Option<u32>,
+    pub object: ObjectUpdate,
+    pub caster: Guid,
+    pub bytes: [u8; 4],
+    pub spell_id: u32,
+    pub radius: f32,
+    pub cast_time: u32,
 }
 
 pub enum DynamicObjectType {

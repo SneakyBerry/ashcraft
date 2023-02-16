@@ -1,29 +1,25 @@
-use deku::prelude::*;
-
 use crate::guid::Guid;
-use crate::objects::size_helper::FieldSize;
-use crate::objects::object::Object;
-use crate::objects::UpdateFields;
+use crate::objects::object::ObjectUpdate;
 use crate::position::Vector3d;
+use deku::prelude::*;
+use rustycraft_derive::CalcUpdate;
 
-use rustycraft_derive::IntoUpdateFields;
-
-#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
+#[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0021)]
-pub struct GameObject {
+pub struct GameObjectUpdate {
     #[nested]
-    pub object: Object,
-    pub created_by: Option<Guid>,
-    pub display_id: Option<u32>,
-    pub flags: Option<u32>,
-    pub parent_rotation: Option<Vector3d>,
-    pub dynamic: Option<(u16, u16)>,
-    pub faction: Option<u32>,
-    pub level: Option<u32>,
-    pub bytes: Option<GameObjectBytes>,
+    pub object: ObjectUpdate,
+    pub created_by: Guid,
+    pub display_id: u32,
+    pub flags: u32,
+    pub parent_rotation: Vector3d,
+    pub dynamic: (u16, u16),
+    pub faction: u32,
+    pub level: u32,
+    pub bytes: GameObjectBytes,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 pub struct GameObjectBytes {
     pub state: GameObjectState,
     pub r#type: GameObjectTypes,
@@ -31,17 +27,19 @@ pub struct GameObjectBytes {
     pub anim_progress: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 #[deku(type = "u8")]
 pub enum GameObjectState {
-    Active = 0,    // show in world as used and not reset (closed door open)
+    #[default]
+    Active = 0, // show in world as used and not reset (closed door open)
     Ready = 1,     // show in world as ready (closed door close)
     Destroyed = 2, // show the object in-game as already used and not yet reset (e.g. door opened by a cannon blast)
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 #[deku(type = "u8")]
 pub enum GameObjectTypes {
+    #[default]
     Door = 0,
     Button = 1,
     QuestGiver = 2,

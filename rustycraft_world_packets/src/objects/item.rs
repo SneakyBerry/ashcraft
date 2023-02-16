@@ -1,30 +1,28 @@
-use crate::objects::size_helper::FieldSize;
-use deku::prelude::*;
-use rustycraft_derive::IntoUpdateFields;
-
 use crate::guid::Guid;
-use crate::objects::object::Object;
-use crate::objects::UpdateFields;
+use crate::objects::object::ObjectUpdate;
+use deku::prelude::*;
+use rustycraft_derive::CalcUpdate;
+use crate::objects::helpers::ArrayWrapped;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
+#[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0003)]
-pub struct Item {
+pub struct ItemUpdate {
     #[nested]
-    pub object: Object,
-    pub owner: Option<Guid>,
-    pub contained: Option<Guid>,
-    pub creator: Option<Guid>,
-    pub gift_creator: Option<Guid>,
-    pub stack_count: Option<u32>,
-    pub duration: Option<u32>,
-    pub spell_charges: [Option<i32>; 5],
-    pub flags: Option<u32>,
-    pub enchantment: [Option<ItemEnchantment>; 12],
-    pub property_seed: Option<u32>,
-    pub random_properties_id: Option<i32>,
-    pub durability: Option<u32>,
-    pub max_durability: Option<u32>,
-    pub create_played_time: Option<u32>,
+    pub object: ObjectUpdate,
+    pub owner: Guid,
+    pub contained: Guid,
+    pub creator: Guid,
+    pub gift_creator: Guid,
+    pub stack_count: u32,
+    pub duration: u32,
+    pub spell_charges: ArrayWrapped<i32, 5>,
+    pub flags: u32,
+    pub enchantment: ArrayWrapped<ItemEnchantment, 12>,
+    pub property_seed: u32,
+    pub random_properties_id: i32,
+    pub durability: u32,
+    pub max_durability: u32,
+    pub create_played_time: u32,
 }
 
 #[derive(Debug, Clone, Copy, Default, DekuRead, DekuWrite)]
@@ -48,4 +46,22 @@ pub enum EnchantmentSlot {
     Prop3 = 10, // used with RandomProperty
     Prop4 = 11, // used with RandomProperty
     Max = 12,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::objects::calc_update::CalcUpdate;
+    use super::*;
+
+    #[test]
+    fn test() {
+        let a = ItemUpdate::default();
+        let mut b = ItemUpdate::default();
+        b.enchantment[0] = ItemEnchantment {
+            id: 100,
+            duration: 100,
+            charges: 100,
+        };
+        println!("{:?}", &b.get_diff(Some(&a)));
+    }
 }

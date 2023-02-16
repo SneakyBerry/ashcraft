@@ -1,115 +1,114 @@
 use deku::prelude::*;
+use rustycraft_derive::CalcUpdate;
 
 use crate::define_flags;
 use crate::guid::Guid;
-use crate::objects::size_helper::FieldSize;
-use crate::objects::unit::Unit;
-use crate::objects::UpdateFields;
-use rustycraft_derive::IntoUpdateFields;
+use crate::objects::helpers::ArrayWrapped;
+use crate::objects::unit::UnitUpdate;
 
 /* TODO: Think about how to reduce the size with same convenience as struct
    Sparse struct? Builder pattern?
 */
-#[derive(Debug, Clone, IntoUpdateFields, Builder)]
+#[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0094, tag = 0x0019)]
-pub struct Player {
+pub struct PlayerUpdate {
     #[nested]
-    pub unit: Unit,
-    pub duel_arbiter: Option<Guid>,
-    pub flags: Option<PlayerFlags>,
-    pub guild_id: Option<u32>,
-    pub guild_rank: Option<u32>,
-    pub bytes: Option<Bytes1>,
-    pub bytes_2: Option<Bytes2>,
-    pub bytes_3: Option<Bytes3>,
-    pub duel_team: Option<u32>,
-    pub guild_timestamp: Option<u32>,
-    pub player_quests: [Option<QuestLogItem>; 25],
-    pub visible_items: [Option<EquipedItem>; 19],
-    pub chosen_title: Option<u32>,
-    pub fake_inebriation: Option<i32>,
-    pub unknown_af: Option<i32>,
-    pub inv_slot_head: [Option<Guid>; 23],
-    pub pack_slot: [Option<Guid>; 16],
-    pub bank_slot: [Option<Guid>; 28],
-    pub bank_bag_slot: [Option<Guid>; 7],
-    pub vendor_buyback_slot: [Option<Guid>; 12],
-    pub keyring_slot: [Option<Guid>; 32],
-    pub currency_token_slot: [Option<Guid>; 32],
-    pub far_sight: Option<Guid>,
-    pub known_titles: [Option<u64>; 3],
-    pub known_currencies: Option<u64>,
-    pub xp: Option<u32>,
-    pub next_level_xp: Option<u32>,
-    pub skill_info: [Option<(u16, u16)>; 384],
-    pub character_points: [Option<u32>; 2],
-    pub track_creatures: Option<u32>,
-    pub track_resources: Option<u32>,
-    pub block_percentage: Option<f32>,
-    pub dodge_percentage: Option<f32>,
-    pub parry_percentage: Option<f32>,
-    pub expertise: Option<u32>,
-    pub offhand_expertise: Option<u32>,
-    pub crit_percentage: Option<f32>,
-    pub ranged_crit_percentage: Option<f32>,
-    pub offhand_crit_percentage: Option<f32>,
-    pub spell_crit_percentage: [Option<f32>; 7],
-    pub shield_block: Option<u32>,
-    pub shield_block_crit_percentage: Option<f32>,
-    pub explored_zones: [Option<u32>; 128],
-    pub rest_state_experience: Option<u32>,
-    pub coinage: Option<u32>,
-    pub mod_damage_done_pos: [Option<u32>; 7],
-    pub mod_damage_done_neg: [Option<u32>; 7],
-    pub mod_damage_done_pct: [Option<u32>; 7],
-    pub mod_healing_done_pos: Option<f32>,
-    pub mod_healing_pct: Option<u32>,
-    pub mod_healing_done_pct: Option<f32>,
-    pub mod_target_resistance: Option<u32>,
-    pub mod_target_physical_resistance: Option<u32>,
-    pub bytes_4: Option<Bytes4>,
-    pub ammo_id: Option<u32>,
-    pub self_res_spell: Option<u32>,
-    pub pvp_medals: Option<u32>,
-    pub buyback_price: [Option<u32>; 12],
-    pub buyback_timestamp: [Option<u32>; 12],
-    pub kills: Option<u32>,
-    pub today_contribution: Option<u32>,
-    pub yesterday_contribution: Option<u32>,
-    pub lifetime_honorable_kills: Option<u32>,
-    pub bytes2: Option<PlayerFieldBytes2Offsets>,
-    pub watched_faction_index: Option<u32>,
-    pub combat_rating: [Option<u32>; 25],
-    pub arena_team_info: [Option<u32>; 21],
-    pub honor_currency: Option<u32>,
-    pub arena_currency: Option<u32>,
-    pub max_level: Option<u32>,
-    pub daily_quests: [Option<u32>; 25],
-    pub rune_regen: Option<Rune>,
-    pub no_reagent_cost: [Option<u32>; 3],
-    pub glyph_slots: [Option<u32>; 6],
-    pub glyphs: [Option<u32>; 6],
-    pub glyphs_enabled: Option<u32>,
-    pub pet_spell_power: Option<u32>,
+    pub unit: UnitUpdate,
+    pub duel_arbiter: Guid,
+    pub flags: PlayerFlags,
+    pub guild_id: u32,
+    pub guild_rank: u32,
+    pub bytes: CharacterStyle1,
+    pub bytes_2: CharacterStyle2,
+    pub bytes_3: Bytes3,
+    pub duel_team: u32,
+    pub guild_timestamp: u32,
+    pub player_quests: ArrayWrapped<QuestLogItem, 25>,
+    pub visible_items: ArrayWrapped<EquipedItem, 19>,
+    pub chosen_title: u32,
+    pub fake_inebriation: i32,
+    pub unknown_af: i32,
+    pub equipped_items: ArrayWrapped<Guid, 23>,
+    pub pack_slot: ArrayWrapped<Guid, 16>,
+    pub bank_slot: ArrayWrapped<Guid, 28>,
+    pub bank_bag_slot: ArrayWrapped<Guid, 7>,
+    pub vendor_buyback_slot: ArrayWrapped<Guid, 12>,
+    pub keyring_slot: ArrayWrapped<Guid, 32>,
+    pub currency_token_slot: ArrayWrapped<Guid, 32>,
+    pub far_sight: Guid,
+    pub known_titles: ArrayWrapped<u64, 3>,
+    pub known_currencies: u64,
+    pub xp: u32,
+    pub next_level_xp: u32,
+    pub skill_info: ArrayWrapped<(u16, u16), 384>,
+    pub character_points: ArrayWrapped<u32, 2>,
+    pub track_creatures: u32,
+    pub track_resources: u32,
+    pub block_percentage: f32,
+    pub dodge_percentage: f32,
+    pub parry_percentage: f32,
+    pub expertise: u32,
+    pub offhand_expertise: u32,
+    pub crit_percentage: f32,
+    pub ranged_crit_percentage: f32,
+    pub offhand_crit_percentage: f32,
+    pub spell_crit_percentage: ArrayWrapped<f32, 7>,
+    pub shield_block: u32,
+    pub shield_block_crit_percentage: f32,
+    pub explored_zones: ArrayWrapped<u32, 128>,
+    pub rest_state_experience: u32,
+    pub coinage: u32,
+    pub mod_damage_done_pos: ArrayWrapped<u32, 7>,
+    pub mod_damage_done_neg: ArrayWrapped<u32, 7>,
+    pub mod_damage_done_pct: ArrayWrapped<u32, 7>,
+    pub mod_healing_done_pos: f32,
+    pub mod_healing_pct: u32,
+    pub mod_healing_done_pct: f32,
+    pub mod_target_resistance: u32,
+    pub mod_target_physical_resistance: u32,
+    pub bytes_4: Bytes4,
+    pub ammo_id: u32,
+    pub self_res_spell: u32,
+    pub pvp_medals: u32,
+    pub buyback_price: ArrayWrapped<u32, 12>,
+    pub buyback_timestamp: ArrayWrapped<u32, 12>,
+    pub kills: u32,
+    pub today_contribution: u32,
+    pub yesterday_contribution: u32,
+    pub lifetime_honorable_kills: u32,
+    pub bytes2: PlayerFieldBytes2Offsets,
+    pub watched_faction_index: u32,
+    pub combat_rating: ArrayWrapped<u32, 25>,
+    pub arena_team_info: ArrayWrapped<u32, 21>,
+    pub honor_currency: u32,
+    pub arena_currency: u32,
+    pub max_level: u32,
+    pub daily_quests: ArrayWrapped<u32, 25>,
+    pub rune_regen: Rune,
+    pub no_reagent_cost: ArrayWrapped<u32, 3>,
+    pub glyph_slots: ArrayWrapped<u32, 6>,
+    pub glyphs: ArrayWrapped<u32, 6>,
+    pub glyphs_enabled: u32,
+    pub pet_spell_power: u32,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
-pub struct Bytes1 {
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
+pub struct CharacterStyle1 {
     pub skin: u8,
     pub face: u8,
     pub hairstyle: u8,
     pub hair_color: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
-pub struct Bytes2 {
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
+pub struct CharacterStyle2 {
     pub facial: u8,
     pub party: u8,
     pub bank_bag_slots: u8,
     pub rest_state: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 pub struct Bytes3 {
     pub gender: u8,
     pub inebriation: u8,
@@ -117,7 +116,7 @@ pub struct Bytes3 {
     pub arena_faction: u8,
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, Copy, DekuRead, DekuWrite)]
 pub struct QuestLogItem {
     pub id: u32,
     pub state: u32,
@@ -128,14 +127,14 @@ pub struct QuestLogItem {
     pub time: u32,
 }
 
-#[derive(Debug, Clone, Copy, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, Copy, DekuRead, DekuWrite)]
 pub struct EquipedItem {
     pub id: u32,
     pub permanent: u16,
     pub temporary: u16,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 pub struct Bytes4 {
     pub flags: u8,
     pub raf_grantable_level: u8,
@@ -143,7 +142,7 @@ pub struct Bytes4 {
     pub lifetime_max_pvp_rank: u8,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 pub struct PlayerFieldBytes2Offsets {
     pub override_spells_id: u16,
     pub ignore_power_regen_prediction_mask: u8,
@@ -214,7 +213,7 @@ pub enum EquipmentSlots
     End = 19,
 }
 
-#[derive(Debug, Clone, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, DekuRead, DekuWrite)]
 pub struct Rune {
     pub blood: u32,
     pub unholy: u32,

@@ -1,23 +1,22 @@
+use rustycraft_derive::CalcUpdate;
 use crate::guid::Guid;
-use crate::objects::size_helper::FieldSize;
-use crate::objects::object::Object;
-use crate::objects::UpdateFields;
-use rustycraft_derive::IntoUpdateFields;
+use crate::objects::helpers::ArrayWrapped;
+use crate::objects::object::ObjectUpdate;
 
-#[derive(Debug, Default, Clone, IntoUpdateFields, Builder)]
+#[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0081)]
-pub struct Corpse {
+pub struct CorpseUpdate {
     #[nested]
-    pub object: Object,
-    pub owner: Option<Guid>,
-    pub party: Option<Guid>,
-    pub display_id: Option<u32>,
-    pub item: [Option<u32>; 19],
-    pub bytes_1: Option<[u8; 4]>,
-    pub bytes_2: Option<[u8; 4]>,
-    pub guild_id: Option<u32>,
-    pub flags: Option<u32>,
-    pub dynamic_flags: Option<u32>,
+    pub object: ObjectUpdate,
+    pub owner: Guid,
+    pub party: Guid,
+    pub display_id: u32,
+    pub item: ArrayWrapped<u32, 19>,
+    pub bytes_1: [u8; 4],
+    pub bytes_2: [u8; 4],
+    pub guild_id: u32,
+    pub flags: u32,
+    pub dynamic_flags: u32,
 }
 
 pub enum CorpseFlags {

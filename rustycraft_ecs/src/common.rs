@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use rustycraft_world_packets::guid::Guid as PacketsGuid;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Clone, Component)]
 pub struct Health {
     current: f32,
     max: f32,
@@ -33,6 +33,7 @@ impl Health {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Guid(PacketsGuid);
 
 impl Guid {

@@ -11,3 +11,5 @@ rustycraft_world_packets = { path = "../rustycraft_world_packets" }
 
 bevy_ecs = "0.9.1"
 bevy_transform = { version = "0.9.1", features = ["serialize"] }
+
+derive_builder = "0.12"

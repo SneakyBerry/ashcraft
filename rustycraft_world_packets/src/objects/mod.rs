@@ -1,13 +1,13 @@
-use deku::bitvec::BitVec;
 use deku::prelude::*;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
+pub(crate) mod calc_update;
 mod container;
 mod corpse;
-mod default;
 mod dynamic_object;
 mod game_object;
+mod helpers;
 mod item;
 mod object;
 mod player;
@@ -16,6 +16,7 @@ mod unit;
 mod utils;
 
 pub mod prelude {
+    pub use super::calc_update::*;
     pub use super::container::*;
     pub use super::corpse::*;
     pub use super::dynamic_object::*;
@@ -52,24 +53,22 @@ impl UpdateFields {
             inner: InnerState::new(),
         }
     }
-    pub(super) fn set_value<T, const BASE_OFFSET: usize>(
+    pub(super) fn set_value<const BASE_OFFSET: usize>(
         &mut self,
-        value: T,
+        value: &[u8],
         offset: usize,
-    ) -> &mut Self
-    where
-        T: DekuWrite,
-    {
-        let mut buffer = BitVec::new();
-        value.write(&mut buffer, ()).expect("Write failed");
-        self.inner
-            .extend(buffer.as_raw_slice().chunks(4).enumerate().map(|(i, v)| {
-                (
-                    BASE_OFFSET + i + offset,
-                    u32::from_le_bytes(v.try_into().expect("Chunk not equal to 4?")),
-                )
-            }));
+    ) -> &mut Self {
+        self.inner.extend(value.chunks(4).enumerate().map(|(i, v)| {
+            (
+                BASE_OFFSET + i + offset,
+                u32::from_le_bytes(v.try_into().expect("Chunk not equal to 4?")),
+            )
+        }));
         self
+    }
+
+    pub(crate) fn update(&mut self, new: UpdateFields) {
+        self.inner.extend(new.inner)
     }
 }
 
@@ -81,36 +80,37 @@ mod tests {
     use crate::guid::Guid;
 
     use crate::guid;
+    use crate::objects::calc_update::CalcUpdate;
     use crate::power::Power;
     use crate::race::Race;
     use deku::prelude::*;
 
     #[test]
     fn test_basic_player() {
-        let player = Player {
-            unit: Unit {
-                object: Object {
-                    guid: Some(Guid::Player(guid::Player::new(0, 4))),
-                    scale_x: Some(1.0),
+        let player = PlayerUpdate {
+            unit: UnitUpdate {
+                object: ObjectUpdate {
+                    guid: Guid::Player(guid::Player::new(0, 4)),
+                    scale: 1.0,
                     ..Default::default()
                 },
-                data: Some(UnitData {
+                data: UnitData {
                     race: Race::Human,
                     class: Class::Warrior,
                     gender: Gender::Female,
                     power: Power::Rage,
-                }),
-                health: Some(100),
-                max_health: Some(100),
-                level: Some(1),
-                faction_template: Some(1),
-                display_id: Some(50),
-                native_display_id: Some(50),
+                },
+                health: 100,
+                max_health: 100,
+                level: 1,
+                faction_template: 1,
+                display_id: 50,
+                native_display_id: 50,
                 ..Default::default()
             },
             ..Default::default()
         };
-        let player_bytes = UpdateFields::from(player).to_bytes().unwrap();
+        let player_bytes = player.get_diff(None).to_bytes().unwrap();
         let expected = [
             3, 23, 0, 128, 1, 1, 0, 192, 0, 24, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0,
             128, 63, 1, 1, 1, 1, 100, 0, 0, 0, 100, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 50, 0, 0, 0,

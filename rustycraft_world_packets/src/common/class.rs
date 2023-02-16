@@ -1,8 +1,10 @@
 use deku::prelude::*;
 
-#[derive(Debug, Clone, DekuWrite, DekuRead)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum Class {
+    #[default]
+    Default = 0x00,
     Warrior = 0x01,
     Paladin = 0x02,
     Hunter = 0x03,

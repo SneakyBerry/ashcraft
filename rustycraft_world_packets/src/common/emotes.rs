@@ -1,9 +1,10 @@
 use deku::prelude::*;
 
 
-#[derive(Debug, Clone, Copy, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, DekuRead, DekuWrite)]
 #[deku(type = "u32")]
 pub enum Emote {
+    #[default]
     OneshotNone = 0, // SKIP
     OneshotTalk = 1,
     OneshotBow = 2,

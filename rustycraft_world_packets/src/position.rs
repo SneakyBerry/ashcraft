@@ -4,7 +4,7 @@ use crate::transport::TransportInfo;
 use bevy_math::{Quat, Vec3};
 use deku::prelude::*;
 
-#[derive(Debug, Clone, PartialEq, DekuWrite, DekuRead, Builder)]
+#[derive(Debug, Default, Clone, PartialEq, DekuWrite, DekuRead, Builder)]
 pub struct Vector3d {
     pub x: f32,
     pub y: f32,
@@ -12,7 +12,7 @@ pub struct Vector3d {
     pub rotation: Option<f32>,
 }
 
-#[derive(Debug, Clone, PartialEq, DekuWrite, DekuRead, Builder)]
+#[derive(Debug, Default, Clone, PartialEq, DekuWrite, DekuRead, Builder)]
 pub struct FallingInfo {
     pub z_speed: f32,
     pub sin_angle: f32,
