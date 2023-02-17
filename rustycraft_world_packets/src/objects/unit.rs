@@ -9,8 +9,11 @@ use crate::power::Power;
 use crate::race::Race;
 
 use crate::common::emotes::Emote;
+use crate::common::helpers::ArrayWrapped;
+use crate::common::power::PowerIndexed;
+use crate::common::school::SchoolIndexed;
+use crate::common::stats::StatsIndexed;
 use crate::define_flags;
-use crate::objects::helpers::ArrayWrapped;
 
 #[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0009)]
@@ -28,11 +31,11 @@ pub struct UnitUpdate {
     pub channel_spell: u32,
     pub data: UnitData,
     pub health: u32,
-    pub power: ArrayWrapped<u32, 7>,
+    pub power: PowerIndexed<u32>,
     pub max_health: u32,
-    pub max_power: ArrayWrapped<u32, 7>,
-    pub power_regen_flat_modifier: ArrayWrapped<u32, 7>,
-    pub power_regen_interrupted_flat_modifier: ArrayWrapped<u32, 7>,
+    pub max_power: PowerIndexed<u32>,
+    pub power_regen_flat_modifier: PowerIndexed<u32>,
+    pub power_regen_interrupted_flat_modifier: PowerIndexed<u32>,
     pub level: u32,
     pub faction_template: u32,
     pub virtual_item_slot_id: ArrayWrapped<u32, 3>,
@@ -60,12 +63,12 @@ pub struct UnitUpdate {
     pub created_by_spell: u32,
     pub npc_flags: NPCFlags,
     pub emote_state: Emote,
-    pub stat: ArrayWrapped<u32, 5>,
-    pub stat_pos_effects: ArrayWrapped<u32, 5>,
-    pub stat_neg_effects: ArrayWrapped<u32, 5>,
-    pub resistance: ArrayWrapped<u32, 7>,
-    pub resistance_pos: ArrayWrapped<u32, 7>,
-    pub resistance_neg: ArrayWrapped<u32, 7>,
+    pub stat: SchoolIndexed<u32>,
+    pub stat_pos_effects: SchoolIndexed<u32>,
+    pub stat_neg_effects: SchoolIndexed<u32>,
+    pub resistance: SchoolIndexed<u32>,
+    pub resistance_pos: SchoolIndexed<u32>,
+    pub resistance_neg: SchoolIndexed<u32>,
     pub base_mana: u32,
     pub base_health: u32,
     pub bytes_2: [u8; 4],
@@ -73,8 +76,8 @@ pub struct UnitUpdate {
     pub attack_power_ranged: AttackPower,
     pub min_ranged_damage: f32,
     pub max_ranged_damage: f32,
-    pub power_cost_modifier: ArrayWrapped<u32, 7>,
-    pub power_cost_multiplier: ArrayWrapped<u32, 7>,
+    pub power_cost_modifier: PowerIndexed<u32>,
+    pub power_cost_multiplier: PowerIndexed<u32>,
     pub max_health_modifier: u32,
     pub hover_height: u32,
 }

@@ -9,7 +9,8 @@ edition = "2021"
 # Project dependencies
 rustycraft_world_packets = { path = "../rustycraft_world_packets" }
 
-bevy_ecs = "0.9.1"
-bevy_transform = { version = "0.9.1", features = ["serialize"] }
+bevy_ecs = "0.9"
+bevy_transform = { version = "0.9", features = ["serialize"] }
+bevy_math = "0.9"
 
 derive_builder = "0.12"

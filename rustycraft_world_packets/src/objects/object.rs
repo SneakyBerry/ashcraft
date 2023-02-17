@@ -9,5 +9,3 @@ pub struct ObjectUpdate {
     pub entry: u32,
     pub scale: f32,
 }
-
-

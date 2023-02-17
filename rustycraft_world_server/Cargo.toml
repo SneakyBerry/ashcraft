@@ -10,6 +10,7 @@ rustycraft_logging = { path = "../rustycraft_logging" }
 rustycraft_database = { path = "../rustycraft_database" }
 rustycraft_common = { path = "../rustycraft_common" }
 rustycraft_world_packets = { path = "../rustycraft_world_packets" }
+rustycraft_ecs = { path = "../rustycraft_ecs" }
 
 derive_builder = "0.12"
 wow_srp = { version = "0.5", features = ["wrath-header"] }
@@ -19,3 +20,5 @@ tokio = "1.25"
 anyhow = "1.0"
 bytes = "1.4"
 tracing = "0.1"
+bevy_time = "0.9.1"
+chrono = "0.4.23"

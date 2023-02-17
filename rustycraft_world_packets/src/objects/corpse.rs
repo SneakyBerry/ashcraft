@@ -1,6 +1,6 @@
 use rustycraft_derive::CalcUpdate;
+use crate::common::helpers::ArrayWrapped;
 use crate::guid::Guid;
-use crate::objects::helpers::ArrayWrapped;
 use crate::objects::object::ObjectUpdate;
 
 #[derive(Debug, Default, Clone, CalcUpdate, Builder)]

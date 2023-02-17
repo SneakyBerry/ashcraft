@@ -1,9 +1,10 @@
 use deku::prelude::*;
 use rustycraft_derive::CalcUpdate;
+use crate::common::helpers::ArrayWrapped;
+use crate::common::school::SchoolIndexed;
 
 use crate::define_flags;
 use crate::guid::Guid;
-use crate::objects::helpers::ArrayWrapped;
 use crate::objects::unit::UnitUpdate;
 
 /* TODO: Think about how to reduce the size with same convenience as struct
@@ -52,15 +53,15 @@ pub struct PlayerUpdate {
     pub crit_percentage: f32,
     pub ranged_crit_percentage: f32,
     pub offhand_crit_percentage: f32,
-    pub spell_crit_percentage: ArrayWrapped<f32, 7>,
+    pub spell_crit_percentage: SchoolIndexed<f32>,
     pub shield_block: u32,
     pub shield_block_crit_percentage: f32,
     pub explored_zones: ArrayWrapped<u32, 128>,
     pub rest_state_experience: u32,
     pub coinage: u32,
-    pub mod_damage_done_pos: ArrayWrapped<u32, 7>,
-    pub mod_damage_done_neg: ArrayWrapped<u32, 7>,
-    pub mod_damage_done_pct: ArrayWrapped<u32, 7>,
+    pub mod_damage_done_pos: SchoolIndexed<u32>,
+    pub mod_damage_done_neg: SchoolIndexed<u32>,
+    pub mod_damage_done_pct: SchoolIndexed<u32>,
     pub mod_healing_done_pos: f32,
     pub mod_healing_pct: u32,
     pub mod_healing_done_pct: f32,

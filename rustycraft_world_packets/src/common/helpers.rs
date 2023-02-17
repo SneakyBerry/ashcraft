@@ -7,7 +7,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Deref, DerefMut};
 
 #[repr(transparent)]
-pub struct ArrayWrapped<T, const N: usize>([T; N]);
+pub struct ArrayWrapped<T, const N: usize>(pub(crate) [T; N]);
 impl<T, const N: usize> From<[T; N]> for ArrayWrapped<T, N> {
     fn from(value: [T; N]) -> Self {
         ArrayWrapped(value)

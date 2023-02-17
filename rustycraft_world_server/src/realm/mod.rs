@@ -85,7 +85,7 @@ type Handler<T> = fn(&RealmHandler, &mut Connection, T) -> anyhow::Result<()>;
 
 pub struct RealmHandler {
     incoming_connections: mpsc::UnboundedReceiver<Connection>,
-    world_server_sender: mpsc::UnboundedSender<(ClientPacket, Connection)>,
+    world_server_sender: mpsc::UnboundedSender<Connection>,
     connections: Vec<Connection>,
     redis: Arc<RedisClient>,
 }
@@ -93,7 +93,7 @@ pub struct RealmHandler {
 impl RealmHandler {
     pub fn new(
         incoming_connections: mpsc::UnboundedReceiver<Connection>,
-        world_server_sender: mpsc::UnboundedSender<(ClientPacket, Connection)>,
+        world_server_sender: mpsc::UnboundedSender<Connection>,
         redis: Arc<RedisClient>,
     ) -> Self {
         Self {
@@ -131,8 +131,8 @@ impl RealmHandler {
                         Opcode::CmsgCharEnum => conn.sender().send(Box::new(char_data())).unwrap(),
                         Opcode::CmsgCharCreate => todo!(),
                         Opcode::CmsgPlayerLogin => {
-                            conn.state = ConnectionState::Game;
-                            self.world_server_sender.send((data, conn)).unwrap();
+                            conn.state = ConnectionState::WorldLogin(data.data_as());
+                            self.world_server_sender.send(conn).unwrap();
                             continue;
                         }
                         _ => {}

@@ -269,6 +269,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_time"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a5c38a6d3ea929c7f81e6adf5a6c62cf7e8c40f5106c2174d6057e9d8ea624d"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_reflect",
+ "bevy_utils",
+ "crossbeam-channel",
+]
+
+[[package]]
 name = "bevy_transform"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -376,9 +389,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.22"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd4d1b31faaa3a89d7934dbded3111da0d2ef28e3ebccdb4f0179f5929d1ef1"
+checksum = "16b0a3d9ed01224b22057780a37bb8c5dbfe1be8ba48678e7bf57ec4b385411f"
 dependencies = [
  "iana-time-zone",
  "js-sys",
@@ -445,6 +458,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d997bd5e24a5928dd43e46dc529867e207907fe0b239c3477d924f7f2ca320"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fb766fa798726286dbbb842f174001dab8abc7b627a1dd86e0b7222a95d929f"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -1167,6 +1199,7 @@ name = "rustycraft_ecs"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "bevy_math",
  "bevy_transform",
  "derive_builder",
  "rustycraft_world_packets",
@@ -1203,11 +1236,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy_ecs",
+ "bevy_time",
  "bytes",
+ "chrono",
  "deku",
  "derive_builder",
  "rustycraft_common",
  "rustycraft_database",
+ "rustycraft_ecs",
  "rustycraft_logging",
  "rustycraft_world_packets",
  "tokio",

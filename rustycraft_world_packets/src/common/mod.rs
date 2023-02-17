@@ -5,3 +5,5 @@ pub mod gender;
 pub mod school;
 pub mod stats;
 pub mod emotes;
+pub(crate) mod helpers;
+pub mod power;

@@ -33,7 +33,7 @@ impl Health {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Component)]
 pub struct Guid(PacketsGuid);
 
 impl Guid {

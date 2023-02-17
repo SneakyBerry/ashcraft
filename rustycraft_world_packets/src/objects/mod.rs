@@ -7,7 +7,6 @@ mod container;
 mod corpse;
 mod dynamic_object;
 mod game_object;
-mod helpers;
 mod item;
 mod object;
 mod player;

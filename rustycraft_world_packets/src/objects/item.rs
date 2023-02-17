@@ -2,7 +2,7 @@ use crate::guid::Guid;
 use crate::objects::object::ObjectUpdate;
 use deku::prelude::*;
 use rustycraft_derive::CalcUpdate;
-use crate::objects::helpers::ArrayWrapped;
+use crate::common::helpers::ArrayWrapped;
 
 #[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0003)]
@@ -46,22 +46,4 @@ pub enum EnchantmentSlot {
     Prop3 = 10, // used with RandomProperty
     Prop4 = 11, // used with RandomProperty
     Max = 12,
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::objects::calc_update::CalcUpdate;
-    use super::*;
-
-    #[test]
-    fn test() {
-        let a = ItemUpdate::default();
-        let mut b = ItemUpdate::default();
-        b.enchantment[0] = ItemEnchantment {
-            id: 100,
-            duration: 100,
-            charges: 100,
-        };
-        println!("{:?}", &b.get_diff(Some(&a)));
-    }
 }

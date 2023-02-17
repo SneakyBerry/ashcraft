@@ -1,5 +1,7 @@
+use bevy_ecs::prelude::Component;
 use bytes::BytesMut;
 use deku::DekuContainerRead;
+use rustycraft_world_packets::login::CmsgPlayerLogin;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::{ClientPacket, ServerPacket};
 use std::fmt::Debug;
@@ -16,9 +18,11 @@ pub enum ConnectionState {
     New,
     Handshake,
     Auth,
-    Game,
+    WorldLogin(CmsgPlayerLogin),
+    InGame,
 }
 
+#[derive(Component)]
 pub struct Connection {
     pub state: ConnectionState,
     peer_addr: SocketAddr,

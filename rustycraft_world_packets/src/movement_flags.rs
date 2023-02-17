@@ -55,5 +55,8 @@ define_flags!(
         SPLINE_ENABLED = 0x8000000,
         WATERWALKING = 0x10000000,
         FALLING_SLOW = 0x20000000,
-        HOVER = 0x40000000
+        HOVER = 0x40000000,
+        MASK_MOVING = Self::FORWARD | Self::BACKWARD | Self::STRAFE_LEFT | Self::STRAFE_RIGHT |
+                      Self::FALLING | Self::FALLING_FAR | Self::ASCENDING | Self::DESCENDING |
+                      Self::SPLINE_ELEVATION
 });

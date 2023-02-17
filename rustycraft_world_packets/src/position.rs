@@ -26,7 +26,7 @@ pub struct CMovementData {
     pub movement_info: MovementInfo,
 }
 
-#[derive(Debug, Clone, PartialEq, DekuWrite, DekuRead, Builder)]
+#[derive(Debug, Clone, Default, PartialEq, DekuWrite, DekuRead, Builder)]
 pub struct MovementInfo {
     pub flags: MovementFlags,
     pub flags_extra: ExtraMovementFlags,
