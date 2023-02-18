@@ -325,7 +325,7 @@ pub enum ItemClass {
 
 #[derive(Debug, Clone, DekuWrite)]
 #[deku(type = "u32")]
-pub enum InventoryType {
+pub enum InventoryTypeU32 {
     NonEquip = 0,
     Head = 1,
     Neck = 2,
@@ -516,7 +516,7 @@ pub struct ItemStats {
     pub flags2: ItemFlags2,
     pub buy_price: i32,
     pub sell_price: u32,
-    pub inventory_type: InventoryType,
+    pub inventory_type: InventoryTypeU32,
     pub allowable_class: u32, // ClassMask
     pub allowable_race: u32,  // RaceMask
     pub item_level: u32,

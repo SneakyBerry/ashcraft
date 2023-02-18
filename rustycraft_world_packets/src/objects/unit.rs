@@ -12,7 +12,6 @@ use crate::common::emotes::Emote;
 use crate::common::helpers::ArrayWrapped;
 use crate::common::power::PowerIndexed;
 use crate::common::school::SchoolIndexed;
-use crate::common::stats::StatsIndexed;
 use crate::define_flags;
 
 #[derive(Debug, Default, Clone, CalcUpdate, Builder)]

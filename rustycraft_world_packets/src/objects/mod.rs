@@ -47,7 +47,7 @@ pub struct UpdateFields {
 }
 
 impl UpdateFields {
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             inner: InnerState::new(),
         }

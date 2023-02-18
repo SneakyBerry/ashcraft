@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::*;
+use bevy::prelude::*;
 use rustycraft_world_packets::guid::Guid as PacketsGuid;
 
 #[derive(Debug, Clone, Component)]

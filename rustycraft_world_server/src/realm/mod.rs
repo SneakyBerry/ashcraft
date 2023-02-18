@@ -11,15 +11,14 @@ use rustycraft_world_packets::common::class::Class;
 use rustycraft_world_packets::common::expansion::Expansion;
 use rustycraft_world_packets::common::gender::Gender;
 use rustycraft_world_packets::gear::CharacterGear;
+use rustycraft_world_packets::guid;
 use rustycraft_world_packets::guid::Guid;
-use rustycraft_world_packets::inventory::InventoryType;
+use rustycraft_world_packets::inventory::InventoryTypeU8;
 use rustycraft_world_packets::map::Map;
-use rustycraft_world_packets::objects::prelude::EquipmentSlots;
 use rustycraft_world_packets::opcodes::Opcode;
 use rustycraft_world_packets::position::Vector3d;
 use rustycraft_world_packets::race::Race;
 use rustycraft_world_packets::response_code::ResponseCode;
-use rustycraft_world_packets::{guid, ClientPacket};
 use std::mem;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -40,9 +39,9 @@ const AUTH_SERVER_RESPONSE_OK: AuthResponseServer = AuthResponseServer {
 };
 
 fn char_data() -> CharacterEnumServer {
-    let mut equipment = [CharacterGear {
+    let equipment = [CharacterGear {
         equipment_display_id: 0,
-        inventory_type: InventoryType::NonEquip,
+        inventory_type: InventoryTypeU8::NonEquip,
         enchantment: 0,
     }; 23];
     // equipment[EquipmentSlots::MainHand as usize] = CharacterGear {
@@ -80,8 +79,6 @@ fn char_data() -> CharacterEnumServer {
         equipment,
     }])
 }
-
-type Handler<T> = fn(&RealmHandler, &mut Connection, T) -> anyhow::Result<()>;
 
 pub struct RealmHandler {
     incoming_connections: mpsc::UnboundedReceiver<Connection>,

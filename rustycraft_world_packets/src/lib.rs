@@ -14,15 +14,15 @@ pub mod objects;
 pub mod opcodes;
 pub mod position;
 pub mod power;
+pub mod query;
 pub mod race;
 pub mod response_code;
 pub mod spline;
+pub mod templates;
 pub mod time_sync;
 pub mod transport;
 pub mod tutorial;
 pub mod update_flag;
-pub mod query;
-pub mod templates;
 
 use crate::opcodes::Opcode;
 use bytes::Bytes;
@@ -33,6 +33,33 @@ use std::ffi::CString;
 use std::fmt::Debug;
 use std::mem::size_of_val;
 use wow_srp::wrath_header::ServerEncrypterHalf;
+
+pub mod prelude {
+    pub use super::auth::*;
+    pub use super::characters::*;
+    pub use super::common::prelude::*;
+    pub use super::gear::*;
+    pub use super::guid::*;
+    pub use super::inventory::*;
+    pub use super::login::*;
+    pub use super::map::*;
+    pub use super::movement_block::*;
+    pub use super::movement_flags::*;
+    pub use super::object::*;
+    pub use super::objects::prelude::*;
+    pub use super::opcodes::*;
+    pub use super::position::*;
+    pub use super::power::*;
+    pub use super::query::*;
+    pub use super::race::*;
+    pub use super::response_code::*;
+    pub use super::spline::*;
+    pub use super::templates::*;
+    pub use super::time_sync::*;
+    pub use super::transport::*;
+    pub use super::tutorial::*;
+    pub use super::update_flag::*;
+}
 
 #[macro_use]
 extern crate paste;
