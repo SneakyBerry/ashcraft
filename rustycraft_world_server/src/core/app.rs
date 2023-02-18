@@ -1,7 +1,9 @@
 use super::events::packets::ClientPacketReceived;
 use super::systems::*;
 use crate::core::events::packets::ServerPacketSend;
+use crate::session_handler::Connection;
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use bevy_time::TimePlugin;
 use rustycraft_world_packets::position::CMovementData;
 use rustycraft_world_packets::query::{CmsgItemQuerySingle, CmsgNameQuery};
@@ -14,6 +16,9 @@ enum Stages {
     AfterUpdate,
 }
 
+#[derive(Debug, Default, Deref, DerefMut, Resource)]
+pub struct Connections(HashMap<Entity, Connection>);
+
 pub fn get_app<RC: 'static, SN: 'static>(
     incoming_connections: RC,
     outgoing_connections: SN,
@@ -23,6 +28,7 @@ pub fn get_app<RC: 'static, SN: 'static>(
         .add_plugin(TimePlugin::default())
         .insert_non_send_resource(incoming_connections)
         .insert_non_send_resource(outgoing_connections)
+        .init_resource::<Connections>()
         .init_resource::<Time>()
         .add_event::<ServerPacketSend>()
         .add_event::<ClientPacketReceived<CmsgNameQuery>>()
@@ -40,8 +46,7 @@ pub fn get_app<RC: 'static, SN: 'static>(
             CoreStage::PostUpdate,
             send_player_update.before(send_updates),
         )
-        .add_system_to_stage(CoreStage::PostUpdate, sync_time.after(send_updates))
-        .add_system_to_stage(CoreStage::PostUpdate, debug_events.at_end());
+        .add_system_to_stage(CoreStage::PostUpdate, sync_time.after(send_updates));
     app
 }
 
@@ -49,6 +54,5 @@ fn debug_events(mut events: EventReader<ClientPacketReceived<CMovementData>>) {
     if events.len() != 0 {
         println!("{:?}", &events.len());
     }
-    for _ in events.iter() {
-    }
+    for _ in events.iter() {}
 }
