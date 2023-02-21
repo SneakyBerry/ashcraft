@@ -42,7 +42,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::guid::{Guid, Player};
+    use crate::guid::{Guid, PlayerGuid};
     use crate::objects::calc_update::CalcUpdate;
 
     #[test]
@@ -53,7 +53,7 @@ mod tests {
         let a = [0xFFFFFFFFFFFFFFFFu64, 0xFFFFFFFFFFFFFFFFu64];
         let b = [0xFFFFFFFFFFFFFFFFu64, 0x0000000000000000u64];
         println!("{:?}", &<_ as CalcUpdate<0>>::get_diff(&a, Some(&b)));
-        let a = Guid::Player(Player::new(0, 1));
+        let a = Guid::Player(PlayerGuid::new(0, 1));
         let b = Guid::Empty;
         println!("{:?}", &<_ as CalcUpdate<0>>::get_diff(&a, Some(&b)));
     }

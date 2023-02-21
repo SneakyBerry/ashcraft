@@ -5,7 +5,7 @@ use crate::position::Vector3d;
 use crate::ServerPacket;
 use deku::prelude::*;
 
-#[derive(Debug, DekuRead)]
+#[derive(Debug, Copy, Clone, DekuRead)]
 pub struct CmsgPlayerLogin {
     pub guid: Guid,
 }

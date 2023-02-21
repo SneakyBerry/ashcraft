@@ -1,36 +1,44 @@
+pub(crate) mod base_pre_update;
+pub(crate) mod handle_opcodes;
+
 use crate::core::app::Connections;
-use crate::core::commands::packet_event::EmitClientPacketEvent;
-use crate::core::components::common::Health;
-use crate::core::components::player::PlayerBundle;
+use crate::core::components::common::{GuidComponent, Health};
+use crate::core::components::player::{Player, PlayerBundle};
+use crate::core::components::unit::Unit;
 use crate::core::events::packets::ClientPacketReceived;
 use crate::session_handler::{Connection, ConnectionState};
+use crate::{try_send, try_send_box};
 use bevy::prelude::*;
 use bevy::utils::Instant;
-use bevy_ecs::entity::Entities;
-use bevy_ecs::system::SystemState;
 use rustycraft_world_packets::prelude::*;
 use std::time::Duration;
 use tokio::sync::mpsc;
-macro_rules! try_send {
-    ($commands:ident, $entity:ident, $connections:ident => $data:expr) => {
-        // If we can't send any data to channel that means connection was closed.
-        if let Err(_) = $connections
-            .get(&$entity)
-            .expect("Connection not found")
-            .sender()
-            .send($data)
-        {
-            $commands.entity($entity).despawn();
-            $connections.remove(&$entity);
-            continue;
-        }
-    };
+
+pub(crate) mod prelude {
+    pub(crate) use super::*;
+    pub(crate) use crate::core::systems::base_pre_update::*;
+    pub(crate) use crate::core::systems::handle_opcodes::*;
 }
-macro_rules! try_send_box {
-    ($commands:tt, $entity:ident, $connections:ident => $data:expr) => {
-        // If we can't send any data to channel that means connection was closed.
-        try_send!($commands, $entity, $connections => Box::new($data))
-    };
+
+pub(super) mod systems_macro {
+    #[macro_export]
+    macro_rules! try_send {
+        ($commands:ident, $entity:ident, $connections:ident => $data:expr) => {
+            // If we can't send any data to channel that means connection was closed.
+            let Some(Ok(_)) = $connections.get(&$entity).map(|conn| conn.sender().send($data)) else {
+                $commands.entity($entity).despawn();
+                $connections.remove(&$entity);
+                continue;
+            };
+        };
+    }
+
+    #[macro_export]
+    macro_rules! try_send_box {
+        ($commands:ident, $entity:ident, $connections:ident => $data:expr) => {
+            try_send!($commands, $entity, $connections => Box::new($data))
+        };
+    }
 }
 
 #[derive(Debug, Component)]
@@ -46,73 +54,13 @@ pub(crate) struct Updates(Vec<Object>);
 #[derive(Debug, Component)]
 pub(crate) struct LoggedIn;
 
-pub(crate) fn handle_opcodes(world: &mut World) {
-    world.resource_scope(|world, mut connections: Mut<Connections>| {
-        #[cfg(debug_assertions)]
-        {
-            assert!(connections.keys().all(|e| world.entities().contains(*e)))
-        }
-        for (entity, connection) in connections.iter_mut() {
-            while let Ok(packet) = connection.receiver().try_recv() {
-                match packet.get_opcode() {
-                    Opcode::CmsgNameQuery => world.send_event(ClientPacketReceived(
-                        *entity,
-                        packet.data_as::<CmsgNameQuery>(),
-                    )),
-                    Opcode::CmsgItemQuerySingle => world.send_event(ClientPacketReceived(
-                        *entity,
-                        packet.data_as::<CmsgItemQuerySingle>(),
-                    )),
-                    Opcode::MsgMoveStartForward
-                    | Opcode::MsgMoveStartBackward
-                    | Opcode::MsgMoveStop
-                    | Opcode::MsgMoveStartStrafeLeft
-                    | Opcode::MsgMoveStartStrafeRight
-                    | Opcode::MsgMoveStopStrafe
-                    | Opcode::MsgMoveJump
-                    | Opcode::MsgMoveStartTurnLeft
-                    | Opcode::MsgMoveStartTurnRight
-                    | Opcode::MsgMoveStopTurn
-                    | Opcode::MsgMoveStartPitchUp
-                    | Opcode::MsgMoveStartPitchDown
-                    | Opcode::MsgMoveStopPitch
-                    | Opcode::MsgMoveSetRunMode
-                    | Opcode::MsgMoveSetWalkMode
-                    | Opcode::MsgMoveFallLand
-                    | Opcode::MsgMoveStartSwim
-                    | Opcode::MsgMoveStopSwim
-                    | Opcode::MsgMoveSetFacing
-                    | Opcode::MsgMoveSetPitch
-                    | Opcode::MsgMoveHeartbeat
-                    | Opcode::CmsgMoveFallReset
-                    | Opcode::CmsgMoveSetFly
-                    | Opcode::MsgMoveStartAscend
-                    | Opcode::MsgMoveStopAscend
-                    | Opcode::CmsgMoveChngTransport
-                    | Opcode::MsgMoveStartDescend => world.send_event(ClientPacketReceived(
-                        *entity,
-                        packet.data_as::<CMovementData>(),
-                    )),
-                    _ => {}
-                }
-            }
-        }
-    });
-}
-
 pub(crate) fn handle_player_login(
     mut commands: Commands,
     mut connections: ResMut<Connections>,
-    mut players: Query<Entity, Added<LoggedIn>>,
+    mut connection_events: EventReader<ClientPacketReceived<CmsgPlayerLogin>>,
 ) {
-    for entity in players.iter_mut() {
-        let guid = if let ConnectionState::WorldLogin(packet) =
-            &connections.get(&entity).expect("Should never happen").state
-        {
-            packet.guid
-        } else {
-            unreachable!()
-        };
+    for ClientPacketReceived(entity, login) in connection_events.iter() {
+        let entity = *entity;
         try_send_box!(commands, entity, connections => SmsgLoginVerifyWorld {
             map: Map::EasternKingdoms,
             position: Vector3d {
@@ -131,10 +79,10 @@ pub(crate) fn handle_player_login(
             permanent: 0,
             temporary: 0,
         };
-        let mut player = super::components::player::Player::new();
+        let mut player = Player::new();
         player.unit = UnitUpdate {
             object: ObjectUpdate {
-                guid,
+                guid: login.guid,
                 scale: 1.0,
                 ..Default::default()
             },
@@ -152,6 +100,7 @@ pub(crate) fn handle_player_login(
             native_display_id: 50,
             ..Default::default()
         };
+        *player.explored_zones = [u32::MAX; 128].into();
         *player.visible_items = visible_items.into();
 
         commands.entity(entity).insert((
@@ -165,7 +114,7 @@ pub(crate) fn handle_player_login(
                 health: Health::new(100.0),
             },
             InGame {
-                guid,
+                guid: login.guid,
                 time_sync: Instant::now(),
                 time_sync_counter: 0,
             },
@@ -181,10 +130,7 @@ pub(crate) fn handle_player_login(
 
 pub(crate) fn send_player_update(
     mut updates: Query<(Entity, &mut Updates)>,
-    mut changed_player: Query<
-        (Entity, &mut super::components::player::Player, &Transform),
-        Added<super::components::player::Player>,
-    >,
+    mut changed_player: Query<(Entity, &mut Player, &Transform), Added<Player>>,
 ) {
     for (entity, mut player, transform) in &mut changed_player.iter_mut() {
         let movement = MovementBlockLivingVariants::Living(Box::new(
@@ -239,16 +185,12 @@ pub(crate) fn send_player_update(
                 })
             }
         });
-        player.swap()
     }
 }
 
 pub(crate) fn send_position_update(
     mut updates: Query<(Entity, &mut Updates)>,
-    changed_transform: Query<
-        (Entity, &super::components::common::Guid, &MovementData),
-        Changed<Transform>,
-    >,
+    changed_transform: Query<(Entity, &GuidComponent, &MovementData), Changed<Transform>>,
 ) {
     for (entity, guid, movement) in &mut changed_transform.iter() {
         let data = movement.0.clone();
@@ -311,23 +253,7 @@ pub(crate) fn send_updates(
         if updates.0.is_empty() {
             continue;
         }
-        println!("{:?}", &updates);
         let update_data = std::mem::replace(&mut (*updates).0, Vec::new());
         try_send_box!(commands, entity, connections => SmsgUpdateObject::new(update_data));
-    }
-}
-
-pub(crate) fn handle_incoming_connections(
-    mut commands: Commands,
-    mut connections: ResMut<Connections>,
-    mut incoming_connections: NonSendMut<mpsc::UnboundedReceiver<Connection>>,
-) {
-    while let Ok(connection) = incoming_connections.try_recv() {
-        assert!(
-            matches!(connection.state, ConnectionState::WorldLogin(..)),
-            "Invalid connection state"
-        );
-        let entity = commands.spawn(LoggedIn).id();
-        connections.insert(entity, connection);
     }
 }

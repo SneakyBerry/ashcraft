@@ -50,7 +50,7 @@ fn char_data() -> CharacterEnumServer {
     //     enchantment: 0,
     // };
     CharacterEnumServer::new(vec![Character {
-        guid: Guid::Player(guid::Player::new(0, 4)),
+        guid: Guid::Player(guid::PlayerGuid::new(0, 4)),
         name: "Warr".to_string(),
         race: Race::Draenei,
         class: Class::Warrior,

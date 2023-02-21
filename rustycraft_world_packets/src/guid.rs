@@ -171,7 +171,7 @@ impl Global {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct Player {
+pub struct PlayerGuid {
     // 4 bits
     unk: u8,
     // 28 bits
@@ -180,16 +180,16 @@ pub struct Player {
     counter: u32,
 }
 
-impl Player {
-    pub fn new(entry: u32, counter: u32) -> Player {
-        Player {
+impl PlayerGuid {
+    pub fn new(entry: u32, counter: u32) -> PlayerGuid {
+        PlayerGuid {
             unk: 0x0,
             entry,
             counter,
         }
     }
-    fn parse(input: u64) -> Result<Player, DekuError> {
-        Ok(Player {
+    fn parse(input: u64) -> Result<PlayerGuid, DekuError> {
+        Ok(PlayerGuid {
             unk: ((input & 0x00F0000000000000) >> 52) as u8,
             entry: ((input & 0x000FFFFFFF000000) >> 24) as u32,
             counter: (input & 0x0000000000FFFFFF) as u32,
@@ -204,14 +204,14 @@ impl Player {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct Item {
+pub struct ItemGuid {
     // 56 bits
     pub unk: u64,
 }
 
-impl Item {
-    fn parse(input: u64) -> Result<Item, DekuError> {
-        Ok(Item {
+impl ItemGuid {
+    fn parse(input: u64) -> Result<ItemGuid, DekuError> {
+        Ok(ItemGuid {
             unk: input & 0x00FFFFFFFFFFFFFF,
         })
     }
@@ -226,9 +226,9 @@ impl Item {
 pub enum Guid {
     #[default]
     Empty,
-    Player(Player),
+    Player(PlayerGuid),
     MapSpecific(MapSpecific),
-    Item(Item),
+    Item(ItemGuid),
     Global(Global),
 }
 
@@ -240,9 +240,9 @@ impl TryFrom<u64> for Guid {
             Ok(Self::Empty)
         } else {
             match guid >> 56 {
-                0x00 => Ok(Guid::Player(Player::parse(guid)?)),
+                0x00 => Ok(Guid::Player(PlayerGuid::parse(guid)?)),
                 0xF1 => Ok(Guid::MapSpecific(MapSpecific::parse(guid)?)),
-                0x40 => Ok(Guid::Item(Item::parse(guid)?)),
+                0x40 => Ok(Guid::Item(ItemGuid::parse(guid)?)),
                 0x1F => Ok(Guid::Global(Global::parse(guid)?)),
                 _ => Err(DekuError::Parse(format!(
                     "Invalid guid type: {}",
@@ -376,14 +376,14 @@ pub enum TypeMask {
 
 #[cfg(test)]
 mod test {
-    use crate::guid::{Guid, Item, PackedGuid};
+    use crate::guid::{Guid, ItemGuid, PackedGuid};
     use deku::DekuContainerRead;
 
     #[test]
     fn test_packed() {
         let hex_guid = 0x0000F00B00BAB0BA;
 
-        let guid = Guid::Item(Item { unk: hex_guid });
+        let guid = Guid::Item(ItemGuid { unk: hex_guid });
         let packed = PackedGuid::from(guid);
         assert_eq!(packed.mask, 0b10110111);
         assert_eq!(packed.parts, vec![0xBA, 0xB0, 0xBA, 0x0B, 0xF0, 0x40]);

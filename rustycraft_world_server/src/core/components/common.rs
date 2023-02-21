@@ -34,9 +34,9 @@ impl Health {
 }
 
 #[derive(Debug, Clone, Copy, Component)]
-pub struct Guid(PacketsGuid);
+pub struct GuidComponent(PacketsGuid);
 
-impl Guid {
+impl GuidComponent {
     pub fn new(guid: PacketsGuid) -> Self {
         Self(guid)
     }

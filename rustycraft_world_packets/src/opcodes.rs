@@ -1,4 +1,3 @@
-use std::ops::Range;
 use deku::prelude::*;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, DekuWrite, DekuRead)]

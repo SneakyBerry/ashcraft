@@ -89,7 +89,7 @@ mod tests {
         let player = PlayerUpdate {
             unit: UnitUpdate {
                 object: ObjectUpdate {
-                    guid: Guid::Player(guid::Player::new(0, 4)),
+                    guid: Guid::Player(guid::PlayerGuid::new(0, 4)),
                     scale: 1.0,
                     ..Default::default()
                 },

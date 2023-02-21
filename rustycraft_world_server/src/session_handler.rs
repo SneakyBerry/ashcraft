@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::Component;
+use bevy::prelude::*;
 use bytes::BytesMut;
 use deku::DekuContainerRead;
 use rustycraft_world_packets::login::CmsgPlayerLogin;
