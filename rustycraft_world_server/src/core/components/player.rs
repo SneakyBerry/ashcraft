@@ -1,8 +1,8 @@
+use crate::core::components::common::Health;
 use bevy::prelude::*;
 use rustycraft_world_packets::objects::prelude::{CalcUpdate, PlayerUpdate};
 use rustycraft_world_packets::objects::UpdateFields;
 use std::ops::{Deref, DerefMut};
-use crate::core::components::common::Health;
 
 #[derive(Debug, Clone, Component)]
 pub struct Player(bool, PlayerUpdate, PlayerUpdate);

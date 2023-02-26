@@ -1,6 +1,6 @@
+use crate::common::helpers::ArrayWrapped;
 use deku::prelude::*;
 use std::ops::{Index, IndexMut};
-use crate::common::helpers::ArrayWrapped;
 
 #[derive(Debug, Clone, Copy, PartialEq, DekuRead, DekuWrite)]
 #[deku(type = "u32")]
@@ -13,7 +13,6 @@ pub enum DamageSchool {
     Shadow = 5,
     Arcane = 6,
 }
-
 
 pub type SchoolIndexed<T> = ArrayWrapped<T, 7>;
 

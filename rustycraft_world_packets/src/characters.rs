@@ -1,17 +1,18 @@
 use crate::common::area::Area;
 use crate::common::class::Class;
-use crate::gear::CharacterGear;
 use crate::common::gender::Gender;
+use crate::gear::CharacterGear;
 use crate::guid::Guid;
 use crate::map::Map;
 use crate::opcodes::Opcode;
 use crate::position::Vector3d;
 use crate::race::Race;
-use crate::ServerPacket;
 use crate::{read_c_string, write_c_string};
 use deku::prelude::*;
+use rustycraft_derive::ServerPacket;
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, DekuWrite, ServerPacket)]
+#[opcode(Opcode::SmsgCharEnum)]
 pub struct CharacterEnumServer {
     #[deku(update = "self.characters.len() as u8")]
     characters_count: u8,
@@ -24,12 +25,6 @@ impl CharacterEnumServer {
             characters_count: 0,
             characters,
         }
-    }
-}
-
-impl ServerPacket for CharacterEnumServer {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgCharEnum
     }
 }
 

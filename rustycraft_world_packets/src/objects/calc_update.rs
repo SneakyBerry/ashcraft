@@ -7,7 +7,6 @@ pub trait CalcUpdate<const BASE_OFFSET: usize = 0>: Default {
     fn get_diff(&self, old: Option<&Self>) -> UpdateFields;
 }
 
-
 /// In general in UpdateObject packet on client zeroed field means that there is no value
 /// If field is not presented it assumed as field not updated at all and you need to
 /// use current state of it

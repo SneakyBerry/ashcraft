@@ -2,20 +2,15 @@ use crate::common::expansion::Expansion;
 use crate::opcodes::Opcode;
 use crate::read_c_string;
 use crate::response_code::ResponseCode;
-use crate::ServerPacket;
 use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
+use rustycraft_derive::ServerPacket;
 
-#[derive(Debug, DekuWrite)]
+#[derive(Debug, DekuWrite, ServerPacket)]
+#[opcode(Opcode::SmsgAuthChallenge)]
 pub struct AuthChallengeServer {
     #[deku(pad_bytes_before = "4", pad_bytes_after = "32")]
     pub server_seed: u32,
-}
-
-impl ServerPacket for AuthChallengeServer {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgAuthChallenge
-    }
 }
 
 #[derive(Debug, Clone, DekuRead, Builder)]
@@ -67,15 +62,10 @@ pub struct AuthWaitQueue {
     pub realm_has_free_character_migration: bool,
 }
 
-#[derive(Debug, Clone, DekuWrite, Builder)]
+#[derive(Debug, Clone, DekuWrite, Builder, ServerPacket)]
+#[opcode(Opcode::SmsgAuthResponse)]
 pub struct AuthResponseServer {
     pub result: ResponseCode,
     pub ok: Option<AuthOk>,
     pub wait: Option<AuthWaitQueue>,
-}
-
-impl ServerPacket for AuthResponseServer {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgAuthResponse
-    }
 }

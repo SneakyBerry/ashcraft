@@ -1,14 +1,9 @@
 use crate::opcodes::Opcode;
-use crate::ServerPacket;
 use deku::prelude::*;
+use rustycraft_derive::ServerPacket;
 
-#[derive(Debug, DekuWrite, Builder)]
+#[derive(Debug, DekuWrite, Builder, ServerPacket)]
+#[opcode(Opcode::SmsgTimeSyncReq)]
 pub struct SmsgTimeSyncReq {
     pub time_sync: u32,
-}
-
-impl ServerPacket for SmsgTimeSyncReq {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgTimeSyncReq
-    }
 }

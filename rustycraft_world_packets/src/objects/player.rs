@@ -1,7 +1,7 @@
-use deku::prelude::*;
-use rustycraft_derive::CalcUpdate;
 use crate::common::helpers::ArrayWrapped;
 use crate::common::school::SchoolIndexed;
+use deku::prelude::*;
+use rustycraft_derive::CalcUpdate;
 
 use crate::define_flags;
 use crate::guid::Guid;

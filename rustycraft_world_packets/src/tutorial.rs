@@ -1,9 +1,9 @@
 use crate::opcodes::Opcode;
-use crate::ServerPacket;
 use deku::prelude::*;
+use rustycraft_derive::ServerPacket;
 
-#[derive(Debug, DekuWrite, Builder)]
-
+#[derive(Debug, DekuWrite, Builder, ServerPacket)]
+#[opcode(Opcode::SmsgTutorialFlags)]
 pub struct SmsgTutorialFlags {
     pub tutorial_data0: u32,
     pub tutorial_data1: u32,
@@ -27,11 +27,5 @@ impl Default for SmsgTutorialFlags {
             tutorial_data6: u32::MAX,
             tutorial_data7: u32::MAX,
         }
-    }
-}
-
-impl ServerPacket for SmsgTutorialFlags {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgTutorialFlags
     }
 }

@@ -259,7 +259,6 @@ pub(crate) fn send_updates(
             .unwrap()
             .1
             .push(Box::new(SmsgUpdateObject::new(update_data)));
-        // try_send_box!(commands, entity, connections => SmsgUpdateObject::new(update_data));
     }
 }
 

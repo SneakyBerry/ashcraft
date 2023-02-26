@@ -1,6 +1,6 @@
-use rustycraft_derive::CalcUpdate;
 use crate::guid::Guid;
 use crate::objects::object::ObjectUpdate;
+use rustycraft_derive::CalcUpdate;
 
 #[derive(Debug, Default, Clone, CalcUpdate, Builder)]
 #[meta(offset = 0x0006, tag = 0x0041)]

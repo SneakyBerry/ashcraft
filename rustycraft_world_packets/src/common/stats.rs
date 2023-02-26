@@ -1,6 +1,6 @@
+use crate::common::helpers::ArrayWrapped;
 use deku::prelude::*;
 use std::ops::{Index, IndexMut};
-use crate::common::helpers::ArrayWrapped;
 
 pub enum Stats {
     Strength = 0,
@@ -9,7 +9,6 @@ pub enum Stats {
     Intellect = 3,
     Spirit = 4,
 }
-
 
 pub type StatsIndexed<T> = ArrayWrapped<T, 5>;
 

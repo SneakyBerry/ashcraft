@@ -1,7 +1,7 @@
-use deku::prelude::*;
-use std::ops::{Index, IndexMut};
 use crate::common::helpers::ArrayWrapped;
 use crate::power::Power;
+use deku::prelude::*;
+use std::ops::{Index, IndexMut};
 
 pub type PowerIndexed<T> = ArrayWrapped<T, 7>;
 

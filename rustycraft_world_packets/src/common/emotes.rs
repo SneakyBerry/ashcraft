@@ -1,6 +1,5 @@
 use deku::prelude::*;
 
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, DekuRead, DekuWrite)]
 #[deku(type = "u32")]
 pub enum Emote {

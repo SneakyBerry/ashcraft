@@ -1,13 +1,14 @@
 use deku::bitvec::{BitVec, Msb0};
 use deku::prelude::*;
+use rustycraft_derive::ServerPacket;
 
 use crate::common::class::Class;
 use crate::common::gender::Gender;
 use crate::common::school::{DamageSchool, SchoolIndexed};
+use crate::define_flags;
 use crate::guid::{Guid, PackedGuid};
 use crate::opcodes::Opcode;
 use crate::race::Race;
-use crate::{define_flags, ServerPacket};
 
 #[derive(Debug, Clone, Eq, PartialEq, DekuRead)]
 pub struct CmsgNameQuery {
@@ -39,19 +40,15 @@ pub enum NameQueryResponse {
     Known(KnownName),
 }
 
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, ServerPacket)]
+#[opcode(Opcode::SmsgNameQueryResponse)]
 pub struct SmsgNameQueryResponse {
     pub guid: PackedGuid,
     pub response: NameQueryResponse,
 }
 
-impl ServerPacket for SmsgNameQueryResponse {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgNameQueryResponse
-    }
-}
-
-#[derive(Debug, Clone, DekuWrite)]
+#[derive(Debug, Clone, DekuWrite, ServerPacket)]
+#[opcode(Opcode::SmsgItemQuerySingleResponse)]
 pub struct SmsgItemQuerySingle {
     #[deku(
         update = "if self.response.is_none() { self.item_id | 0x80000000 } else { self.item_id }"
@@ -61,12 +58,6 @@ pub struct SmsgItemQuerySingle {
         update = "if let Some(mut r) = self.response.take() { r.update()?; Some(r) } else { None }"
     )]
     pub response: Option<ItemStats>,
-}
-
-impl ServerPacket for SmsgItemQuerySingle {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgItemQuerySingleResponse
-    }
 }
 
 #[derive(Debug, Clone, DekuWrite)]

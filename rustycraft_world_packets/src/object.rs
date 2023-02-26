@@ -1,10 +1,12 @@
 use crate::guid::PackedGuid;
 use crate::movement_block::MovementBlock;
+use crate::objects;
 use crate::opcodes::Opcode;
-use crate::{objects, ServerPacket};
 use deku::prelude::*;
+use rustycraft_derive::ServerPacket;
 
-#[derive(Debug, Clone, DekuWrite, Builder)]
+#[derive(Debug, Clone, DekuWrite, Builder, ServerPacket)]
+#[opcode(Opcode::SmsgUpdateObject)]
 pub struct SmsgUpdateObject {
     amount_of_objects: u32, //+
     pub objects: Vec<Object>,
@@ -55,12 +57,6 @@ pub enum ObjectUpdateType {
     OutOfRangeObjects { count: u32, guids: Vec<PackedGuid> },
     #[deku(id = "0x5")]
     NearObjects { count: u32, guids: Vec<PackedGuid> },
-}
-
-impl ServerPacket for SmsgUpdateObject {
-    fn get_opcode(&self) -> Opcode {
-        Opcode::SmsgUpdateObject
-    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, DekuRead, DekuWrite)]

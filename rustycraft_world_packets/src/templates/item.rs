@@ -1,4 +1,1 @@
-pub struct ItemTemplate {
-
-}
-
+pub struct ItemTemplate {}

@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod bank;
 pub mod characters;
 mod client_packet_impl_read;
 pub mod common;
@@ -36,6 +37,7 @@ use wow_srp::wrath_header::ServerEncrypterHalf;
 
 pub mod prelude {
     pub use super::auth::*;
+    pub use super::bank::*;
     pub use super::characters::*;
     pub use super::common::prelude::*;
     pub use super::gear::*;
