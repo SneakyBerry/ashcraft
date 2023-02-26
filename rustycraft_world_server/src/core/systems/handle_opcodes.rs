@@ -1,7 +1,27 @@
-use bevy::prelude::*;
-use rustycraft_world_packets::prelude::*;
 use crate::core::app::Connections;
 use crate::core::events::packets::ClientPacketReceived;
+use bevy::prelude::*;
+use rustycraft_world_packets::prelude::*;
+
+macro_rules! send_event {
+    ($packet:ident, $world:ident, $entity:ident => {
+        $(
+            $opcode:pat => $payload:ident
+        ),*
+    }) => {
+        match $packet.get_opcode() {
+            $(
+                $opcode => $world
+                    .resource_mut::<Events<ClientPacketReceived<$payload>>>()
+                    .send(ClientPacketReceived(
+                        *$entity,
+                        $packet.data_as(),
+                    )),
+            )*
+            _ => {}
+        }
+    };
+}
 
 pub(crate) fn handle_opcodes(world: &mut World) {
     world.resource_scope(|world, mut connections: Mut<Connections>| {
@@ -9,17 +29,11 @@ pub(crate) fn handle_opcodes(world: &mut World) {
         {
             assert!(connections.keys().all(|e| world.entities().contains(*e)))
         }
-        for (entity, connection) in connections.iter_mut() {
+        for (entity, (connection, _)) in connections.iter_mut() {
             while let Ok(packet) = connection.receiver().try_recv() {
-                match packet.get_opcode() {
-                    Opcode::CmsgNameQuery => world.send_event(ClientPacketReceived(
-                        *entity,
-                        packet.data_as::<CmsgNameQuery>(),
-                    )),
-                    Opcode::CmsgItemQuerySingle => world.send_event(ClientPacketReceived(
-                        *entity,
-                        packet.data_as::<CmsgItemQuerySingle>(),
-                    )),
+                send_event!(packet, world, entity => {
+                    Opcode::CmsgNameQuery => CmsgNameQuery,
+                    Opcode::CmsgItemQuerySingle => CmsgItemQuerySingle,
                     Opcode::MsgMoveStartForward
                     | Opcode::MsgMoveStartBackward
                     | Opcode::MsgMoveStop
@@ -46,12 +60,8 @@ pub(crate) fn handle_opcodes(world: &mut World) {
                     | Opcode::MsgMoveStartAscend
                     | Opcode::MsgMoveStopAscend
                     | Opcode::CmsgMoveChngTransport
-                    | Opcode::MsgMoveStartDescend => world.send_event(ClientPacketReceived(
-                        *entity,
-                        packet.data_as::<CMovementData>(),
-                    )),
-                    _ => {}
-                }
+                    | Opcode::MsgMoveStartDescend => CMovementData
+                })
             }
         }
     });

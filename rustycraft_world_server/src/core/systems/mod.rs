@@ -25,7 +25,7 @@ pub(super) mod systems_macro {
     macro_rules! try_send {
         ($commands:ident, $entity:ident, $connections:ident => $data:expr) => {
             // If we can't send any data to channel that means connection was closed.
-            let Some(Ok(_)) = $connections.get(&$entity).map(|conn| conn.sender().send($data)) else {
+            let Some(Ok(_)) = $connections.get(&$entity).map(|(conn, _)| conn.sender().send($data)) else {
                 $commands.entity($entity).despawn();
                 $connections.remove(&$entity);
                 continue;
@@ -124,6 +124,7 @@ pub(crate) fn handle_player_login(
         connections
             .get_mut(&entity)
             .expect("Should never happen")
+            .0
             .state = ConnectionState::InGame;
     }
 }
@@ -245,7 +246,6 @@ pub(crate) fn sync_time(
 }
 
 pub(crate) fn send_updates(
-    mut commands: Commands,
     mut connections: ResMut<Connections>,
     mut updates: Query<(Entity, &mut Updates), Changed<Updates>>,
 ) {
@@ -253,7 +253,28 @@ pub(crate) fn send_updates(
         if updates.0.is_empty() {
             continue;
         }
-        let update_data = std::mem::replace(&mut (*updates).0, Vec::new());
-        try_send_box!(commands, entity, connections => SmsgUpdateObject::new(update_data));
+        let update_data = std::mem::replace(&mut (*updates).0, vec![]);
+        connections
+            .get_mut(&entity)
+            .unwrap()
+            .1
+            .push(Box::new(SmsgUpdateObject::new(update_data)));
+        // try_send_box!(commands, entity, connections => SmsgUpdateObject::new(update_data));
+    }
+}
+
+pub(crate) fn send_packets(
+    mut commands: Commands,
+    mut connections: ResMut<Connections>,
+    players: Query<Entity, With<InGame>>,
+) {
+    for entity in players.iter() {
+        let Some((_, packets)) = connections.get_mut(&entity) else {
+            commands.entity(entity).despawn();
+            continue;
+        };
+        for packet in std::mem::replace(packets, vec![]) {
+            try_send!(commands, entity, connections => packet);
+        }
     }
 }
