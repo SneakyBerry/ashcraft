@@ -179,9 +179,6 @@ pub mod server {
             update = "if self.stats.is_none() { self.creature_id | 0x80000000 } else { self.creature_id }"
         )]
         pub creature_id: u32,
-        #[deku(
-            update = "if let Some(mut s) = self.stats.take() { s.update()?; Some(s) } else { None }"
-        )]
         pub stats: Option<CreatureStats>,
     }
 
@@ -210,9 +207,6 @@ pub mod server {
             update = "if self.stats.is_none() { self.game_object_id | 0x80000000 } else { self.game_object_id }"
         )]
         pub game_object_id: u32,
-        #[deku(
-            update = "if let Some(mut s) = self.stats.take() { s.update()?; Some(s) } else { None }"
-        )]
         pub stats: Option<GameObjectStats>,
     }
 
@@ -250,9 +244,6 @@ pub mod server {
             update = "if self.response.is_none() { self.item_id | 0x80000000 } else { self.item_id }"
         )]
         pub item_id: u32,
-        #[deku(
-            update = "if let Some(mut r) = self.response.take() { r.update()?; Some(r) } else { None }"
-        )]
         pub response: Option<ItemStats>,
     }
 
