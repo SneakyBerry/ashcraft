@@ -151,8 +151,7 @@ pub struct PlayerFieldBytes2Offsets {
 }
 
 define_flags!(
-    StructName: PlayerFlags
-    InnerType: u32{
+    size: 1, PlayerFlags: u32 {
         GROUP_LEADER      = 0x00000001,
         AFK               = 0x00000002,
         DND               = 0x00000004,

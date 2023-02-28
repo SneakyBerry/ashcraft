@@ -2,8 +2,7 @@ use crate::define_flags;
 use deku::prelude::*;
 
 define_flags!(
-    StructName: SplineFlag
-    InnerType: u32 {
+    SplineFlag: u32 {
         DONE = 0x01,
         FALLING = 0x02,
         UNKNOWN3 = 0x04,

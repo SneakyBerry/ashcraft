@@ -3,8 +3,7 @@ use deku::prelude::*;
 use crate::define_flags;
 
 define_flags!(
-    StructName: UpdateFlag
-    InnerType: u16 {
+    UpdateFlag: u16 {
         SELF = 0x0001,
         TRANSPORT = 0x0002,
         HAS_ATTACKING_TARGET = 0x0004,

@@ -59,7 +59,7 @@ pub(crate) fn handle_player_login(
     mut connections: ResMut<Connections>,
     mut connection_events: EventReader<ClientPacketReceived<CmsgPlayerLogin>>,
 ) {
-    for ClientPacketReceived(entity, login) in connection_events.iter() {
+    for ClientPacketReceived(entity, _, login) in connection_events.iter() {
         let entity = *entity;
         try_send_box!(commands, entity, connections => SmsgLoginVerifyWorld {
             map: Map::EasternKingdoms,

@@ -12,7 +12,7 @@ pub(crate) fn handle_incoming_connections(
         let entity = commands.spawn(LoggedIn).id();
         // It is a unique system then we don't care about order of event send and insertion
         // No one can receive this event until system return
-        connection_events.send(ClientPacketReceived(entity, *pkt));
+        connection_events.send(ClientPacketReceived(entity, Opcode::CmsgPlayerLogin, *pkt));
         connections.insert(entity, (connection, vec![]));
     }
 }

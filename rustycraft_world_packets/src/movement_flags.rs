@@ -2,8 +2,7 @@ use crate::define_flags;
 use deku::prelude::*;
 
 define_flags!(
-    StructName: ExtraMovementFlags
-    InnerType: u16 {
+    ExtraMovementFlags: u16 {
         NO_STRAFE = 0x01,
         NO_JUMPING = 0x02,
         UNK3 = 0x04,
@@ -23,8 +22,7 @@ define_flags!(
 });
 
 define_flags!(
-    StructName: MovementFlags
-    InnerType: u32 {
+    MovementFlags: u32 {
         FORWARD = 0x01,
         BACKWARD = 0x02,
         STRAFE_LEFT = 0x04,

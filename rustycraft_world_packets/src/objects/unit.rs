@@ -426,8 +426,7 @@ pub enum AuraType {
 }
 
 define_flags!(
-    StructName: UnitFlags
-    InnerType: u32 {
+    size: 1, UnitFlags: u32 {
         SERVER_CONTROLLED     = 0x00000001,           // set only when unit movement is controlled by server - by SPLINE/MONSTER_MOVE packets, together with STUNNED; only set to units controlled by client; client function CGUnit_C::IsClientControlled returns false when set for owner
         NON_ATTACKABLE        = 0x00000002,           // not attackable, set when creature starts to cast spells with SPELL_EFFECT_SPAWN and cast time, removed when spell hits caster, original name is SPAWNING. Rename when it will be removed from all scripts
         REMOVE_CLIENT_CONTROL = 0x00000004,           // This is a legacy flag used to disable movement player's movement while controlling other units, SMSG_CLIENT_CONTROL replaces this functionality clientside now. CONFUSED and FLEEING flags have the same effect on client movement asDISABLE_MOVE_CONTROL in addition to preventing spell casts/autoattack (they all allow climbing steeper hills and emotes while moving)
@@ -474,8 +473,7 @@ define_flags!(
 );
 
 define_flags!(
-    StructName: UnitFlags2
-    InnerType: u32 {
+    size: 1, UnitFlags2: u32 {
         FEIGN_DEATH                  = 0x00000001,
         HIDE_BODY                    = 0x00000002,   // Hide unit model (show only player equip)
         IGNORE_REPUTATION            = 0x00000004,
@@ -524,8 +522,7 @@ define_flags!(
 );
 
 define_flags!(
-    StructName: NPCFlags
-    InnerType: u32 {
+    size: 1, NPCFlags: u32 {
         NONE                  = 0x00000000,       // SKIP
         GOSSIP                = 0x00000001,       // TITLE has gossip menu DESCRIPTION 100%
         QUESTGIVER            = 0x00000002,       // TITLE is quest giver DESCRIPTION guessed, probably ok
@@ -558,8 +555,7 @@ define_flags!(
 );
 
 define_flags!(
-    StructName: UnitDynFlags
-    InnerType: u32 {
+    size: 1, UnitDynFlags: u32 {
         NONE                       = 0x0000,
         LOOTABLE                   = 0x0001,
         TRACK_UNIT                 = 0x0002,

@@ -8,8 +8,6 @@ struct DeriveIntoUpdateFieldsArgs {
     offset: Expr,
     tag: Expr,
 }
-#[derive(Eq, PartialEq)]
-struct DeriveIntoUpdateFieldsTag;
 
 impl Parse for DeriveIntoUpdateFieldsArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
