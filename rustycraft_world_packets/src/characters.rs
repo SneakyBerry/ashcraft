@@ -11,10 +11,14 @@ use crate::{read_c_string, write_c_string};
 use deku::prelude::*;
 use rustycraft_derive::ServerPacket;
 
-#[derive(Debug, DekuWrite, ServerPacket)]
+#[derive(Debug, DekuRead)]
+pub struct CharEnum;
+
+#[deku_derive(DekuWrite)]
+#[derive(Debug, ServerPacket)]
 #[opcode(Opcode::SmsgCharEnum)]
 pub struct CharacterEnumServer {
-    #[deku(update = "self.characters.len() as u8")]
+    #[deku(temp, temp_value = "characters.len() as u8")]
     characters_count: u8,
     pub characters: Vec<Character>,
 }
@@ -22,7 +26,6 @@ pub struct CharacterEnumServer {
 impl CharacterEnumServer {
     pub fn new(characters: Vec<Character>) -> CharacterEnumServer {
         CharacterEnumServer {
-            characters_count: 0,
             characters,
         }
     }

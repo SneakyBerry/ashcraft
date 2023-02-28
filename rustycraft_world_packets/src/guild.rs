@@ -241,7 +241,8 @@ pub mod server {
     use crate::opcodes::Opcode;
     use crate::prelude::{Area, Class, Gender};
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgGuildQueryResponse)]
     pub struct QueryGuildInfoResponse {
         pub id: u32,
@@ -256,7 +257,7 @@ pub mod server {
         pub border_style: u32,
         pub border_color: u32,
         pub background_color: u32,
-        #[deku(update = "self.ranks.len()")]
+        #[deku(temp, temp_value = "ranks.len() as u32")]
         pub rank_count: u32,
     }
 
@@ -303,16 +304,17 @@ pub mod server {
         pub tabs: [GuildRankTab; 6],
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgGuildRoster)]
     pub struct GuildRoster {
-        #[deku(update = "self.member_data.len()")]
+        #[deku(temp, temp_value = "member_data.len() as u32")]
         pub member_data_size: u32,
         #[deku(writer = "crate::write_c_string(deku::output, &self.welcome_text)")]
         pub welcome_text: String,
         #[deku(writer = "crate::write_c_string(deku::output, &self.info_text)")]
         pub info_text: String,
-        #[deku(update = "self.rank_data.len()")]
+        #[deku(temp, temp_value = "rank_data.len() as u32")]
         pub rank_data_size: u32,
         pub rank_data: Vec<GuildRankData>,
         pub member_data: Vec<GuildRosterMemberData>,
@@ -362,11 +364,12 @@ pub mod server {
         BankTextChanged = 19,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgGuildEvent)]
     pub struct GuildEvent {
         pub event_type: GuildEvents,
-        #[deku(update = "self.params.len()")]
+        #[deku(temp, temp_value = "params.len() as u8")]
         pub params_size: u8,
         #[deku(
             writer = "self.params.iter().map(|val| crate::write_c_string(deku::output, val)).collect::<Result<_, _>>()"
@@ -388,21 +391,23 @@ pub mod server {
         pub transaction_date: u32,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::MsgGuildEventLogQuery)]
     pub struct GuildEventLogQueryResults {
-        #[deku(update = "self.entries.len()")]
+        #[deku(temp, temp_value = "entries.len() as u8")]
         pub entry_size: u8,
         pub entries: Vec<GuildEventEntry>,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::MsgGuildPermissions)]
     pub struct GuildPermissionsQueryResults {
         pub rank_id: u32,
         pub flags: u32,
         pub withdraw_gold_limit: u32,
-        #[deku(update = "self.tabs.len()")]
+        #[deku(temp, temp_value = "tabs.len() as u8")]
         pub num_tabs: u8,
         pub tabs: Vec<GuildPermissionsTab>,
     }
@@ -419,7 +424,8 @@ pub mod server {
         pub enchant_id: i32,
     }
 
-    #[derive(Debug, Clone, DekuWrite)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone)]
     pub struct GuildBankItemInfo {
         pub item_id: u32,
         pub flags: i32,
@@ -428,7 +434,7 @@ pub mod server {
         pub count: i32,
         pub enchantment_id: i32,
         pub charges: u8,
-        #[deku(update = "self.socket_enchants.len()")]
+        #[deku(temp, temp_value = "socket_enchants.len() as u8")]
         pub socket_enchant_size: u8,
         pub socket_enchants: Vec<GuildBankSocketEnchant>,
     }
@@ -441,14 +447,17 @@ pub mod server {
         pub icon: String,
     }
 
-    #[derive(Debug, Clone, DekuWrite)]
+
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone)]
     pub struct TabUpdate {
-        #[deku(update = "self.tabs.len()")]
+        #[deku(temp, temp_value = "tabs.len() as u8")]
         pub size: u8,
         pub tabs: Vec<GuildBankTabInfo>,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgGuildBankList)]
     pub struct GuildBankQueryResults {
         pub money: u64,
@@ -457,7 +466,7 @@ pub mod server {
         pub full_update: bool,
         #[deku(cond = "!self.full_update && self.tab != 0", skip)]
         pub tab_update: Option<TabUpdate>,
-        #[deku(update = "self.item_info.len()")]
+        #[deku(temp, temp_value = "item_info.len() as u8")]
         pub item_info_size: u8,
         pub item_info: Vec<GuildBankItemInfo>,
     }
@@ -503,11 +512,12 @@ pub mod server {
         pub time_offset: u32,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::MsgGuildBankLogQuery)]
     pub struct GuildBankLogQueryResults {
         pub tab: u8,
-        #[deku(update = "self.entries.len()")]
+        #[deku(temp, temp_value = "entries.len() as u8")]
         pub entries_size: u8,
         pub entries: Vec<GuildBankLogEntry>,
     }

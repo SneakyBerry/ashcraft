@@ -259,10 +259,11 @@ pub mod server {
         pub cooldown: u8,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgResyncRunes)]
     pub struct ResyncRunes {
-        #[deku(update = "self.data.len()")]
+        #[deku(temp, temp_value = "self.data.len() as u32")]
         pub count: u32,
         pub data: Vec<ResyncRune>,
     }

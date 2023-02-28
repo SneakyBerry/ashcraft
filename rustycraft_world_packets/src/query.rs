@@ -688,7 +688,8 @@ pub mod server {
         Gun = 7,
     }
 
-    #[derive(Debug, Clone, DekuWrite)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone)]
     pub struct ItemStats {
         pub class: ItemClass,
         /// id from ItemSubClass.dbc to override weapon sound
@@ -723,7 +724,7 @@ pub mod server {
         /// 0: not allowed, -1: put in player coin info tab and don't limit stacking (so 1 slot)
         pub stackable: i32,
         pub container_slots: u32,
-        #[deku(update = "self.item_stat.len() as u32")]
+        #[deku(temp, temp_value = "item_stat.len() as u32")]
         pub stats_count: u32,
         pub item_stat: Vec<ItemMod>,
         /// Id from ScalingStatDistribution.dbc

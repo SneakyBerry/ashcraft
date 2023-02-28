@@ -13,7 +13,7 @@ rustycraft_world_packets = { path = "../rustycraft_world_packets" }
 
 derive_builder = "0.12"
 wow_srp = { version = "0.5", features = ["wrath-header"] }
-deku = "0.15"
+deku = { git = "https://github.com/sharksforarms/deku.git", rev = "13fc4e9b084042ac77f9a3f6aa366f791ddac646" }
 tokio = "1.25"
 anyhow = "1.0"
 bytes = "1.4"

@@ -35,6 +35,7 @@ macro_rules! impl_parse {
 
 impl ClientPacket {
     impl_parse! {
+        Opcode::CmsgCharEnum => CharEnum,
         Opcode::CmsgAuthSession => CMsgAuthSession,
         Opcode::CmsgPlayerLogin => CmsgPlayerLogin,
         Opcode::CmsgShowingCloak => ShowingCloak,

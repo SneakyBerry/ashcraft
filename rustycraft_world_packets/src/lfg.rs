@@ -6,15 +6,18 @@ pub mod client {
     #[derive(Debug, Clone, DekuRead)]
     pub struct LFGLeave;
 
-    #[derive(Debug, Clone, DekuRead)]
+    #[deku_derive(DekuRead)]
+    #[derive(Debug, Clone)]
     pub struct LFGJoin {
         pub roles: u32,
         pub no_partial_clear: bool,
         pub achievements: bool,
-        pub slots_size: u8,
+        #[deku(temp)]
+        slots_size: u8,
         #[deku(count = "slots_size")]
         pub slots: Vec<u32>,
-        pub needs_size: u8,
+        #[deku(temp)]
+        needs_size: u8,
         #[deku(count = "needs_size")]
         pub needs: Vec<u8>,
     }

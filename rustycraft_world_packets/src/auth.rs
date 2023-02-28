@@ -13,7 +13,7 @@ pub struct AuthChallengeServer {
     pub server_seed: u32,
 }
 
-#[derive(Debug, Clone, DekuRead, Builder)]
+#[derive(Debug, Clone, DekuRead)]
 pub struct CMsgAuthSession {
     pub client_build: u32,
     pub login_server_id: u32,

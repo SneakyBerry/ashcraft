@@ -40,7 +40,7 @@ pub(crate) enum Opcode {
     XferCancel = 0x34,
 }
 
-#[derive(Debug, Hash, Eq, PartialEq, DekuWrite, DekuRead)]
+#[derive(Debug, Hash, Eq, PartialEq, DekuWrite)]
 #[deku(type = "u8")]
 pub(crate) enum AuthResult {
     Success = 0x00,

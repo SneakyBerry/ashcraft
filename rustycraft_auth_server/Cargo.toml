@@ -12,7 +12,7 @@ rustycraft_database = { path = "../rustycraft_database" }
 rustycraft_common = { path = "../rustycraft_common" }
 
 wow_srp = "0.5"
-deku = "0.15"
+deku = { git = "https://github.com/sharksforarms/deku.git", rev = "13fc4e9b084042ac77f9a3f6aa366f791ddac646" }
 bytes = "1.4"
 tokio = { version = "1.25", features = ["full"] }
 anyhow = "1.0"

@@ -43,6 +43,7 @@ macro_rules! send_event {
 }
 
 send_event! {
+    Opcode::CmsgCharEnum => CharEnum,
     Opcode::CmsgAuthSession => CMsgAuthSession,
     Opcode::CmsgPlayerLogin => CmsgPlayerLogin,
     Opcode::CmsgShowingCloak => ShowingCloak,

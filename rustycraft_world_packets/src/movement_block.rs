@@ -169,13 +169,14 @@ pub struct MovementBlockMovementFlagsFalling {
     pub xy_speed: f32,
 }
 
-#[derive(Debug, Clone, DekuWrite, Builder)]
+#[deku_derive(DekuWrite)]
+#[derive(Debug, Clone, Builder)]
 pub struct MovementBlockMovementFlagsSplineEnabled {
     spline_flags: MovementBlockSplineFlag,
     time_passed: u32,
     duration: u32,
     id: u32,
-    #[deku(update = "self.nodes.len() as u32")]
+    #[deku(temp, temp_value = "nodes.len() as u32")]
     amount_of_nodes: u32,
     nodes: Vec<Vector3d>,
     final_node: Vector3d,

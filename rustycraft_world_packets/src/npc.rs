@@ -44,12 +44,13 @@ pub mod server {
         pub req_ability: [i32; 3],
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgTrainerList)]
     pub struct TrainerList {
         pub unit: Guid,
         pub trainer_type: TrainerType,
-        #[deku(update = "self.spells.len()")]
+        #[deku(temp, temp_value = "spells.len() as i32")]
         pub spells_size: i32,
         pub spells: Vec<TrainerSpell>,
         #[deku(writer = "crate::write_c_string(deku::output, &self.greeting)")]

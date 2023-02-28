@@ -230,12 +230,13 @@ pub mod server {
         pub display_id: u32,
     }
 
-    #[derive(Debug, Clone, DekuWrite)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone)]
     pub struct QuestRewards {
-        #[deku(update = "self.unfiltered_choice_items.len()")]
+        #[deku(temp, temp_value = "unfiltered_choice_items.len() as u32")]
         pub unfiltered_choice_items_size: u32,
         pub unfiltered_choice_items: Vec<QuestChoiceItem>,
-        #[deku(update = "self.reward_items.len()")]
+        #[deku(temp, temp_value = "reward_items.len() as u32")]
         pub reward_items_size: u32,
         pub reward_items: Vec<QuestItemObjective>,
         pub reward_money: u32,
@@ -259,7 +260,8 @@ pub mod server {
         pub delay: u32,
     }
 
-    #[derive(Debug, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, ServerPacket)]
     #[opcode(Opcode::SmsgQuestGiverQuestDetails)]
     pub struct QuestGiverQuestDetails {
         pub guid: Guid,
@@ -276,12 +278,13 @@ pub mod server {
         pub quest_suggested_players: u32,
         pub start_cheat: bool,
         pub quest_rewards: QuestRewards,
-        #[deku(update = "self.desc_emotes.len()")]
+        #[deku(temp, temp_value = "desc_emotes.len() as u32")]
         pub desc_emotes_size: u32,
         pub desc_emotes: Vec<DescEmote>,
     }
 
-    #[derive(Debug, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, ServerPacket)]
     #[opcode(Opcode::SmsgQuestGiverOfferRewardMessage)]
     pub struct QuestGiverOfferRewardMessage {
         pub guid: Guid,
@@ -293,7 +296,7 @@ pub mod server {
         pub is_auto_launched: bool,
         pub quest_flags: QuestFlags,
         pub quest_suggested_players: u32,
-        #[deku(update = "self.desc_emotes.len()")]
+        #[deku(temp, temp_value = "desc_emotes.len() as u32")]
         pub desc_emotes_size: u32,
         pub desc_emotes: Vec<DescEmote>,
         pub quest_rewards: QuestRewards,

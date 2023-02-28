@@ -14,13 +14,14 @@ pub mod server {
         pub value: i32,
     }
 
-    #[derive(Debug, Clone, DekuWrite, ServerPacket)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone, ServerPacket)]
     #[opcode(Opcode::SmsgInitWorldStates)]
     pub struct InitWorldStates {
         pub map_id: Map,
         pub zone_id: u32, // TODO: Research this
         pub area_id: Area,
-        #[deku(update = "self.world_states.len()")]
+        #[deku(temp, temp_value = "world_states.len() as u16")]
         pub world_states_size: u16,
         pub world_states: Vec<WorldState>,
     }
