@@ -153,11 +153,13 @@ pub mod server {
         pub name: Option<String>,
     }
 
-    #[derive(Debug, Clone, DekuWrite)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone)]
     pub struct SizedVec<T>
     where
         T: DekuWrite,
     {
+        #[deku(temp, temp_value = "data.len() as u32")]
         size: u32,
         data: Vec<T>,
     }
@@ -167,10 +169,7 @@ pub mod server {
         T: DekuWrite,
     {
         fn from(data: Vec<T>) -> Self {
-            SizedVec {
-                size: data.len() as u32,
-                data,
-            }
+            SizedVec { data }
         }
     }
 
@@ -211,7 +210,8 @@ pub mod server {
     }
     );
 
-    #[derive(Debug, Clone, DekuWrite)]
+    #[deku_derive(DekuWrite)]
+    #[derive(Debug, Clone)]
     pub struct SpellCastData {
         pub caster: PackedGuid,
         pub caster_unit: PackedGuid,
@@ -219,13 +219,7 @@ pub mod server {
         pub spell_id: u32,
         pub cast_flags: SpellCastFlags,
         pub cast_time: u32,
-        #[deku(
-            update = "if let Some(mut hit_targets) = self.hit_targets.take() { hit_targets.update()?; Some(hit_targets) } else { None }"
-        )]
         pub hit_targets: Option<SizedVec<Guid>>,
-        #[deku(
-            update = "if let Some(mut miss_status) = self.miss_status.take() { miss_status.update()?; Some(miss_status) } else { None }"
-        )]
         pub miss_status: Option<SizedVec<SpellMissStatus>>,
         pub target: SpellTargetData,
         pub remaining_power: Option<u32>,
@@ -234,10 +228,10 @@ pub mod server {
         pub ammo: Option<SpellAmmo>,
         pub immunities: Option<CreatureImmunities>,
         #[deku(cond = "!self.cast_flags.is_visual_chain()", skip)]
-        #[deku(update = "0")]
+        #[deku(temp, temp_value = "0")]
         pub pad_1: u64,
         #[deku(cond = "!self.target.flags.is_dest_location()", skip)]
-        #[deku(update = "0")]
+        #[deku(temp, temp_value = "0")]
         pub pad_2: u8,
     }
 
