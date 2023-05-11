@@ -1,0 +1,23 @@
+[package]
+name = "ashcraft_world_server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ashcraft_logging = { path = "../ashcraft_logging" }
+ashcraft_database = { path = "../ashcraft_database" }
+ashcraft_common = { path = "../ashcraft_common" }
+ashcraft_world_packets = { path = "../ashcraft_world_packets" }
+
+derive_builder = "0.12"
+wow_srp = { version = "0.5", features = ["wrath-header"] }
+deku = { git = "https://github.com/sharksforarms/deku.git", rev = "13fc4e9b084042ac77f9a3f6aa366f791ddac646" }
+tokio = "1.25"
+anyhow = "1.0"
+bytes = "1.4"
+tracing = "0.1"
+bevy_time = "0.9.1"
+chrono = "0.4.23"
+bevy = { version = "0.9", default-features = false }

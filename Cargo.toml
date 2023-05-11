@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "./rustycraft_auth_server",
-    "./rustycraft_common",
-    "./rustycraft_database",
-    "./rustycraft_logging",
-    "./rustycraft_world_server",
-    "./rustycraft_world_packets",
-    "./rustycraft_derive",
+    "./ashcraft_auth_server",
+    "./ashcraft_common",
+    "./ashcraft_database",
+    "./ashcraft_logging",
+    "./ashcraft_world_server",
+    "./ashcraft_world_packets",
+    "./ashcraft_derive",
 ]

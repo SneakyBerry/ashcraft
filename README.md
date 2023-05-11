@@ -1,4 +1,4 @@
-# Rustycraft
+# AshCraft
 
 This is educational project in early prototype phase and full of bad code, hardcode and lack of error handling.
 Current goal is understanding workflow.

@@ -77,6 +77,96 @@ dependencies = [
 ]
 
 [[package]]
+name = "ashcraft_auth_server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ashcraft_common",
+ "ashcraft_database",
+ "ashcraft_logging",
+ "bytes",
+ "deku",
+ "tokio",
+ "tracing",
+ "uuid",
+ "wow_srp",
+]
+
+[[package]]
+name = "ashcraft_common"
+version = "0.1.0"
+dependencies = [
+ "ashcraft_database",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "ashcraft_database"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "redis",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "ashcraft_derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "ashcraft_logging"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "ashcraft_world_packets"
+version = "0.1.0"
+dependencies = [
+ "array-init",
+ "ashcraft_derive",
+ "bevy_math",
+ "bytes",
+ "deku",
+ "derive_builder",
+ "paste",
+ "thiserror",
+ "tracing",
+ "wow_srp",
+]
+
+[[package]]
+name = "ashcraft_world_server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "ashcraft_common",
+ "ashcraft_database",
+ "ashcraft_logging",
+ "ashcraft_world_packets",
+ "bevy",
+ "bevy_time",
+ "bytes",
+ "chrono",
+ "deku",
+ "derive_builder",
+ "tokio",
+ "tracing",
+ "wow_srp",
+]
+
+[[package]]
 name = "async-channel"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2013,96 +2103,6 @@ name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
-
-[[package]]
-name = "rustycraft_auth_server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bytes",
- "deku",
- "rustycraft_common",
- "rustycraft_database",
- "rustycraft_logging",
- "tokio",
- "tracing",
- "uuid",
- "wow_srp",
-]
-
-[[package]]
-name = "rustycraft_common"
-version = "0.1.0"
-dependencies = [
- "rustycraft_database",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "rustycraft_database"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "redis",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "rustycraft_derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "rustycraft_logging"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "rustycraft_world_packets"
-version = "0.1.0"
-dependencies = [
- "array-init",
- "bevy_math",
- "bytes",
- "deku",
- "derive_builder",
- "paste",
- "rustycraft_derive",
- "thiserror",
- "tracing",
- "wow_srp",
-]
-
-[[package]]
-name = "rustycraft_world_server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bevy",
- "bevy_time",
- "bytes",
- "chrono",
- "deku",
- "derive_builder",
- "rustycraft_common",
- "rustycraft_database",
- "rustycraft_logging",
- "rustycraft_world_packets",
- "tokio",
- "tracing",
- "wow_srp",
-]
 
 [[package]]
 name = "ryu"
